@@ -198,6 +198,9 @@ code, pre {
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   background: var(--bg-base);
+  overflow-x: hidden;
+  width: calc(100vw - var(--sidebar-width));
+  max-width: 100%;
 }
 
 /* Admin layout */
@@ -223,6 +226,9 @@ code, pre {
   margin-left: var(--admin-sidebar-width);
   min-height: 100vh;
   background: var(--surface-light);
+  overflow-x: hidden;
+  width: calc(100vw - var(--admin-sidebar-width));
+  max-width: 100%;
 }
 
 /* ============================================================

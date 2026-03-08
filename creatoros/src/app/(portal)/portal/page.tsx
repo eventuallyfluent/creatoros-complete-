@@ -262,7 +262,7 @@ export default async function PortalDashboard() {
   }
 
   return (
-    <div style={{ padding: 'var(--s7) var(--s6)' }}>
+    <div style={{ padding: '40px 40px', maxWidth: '1200px' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 'var(--s7)', paddingBottom: 'var(--s5)', borderBottom: '1px solid var(--border)' }}>
@@ -278,11 +278,11 @@ export default async function PortalDashboard() {
 
       {/* Empty state */}
       {libraryItems.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 'var(--s9)', background: 'var(--bg-surface)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)' }}>
+        <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--bg-surface)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', width: '100%' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>✦</div>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Your library is empty</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Browse the Academy and enrol in your first course.</p>
-          <Link href="/courses" style={{ display: 'inline-flex', background: 'var(--brand)', color: 'white', padding: '12px 24px', borderRadius: 'var(--r-md)', fontWeight: 600, fontSize: '15px', textDecoration: 'none' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Your library is empty</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '15px' }}>Browse the Academy and enrol in your first course.</p>
+          <Link href="/courses" style={{ display: 'inline-flex', background: 'var(--brand)', color: 'white', padding: '12px 28px', borderRadius: 'var(--r-md)', fontWeight: 600, fontSize: '15px', textDecoration: 'none' }}>
             Browse Courses →
           </Link>
         </div>

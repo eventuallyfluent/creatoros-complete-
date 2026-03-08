@@ -10,12 +10,22 @@ export const metadata: Metadata = { title: 'My Account' }
 export default async function AccountPage() {
   const session = await getServerSession(authOptions)
   const userId  = (session!.user as any).id
+  const email   = session!.user!.email!
 
-  const [user, orders, enrollments] = await Promise.all([
-    prisma.user.findUnique({
+  // Ensure user row exists (admin may have been created via JWT only)
+  const user = await prisma.user.upsert({
+    where:  { email },
+    create: { email, role: (session!.user as any).role ?? 'STUDENT', emailVerified: new Date() },
+    update: {},
+    select: { id: true, email: true, name: true, image: true, createdAt: true },
+  }).catch(async () => {
+    return await prisma.user.findUnique({
       where:  { id: userId },
       select: { id: true, email: true, name: true, image: true, createdAt: true },
-    }).catch(() => null),
+    })
+  })
+
+  const [orders, enrollments] = await Promise.all([
     prisma.order.findMany({
       where:   { userId, status: 'PAID' },
       include: { items: { include: { product: { select: { title: true, slug: true } } } } },
@@ -32,7 +42,7 @@ export default async function AccountPage() {
 
   const [progressMap, completedCourses, lessonTotals] = await Promise.all([
     prisma.lessonProgress.groupBy({
-      by:    ['courseId'],
+      by: ['courseId'],
       where: { userId, courseId: { in: courseIds }, status: 'COMPLETED' },
       _count: { courseId: true },
     }).catch(() => []),
@@ -41,7 +51,7 @@ export default async function AccountPage() {
       select: { courseId: true, completedAt: true },
     }).catch(() => []),
     prisma.lesson.groupBy({
-      by:    ['courseId'],
+      by: ['courseId'],
       where: { courseId: { in: courseIds }, isPublished: true },
       _count: { id: true },
     }).catch(() => []),
@@ -59,9 +69,18 @@ export default async function AccountPage() {
     totalLessons:     totalMap.get(e.courseId) ?? 0,
   }))
 
+  // Fallback user object if DB lookup failed entirely
+  const safeUser = user ?? {
+    id:        userId,
+    email:     email,
+    name:      session!.user!.name ?? null,
+    image:     null,
+    createdAt: new Date(),
+  }
+
   return (
     <AccountClient
-      user={user!}
+      user={safeUser as any}
       orders={orders as any}
       enrollments={enriched as any}
     />

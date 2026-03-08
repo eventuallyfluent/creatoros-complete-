@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 interface User    { id: string; email: string; name: string | null; image: string | null; createdAt: Date }
-interface Order   { id: string; total: number; currency: string; createdAt: Date; items: { course: { title: string; slug: string } }[] }
+interface Order   { id: string; total: number; currency: string; createdAt: Date; items: { product: { title: string; slug: string } | null }[] }
 interface Enrollment {
   course:            { id: string; title: string; slug: string; thumbnailUrl: string | null }
   enrolledAt:        Date
@@ -102,7 +102,7 @@ export default function AccountClient({ user, orders, enrollments }: Props) {
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</span>
               </div>
               {order.items.map((item, i) => (
-                <p key={i} style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>{item.course.title}</p>
+                <p key={i} style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>{item.product?.title ?? 'Course'}</p>
               ))}
               <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent)', margin: '8px 0 0' }}>
                 {order.currency} {Number(order.total).toFixed(2)}
