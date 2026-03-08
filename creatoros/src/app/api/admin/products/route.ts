@@ -96,3 +96,4 @@ export async function POST(req: NextRequest) {
     console.error('Product create error:', err)
     return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 })
   }
+}
