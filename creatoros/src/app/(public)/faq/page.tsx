@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { Metadata } from 'next'
 import { prisma } from '@/lib/db/prisma'
 import { DEFAULT_PAGES } from '@/lib/pages/default-pages'
