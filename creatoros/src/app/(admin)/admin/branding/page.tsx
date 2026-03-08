@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { Metadata } from 'next'
 import { getSiteSettings } from '@/lib/settings/site-settings'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'

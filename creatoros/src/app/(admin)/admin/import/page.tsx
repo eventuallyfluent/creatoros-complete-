@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { Metadata } from 'next'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import ImportTabs from './ImportTabs'

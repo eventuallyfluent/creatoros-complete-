@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
 
   providers: [
-    // ADMIN BACKDOOR — hardcoded credentials, remove after Resend is working
+    // ADMIN: hardcoded password login
     CredentialsProvider({
       id: 'admin-credentials',
       name: 'Admin',
@@ -25,7 +25,6 @@ export const authOptions: NextAuthOptions = {
           credentials?.email    === ADMIN_EMAIL &&
           credentials?.password === ADMIN_PASSWORD
         ) {
-          // Upsert admin user
           const user = await prisma.user.upsert({
             where:  { email: ADMIN_EMAIL },
             update: { role: 'ADMIN' },
@@ -42,7 +41,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // Magic link for students
+    // STUDENTS: magic link
     EmailProvider({
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({ identifier: email, url }) {
@@ -65,7 +64,6 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-
     async jwt({ token, user }) {
       if (user) {
         token.id   = user.id
