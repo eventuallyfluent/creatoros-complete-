@@ -11,7 +11,6 @@ import {
 const NAV_ITEMS = [
   { label: 'Dashboard',    href: '/portal',              icon: LayoutDashboard },
   { label: 'My Courses',   href: '/portal/courses',      icon: BookOpen },
-  { label: 'BookOpen',      href: '/portal/library',      icon: BookOpen },
   { label: 'Certificates', href: '/portal/certificates', icon: Star },
   { label: 'Account',      href: '/portal/account',      icon: Settings },
 ]
@@ -26,34 +25,29 @@ export default function PortalSidebar({ session }: { session: any }) {
     <aside className="portal-sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
 
       {/* Logo */}
-      <div style={{
-        padding: '24px 16px 20px',
-        borderBottom: '1px solid var(--border)',
-      }}>
+      <div style={{ padding: '24px 16px 20px', borderBottom: '1px solid var(--border)' }}>
         <Link href="/" style={{ display: 'inline-block', marginBottom: '20px' }}>
           <Image
             src="/logo.png"
             alt="Perseus Arcane Academy"
-            width={80}
-            height={32}
-            style={{ height: '28px', width: 'auto', objectFit: 'contain' }}
+            width={120}
+            height={50}
+            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
           />
         </Link>
 
-        {/* User info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '34px', height: '34px',
             borderRadius: '50%',
             background: 'var(--brand)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '12px', fontWeight: 700, color: 'white',
-            flexShrink: 0,
+            fontSize: '12px', fontWeight: 700, color: 'white', flexShrink: 0,
           }}>
             {initials}
           </div>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {userName.split(' ')[0]}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -83,15 +77,10 @@ export default function PortalSidebar({ session }: { session: any }) {
           )
         })}
 
-        {/* Admin link if applicable */}
         {isAdmin && (
           <>
             <div style={{ height: '1px', background: 'var(--border)', margin: '12px 4px' }} />
-            <Link
-              href="/admin"
-              className="sidebar-nav-item"
-              style={{ color: 'var(--accent)', marginBottom: '2px', display: 'flex' }}
-            >
+            <Link href="/admin" className="sidebar-nav-item" style={{ color: 'var(--accent)', marginBottom: '2px', display: 'flex' }}>
               <Shield size={16} style={{ flexShrink: 0 }} />
               Admin Panel
             </Link>
@@ -99,29 +88,16 @@ export default function PortalSidebar({ session }: { session: any }) {
         )}
       </nav>
 
-      {/* Bottom actions */}
-      <div style={{
-        padding: '12px 8px',
-        borderTop: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', gap: '2px',
-      }}>
-        <Link
-          href="/courses"
-          className="sidebar-nav-item"
-          style={{ display: 'flex' }}
-        >
+      {/* Bottom */}
+      <div style={{ padding: '12px 8px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <Link href="/courses" className="sidebar-nav-item" style={{ display: 'flex' }}>
           <ExternalLink size={16} style={{ flexShrink: 0 }} />
           Browse Courses
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="sidebar-nav-item"
-          style={{
-            width: '100%', textAlign: 'left',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--danger)',
-            display: 'flex',
-          }}
+          style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex' }}
         >
           <LogOut size={16} style={{ flexShrink: 0 }} />
           Sign Out

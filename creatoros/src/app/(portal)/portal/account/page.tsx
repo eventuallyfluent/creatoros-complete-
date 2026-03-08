@@ -11,55 +11,52 @@ export default async function AccountPage() {
   const session = await getServerSession(authOptions)
   const userId  = (session!.user as any).id
 
-  let _data: any
-  try {const [user, orders, enrollments] = await Promise.all([
+  const [user, orders, enrollments] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: userId },
       select: { id: true, email: true, name: true, image: true, createdAt: true },
-    }),
+    }).catch(() => null),
     prisma.order.findMany({
       where:   { userId, status: 'PAID' },
       include: { items: { include: { product: { select: { title: true, slug: true } } } } },
       orderBy: { createdAt: 'desc' },
-    }),
+    }).catch(() => []),
     prisma.enrollment.findMany({
       where:   { userId, status: 'ACTIVE' },
       include: { course: { select: { id: true, title: true, slug: true, thumbnailUrl: true } } },
       orderBy: { enrolledAt: 'desc' },
-    }),
-  ]).catch(() => [])
-  } catch(e) { console.error("Page DB error:", e) }
-  
+    }).catch(() => []),
+  ])
 
-  const courseIds   = enrollments.map(e => e.courseId)
-  const [progressMap, completedCourses] = await Promise.all([
+  const courseIds = enrollments.map((e: any) => e.courseId)
+
+  const [progressMap, completedCourses, lessonTotals] = await Promise.all([
     prisma.lessonProgress.groupBy({
       by:    ['courseId'],
       where: { userId, courseId: { in: courseIds }, status: 'COMPLETED' },
       _count: { courseId: true },
-    }),
+    }).catch(() => []),
     prisma.enrollment.findMany({
       where:  { userId, completedAt: { not: null } },
       select: { courseId: true, completedAt: true },
-    }),
-  ]).catch(() => [])
+    }).catch(() => []),
+    prisma.lesson.groupBy({
+      by:    ['courseId'],
+      where: { courseId: { in: courseIds }, isPublished: true },
+      _count: { id: true },
+    }).catch(() => []),
+  ])
 
-  const lessonTotals = await prisma.lesson.groupBy({
-    by:    ['courseId'],
-    where: { courseId: { in: courseIds }, isPublished: true },
-    _count: { id: true },
-  })
+  const completedMap   = new Map(completedCourses.map((e: any) => [e.courseId, e.completedAt]))
+  const progressCounts = new Map(progressMap.map((p: any) => [p.courseId, p._count.courseId]))
+  const totalMap       = new Map(lessonTotals.map((l: any) => [l.courseId, l._count.id]))
 
-  const completedMap   = new Map(completedCourses.map(e => [e.courseId, e.completedAt]))
-  const progressCounts = new Map(progressMap.map(p => [p.courseId, p._count.courseId]))
-  const totalMap       = new Map(lessonTotals.map(l => [l.courseId, l._count.id]))
-
-  const enriched = enrollments.map(e => ({
-    course:         e.course,
-    enrolledAt:     e.enrolledAt,
-    completedAt:    completedMap.get(e.courseId) ?? null,
+  const enriched = enrollments.map((e: any) => ({
+    course:           e.course,
+    enrolledAt:       e.enrolledAt,
+    completedAt:      completedMap.get(e.courseId) ?? null,
     lessonsCompleted: progressCounts.get(e.courseId) ?? 0,
-    totalLessons:   totalMap.get(e.courseId) ?? 0,
+    totalLessons:     totalMap.get(e.courseId) ?? 0,
   }))
 
   return (
