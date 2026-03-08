@@ -5,6 +5,8 @@ import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from '@/lib/db/prisma'
 import { sendMagicLinkEmail } from '@/lib/email/magic-link'
 
+const ADMIN_EMAIL = 'perseusarcaneacademy@gmail.com'
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
 
@@ -13,12 +15,18 @@ export const authOptions: NextAuthOptions = {
     EmailProvider({
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({ identifier: email, url }) {
+        if (email === ADMIN_EMAIL) {
+          // Admin bypass — magic link printed to Vercel logs instead of email
+          console.log('=== ADMIN MAGIC LINK ===')
+          console.log(url)
+          console.log('========================')
+          return
+        }
         await sendMagicLinkEmail({ email, url, type: 'LOGIN' })
       },
     }),
 
     // OPTIONAL: Google OAuth
-    // Enabled/disabled via GOOGLE_CLIENT_ID in env
     ...(process.env.GOOGLE_CLIENT_ID
       ? [
           GoogleProvider({
@@ -54,11 +62,11 @@ export const authOptions: NextAuthOptions = {
   },
 
   events: {
-    // When a new user is created via magic link — set default role
     async createUser({ user }) {
+      const role = user.email === ADMIN_EMAIL ? 'ADMIN' : 'STUDENT'
       await prisma.user.update({
         where: { id: user.id },
-        data:  { role: 'STUDENT' },
+        data:  { role },
       })
     },
   },
