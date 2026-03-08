@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { Metadata } from 'next'
 import { prisma } from '@/lib/db/prisma'
 import Link from 'next/link'
@@ -5,17 +6,18 @@ import Link from 'next/link'
 export const metadata: Metadata = { title: 'Admin Dashboard' }
 
 export default async function AdminDashboard() {
-  const [
-    courseCount, studentCount, orderCount,
-    revenue, recentOrders, recentStudents,
-  ] = await Promise.all([
+  let courseCount = 0, studentCount = 0, orderCount = 0
+  let revenue: any = { _sum: { total: null } }
+  let recentOrders: any[] = [], recentStudents: any[] = []
+  try {
+  ;[courseCount, studentCount, orderCount, revenue, recentOrders, recentStudents] = await Promise.all([
     prisma.course.count({ where: { status: 'PUBLISHED' } }),
     prisma.user.count({ where: { role: 'STUDENT' } }),
     prisma.order.count({ where: { status: 'PAID' } }),
     prisma.order.aggregate({ where: { status: 'PAID' }, _sum: { total: true } }),
     prisma.order.findMany({
       where:   { status: 'PAID' },
-      include: { items: { include: { course: { select: { title: true } } } } },
+      include: { items: { include: { product: { select: { title: true } } } } },
       orderBy: { paidAt: 'desc' },
       take:    8,
     }),
@@ -26,6 +28,7 @@ export default async function AdminDashboard() {
       select:  { id: true, email: true, name: true, createdAt: true },
     }),
   ])
+  } catch(e) { console.error('Dashboard DB error:', e) }
 
   const totalRevenue = Number(revenue._sum.total ?? 0)
 
@@ -76,7 +79,7 @@ export default async function AdminDashboard() {
           href="/admin/orders"
           headers={['Course', 'Amount', 'Date']}
           rows={recentOrders.map(o => [
-            o.items[0]?.course.title ?? '—',
+            o.items[0]?.product.title ?? '—',
             `$${Number(o.total).toFixed(2)}`,
             o.paidAt ? new Date(o.paidAt).toLocaleDateString() : '—',
           ])}
