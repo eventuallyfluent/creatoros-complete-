@@ -80,7 +80,7 @@ export default function PageEditor({ page }: { page: PageData | null }) {
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '20px' }}>
           {(['content', 'seo'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '10px 18px', fontSize: '13px', fontWeight: tab === t ? 700 : 500, color: tab === t ? '#7B2FBE' : '#6b7280', borderBottom: tab === t ? '2px solid #7B2FBE' : '2px solid transparent', background: 'none', border: 'none', borderBottom: tab === t ? '2px solid #7B2FBE' : '2px solid transparent', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '10px 18px', fontSize: '13px', fontWeight: tab === t ? 700 : 500, color: tab === t ? '#7B2FBE' : '#6b7280', background: 'none', border: 'none', borderBottom: tab === t ? '2px solid #7B2FBE' : '2px solid transparent', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
               {t === 'content' ? '📝 Content' : '🔍 SEO'}
             </button>
           ))}
