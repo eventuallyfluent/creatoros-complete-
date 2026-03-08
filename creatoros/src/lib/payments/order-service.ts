@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma'
+import { logger } from '@/lib/logger'
 import { sendPostPurchaseMagicLink } from '@/lib/email/magic-link'
 
 // ============================================================
@@ -8,7 +9,7 @@ import { sendPostPurchaseMagicLink } from '@/lib/email/magic-link'
 export interface CreateOrderInput {
   email:      string
   userId?:    string
-  productIds: string[]   // Products being purchased (COURSE or BUNDLE)
+  productIds: string[]
   couponCode?: string
   gatewayId:  string
   ipAddress?: string
@@ -34,6 +35,14 @@ export async function calculateOrderTotals(
   })
 
   if (products.length === 0) throw new Error('No valid products found')
+
+  // ISSUE 4 FIX: Reject mixed-currency orders
+  const currencies = new Set(products.map(p => p.currency))
+  if (currencies.size > 1) {
+    throw new Error(
+      `Cannot purchase products in different currencies: ${Array.from(currencies).join(', ')}`
+    )
+  }
 
   const currency     = products[0].currency
   const subtotal     = products.reduce((sum, p) => sum + Number(p.price), 0)
@@ -62,9 +71,9 @@ export async function calculateOrderTotals(
         const applicable = productIds.some(id => coupon.applicableProductIds.includes(id))
         if (!applicable) throw new Error('Coupon not valid for these products')
       }
-      if (coupon.type === 'PERCENTAGE')   discountAmount = subtotal * (Number(coupon.value) / 100)
+      if (coupon.type === 'PERCENTAGE')       discountAmount = subtotal * (Number(coupon.value) / 100)
       else if (coupon.type === 'FIXED_AMOUNT') discountAmount = Math.min(Number(coupon.value), subtotal)
-      else if (coupon.type === 'FREE')    discountAmount = subtotal
+      else if (coupon.type === 'FREE')         discountAmount = subtotal
       couponId = coupon.id
     }
   }
@@ -111,9 +120,6 @@ export async function createOrder(input: CreateOrderInput) {
 }
 
 // ── Fulfil a paid order ───────────────────────────────────────────────────────
-// For each ordered Product:
-//   COURSE  → enrol student in the one Course
-//   BUNDLE  → enrol student in every Course in the Bundle
 
 export async function fulfilOrder(orderId: string) {
   const order = await prisma.order.findUnique({
@@ -135,6 +141,8 @@ export async function fulfilOrder(orderId: string) {
   if (!order)                   throw new Error('Order not found')
   if (order.status !== 'PAID')  throw new Error('Order is not paid')
 
+  logger.info('fulfilOrder: starting', { orderId, email: order.email })
+
   // Get or create user
   let user = order.user
   if (!user && order.email) {
@@ -149,9 +157,15 @@ export async function fulfilOrder(orderId: string) {
 
   const enrolledCourseIds: string[] = []
 
+  // ISSUE 1 + 2 FIX: Complete all enrollments first, with null guard on product
   for (const item of order.items) {
-    const product = item.product
-    const coursesToEnrol = product.courses.map(pc => pc.course)
+    // ISSUE 2 FIX: Guard against deleted products
+    if (!item.product) {
+      console.error(`fulfilOrder: product ${item.productId} not found for order ${orderId} — skipping item`)
+      continue
+    }
+
+    const coursesToEnrol = item.product.courses.map(pc => pc.course)
 
     for (const course of coursesToEnrol) {
       await prisma.enrollment.upsert({
@@ -159,17 +173,17 @@ export async function fulfilOrder(orderId: string) {
         create: {
           userId:    user.id,
           courseId:  course.id,
-          productId: product.id,
+          productId: item.product.id,
           orderId:   order.id,
           status:    'ACTIVE',
         },
-        update: { status: 'ACTIVE', productId: product.id },
+        update: { status: 'ACTIVE', productId: item.product.id },
       })
       enrolledCourseIds.push(course.id)
     }
   }
 
-  // Increment coupon
+  // Increment coupon usage
   if (order.couponId) {
     await prisma.coupon.update({
       where: { id: order.couponId },
@@ -177,39 +191,49 @@ export async function fulfilOrder(orderId: string) {
     })
   }
 
-  // Send magic link to first enrolled course
-  const firstProduct = order.items[0]?.product
+  // ISSUE 1 FIX: Send email AFTER all enrollments are confirmed
+  const firstItem    = order.items.find(i => i.product)
+  const firstProduct = firstItem?.product
   const firstCourse  = firstProduct?.courses[0]?.course
-  if (firstCourse) {
-    await sendPostPurchaseMagicLink({
-      email:      order.email,
-      courseName: firstProduct.type === 'BUNDLE' ? firstProduct.title : firstCourse.title,
-      courseSlug: firstCourse.slug,
-      orderId:    order.id,
-    })
+  if (firstCourse && firstProduct) {
+    try {
+      await sendPostPurchaseMagicLink({
+        email:      order.email,
+        courseName: firstProduct.type === 'BUNDLE' ? firstProduct.title : firstCourse.title,
+        courseSlug: firstCourse.slug,
+        orderId:    order.id,
+      })
+    } catch (emailErr) {
+      // Email failure should NOT roll back enrollments — log and continue
+      console.error(`fulfilOrder: failed to send magic link for order ${orderId}:`, emailErr)
+    }
   }
 
-  // Fire automations — product-level first, then per-course
+  // ISSUE 3 FIX: Pass deduplication key to prevent double-firing automations
+  const dedupeKey = `order:${order.id}`
   const { runAutomations } = await import('@/lib/automations/automation-engine')
 
   for (const item of order.items) {
+    if (!item.product) continue
     await runAutomations('PURCHASE', {
       userId: user.id, email: user.email,
       productId: item.productId, orderId: order.id,
-    })
+    }, dedupeKey).catch(err => console.error('PURCHASE automation failed:', err))
   }
 
   for (const item of order.items) {
+    if (!item.product) continue
     for (const pc of item.product.courses) {
       const ctx = {
         userId: user.id, email: user.email,
         productId: item.productId, courseId: pc.courseId, orderId: order.id,
       }
-      await runAutomations('ENROLLMENT',     ctx)
-      await runAutomations('ACCESS_GRANTED', ctx)
+      await runAutomations('ENROLLMENT',     ctx, dedupeKey).catch(err => console.error('ENROLLMENT automation failed:', err))
+      await runAutomations('ACCESS_GRANTED', ctx, dedupeKey).catch(err => console.error('ACCESS_GRANTED automation failed:', err))
     }
   }
 
+  logger.info('fulfilOrder: complete', { orderId, userId: user.id, enrolledCourseIds })
   return { userId: user.id, enrolledCourseIds }
 }
 
@@ -243,6 +267,7 @@ export async function refundOrder(orderId: string, amount: number, isPartial: bo
     })
     if (order) {
       for (const item of order.items) {
+        if (!item.product) continue
         for (const pc of item.product.courses) {
           await prisma.enrollment.updateMany({
             where: { orderId, courseId: pc.courseId },

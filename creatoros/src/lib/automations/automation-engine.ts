@@ -18,35 +18,44 @@ import { sendEmail, renderBroadcastHtml } from '@/lib/email/email-service'
 //   CHECKOUT_ABANDONED — future: incomplete checkout
 //
 // Step action types:
-//   send_email        { subject, body } — template vars:
-//                       {{name}}, {{first_name}},
-//                       {{product_title}}, {{course_title}},
-//                       {{course_url}}, {{review_url}}, {{dashboard_url}}
+//   send_email        { subject, body }
 //   delay             { hours: number }
 //   add_tag           { tag: string }
 //   remove_tag        { tag: string }
-//   enroll_course     { courseId: string }  — grants course access directly
-//   grant_product     { productId: string } — grants all courses in a product
+//   enroll_course     { courseId: string }
+//   grant_product     { productId: string }
 //   webhook_post      { url: string, payload?: object }
-//
-// Trigger filter supports: courseId, productId, tag
-// NOTE: Funnels in SCP attach to checkouts, not products. A funnel-on-checkout
-// architecture should be added when upsell/downsell sequences are built.
 // ============================================================
 
 export interface AutomationContext {
   userId?:    string
   email?:     string
-  productId?: string  // which product triggered (purchase / access grant)
-  courseId?:  string  // which course (enrollment / lesson / completion)
+  productId?: string
+  courseId?:  string
   orderId?:   string
   lessonId?:  string
   tag?:       string
 }
 
+// ISSUE 6 FIX: Proper types instead of as any
+interface TriggerFilter {
+  productId?: string | null
+  courseId?:  string | null
+  tag?:       string | null
+}
+
+interface AutomationStep {
+  id:         string
+  action:     string
+  actionData: Record<string, unknown> | null
+  sortOrder:  number
+}
+
+// ISSUE 3 FIX: deduplicationKey prevents double-firing when called from webhook + admin
 export async function runAutomations(
-  triggerType: string,
-  ctx:         AutomationContext
+  triggerType:      string,
+  ctx:              AutomationContext,
+  deduplicationKey?: string
 ): Promise<void> {
   const automations = await prisma.automation.findMany({
     where:   { isActive: true, trigger: triggerType },
@@ -54,23 +63,32 @@ export async function runAutomations(
   })
 
   for (const automation of automations) {
-    if (!matchesTriggerFilter(automation.triggerFilter as any, ctx)) continue
+    const filter = automation.triggerFilter as TriggerFilter | null
+    if (!matchesTriggerFilter(filter, ctx)) continue
+
+    // Deduplication: skip if this exact key has already run for this automation
+    const dedupe = deduplicationKey ?? `${triggerType}:${ctx.orderId ?? ctx.userId ?? ''}`
+    const existing = await prisma.automationExecution.findFirst({
+      where: { automationId: automation.id, deduplicationKey: dedupe },
+    }).catch(() => null)
+    if (existing) continue
 
     const execution = await prisma.automationExecution.create({
       data: {
-        automationId: automation.id,
-        userId:       ctx.userId,
-        context:      ctx as any,
-        status:       'RUNNING',
+        automationId:     automation.id,
+        userId:           ctx.userId,
+        context:          ctx as Record<string, unknown>,
+        status:           'RUNNING',
+        deduplicationKey: dedupe,
       },
     })
 
-    await executeSteps(automation.steps as any[], ctx, execution.id)
+    await executeSteps(automation.steps as AutomationStep[], ctx, execution.id)
   }
 }
 
 function matchesTriggerFilter(
-  filter: Record<string, any> | null,
+  filter: TriggerFilter | null,
   ctx:    AutomationContext
 ): boolean {
   if (!filter) return true
@@ -81,7 +99,7 @@ function matchesTriggerFilter(
 }
 
 async function executeSteps(
-  steps:       any[],
+  steps:       AutomationStep[],
   ctx:         AutomationContext,
   executionId: string
 ): Promise<void> {
@@ -91,13 +109,14 @@ async function executeSteps(
       await prisma.automationExecution.update({
         where: { id: executionId },
         data:  { completedSteps: { increment: 1 } },
-      })
-    } catch (err: any) {
+      }).catch(() => {})
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
       console.error(`Automation step failed [${executionId}]:`, err)
       await prisma.automationExecution.update({
         where: { id: executionId },
-        data:  { status: 'FAILED', error: err.message },
-      })
+        data:  { status: 'FAILED', error: msg },
+      }).catch(() => {})
       return
     }
   }
@@ -105,19 +124,18 @@ async function executeSteps(
   await prisma.automationExecution.update({
     where: { id: executionId },
     data:  { status: 'COMPLETED', completedAt: new Date() },
-  })
+  }).catch(() => {})
 }
 
 async function executeStep(
   action: string,
-  data:   Record<string, any>,
+  data:   Record<string, unknown>,
   ctx:    AutomationContext
 ): Promise<void> {
 
   if (action === 'send_email') {
     if (!ctx.email) return
 
-    // Resolve product title (primary) then course title (fallback)
     let productTitle = ''
     let courseTitle  = ''
     let courseSlug   = ''
@@ -151,8 +169,8 @@ async function executeStep(
       '{{dashboard_url}}':  `${appUrl}/portal`,
     }
 
-    let subject  = data.subject ?? 'A message for you'
-    let bodyText = data.body    ?? ''
+    let subject  = (data.subject as string) ?? 'A message for you'
+    let bodyText = (data.body    as string) ?? ''
     for (const [token, value] of Object.entries(vars)) {
       subject  = subject.replaceAll(token, value)
       bodyText = bodyText.replaceAll(token, value)
@@ -170,33 +188,31 @@ async function executeStep(
         status:   result.success ? 'SENT' : 'FAILED',
         resendId: result.id ?? null,
       },
-    })
+    }).catch(() => {})
     return
   }
 
   if (action === 'enroll_course') {
-    // Direct course-level access grant (manual/automation)
     if (!ctx.userId || !data.courseId) return
     await prisma.enrollment.upsert({
-      where:  { userId_courseId: { userId: ctx.userId, courseId: data.courseId } },
-      create: { userId: ctx.userId, courseId: data.courseId, status: 'ACTIVE' },
+      where:  { userId_courseId: { userId: ctx.userId, courseId: data.courseId as string } },
+      create: { userId: ctx.userId, courseId: data.courseId as string, status: 'ACTIVE' },
       update: { status: 'ACTIVE' },
     })
     return
   }
 
   if (action === 'grant_product') {
-    // Product-level access grant — enrols in all included courses
     if (!ctx.userId || !data.productId) return
     const product = await prisma.product.findUnique({
-      where:   { id: data.productId },
+      where:   { id: data.productId as string },
       include: { courses: true },
     })
     if (!product) return
     for (const pc of product.courses) {
       await prisma.enrollment.upsert({
         where:  { userId_courseId: { userId: ctx.userId, courseId: pc.courseId } },
-        create: { userId: ctx.userId, courseId: pc.courseId, productId: data.productId, status: 'ACTIVE' },
+        create: { userId: ctx.userId, courseId: pc.courseId, productId: data.productId as string, status: 'ACTIVE' },
         update: { status: 'ACTIVE' },
       })
     }
@@ -207,7 +223,7 @@ async function executeStep(
     if (!ctx.email || !data.tag) return
     await prisma.emailSubscriber.updateMany({
       where: { email: ctx.email },
-      data:  { tags: { push: data.tag } },
+      data:  { tags: { push: data.tag as string } },
     })
     return
   }
@@ -226,19 +242,17 @@ async function executeStep(
 
   if (action === 'webhook_post') {
     if (!data.url) return
-    await fetch(data.url, {
+    await fetch(data.url as string, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ ...data.payload, ...ctx }),
-    })
+      body:    JSON.stringify({ ...(data.payload as object ?? {}), ...ctx }),
+    }).catch(err => console.error('webhook_post failed:', err))
     return
   }
 
   if (action === 'delay') {
-    // Production: schedule a job and resume from next step
-    // Dev only: honour very short delays for testing
-    if (process.env.NODE_ENV === 'development' && data.hours <= 0.01) {
-      await new Promise(r => setTimeout(r, data.hours * 3600000))
+    if (process.env.NODE_ENV === 'development' && Number(data.hours) <= 0.01) {
+      await new Promise(r => setTimeout(r, Number(data.hours) * 3600000))
     }
     return
   }

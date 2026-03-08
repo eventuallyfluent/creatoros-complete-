@@ -728,19 +728,21 @@ model AutomationStep {
 }
 
 model AutomationExecution {
-  id           String  @id @default(cuid())
-  automationId String
-  userId       String?
-  context      Json    @default("{}")
-  status       String  @default("RUNNING") // RUNNING | COMPLETED | FAILED
-  completedSteps Int   @default(0)
-  error        String?
+  id                String  @id @default(cuid())
+  automationId      String
+  userId            String?
+  context           Json    @default("{}")
+  status            String  @default("RUNNING") // RUNNING | COMPLETED | FAILED
+  completedSteps    Int     @default(0)
+  error             String?
+  deduplicationKey  String?
 
   startedAt   DateTime  @default(now())
   completedAt DateTime?
 
   automation  Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
 
+  @@unique([automationId, deduplicationKey])
   @@map("automation_executions")
 }
 

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, BookOpen, FolderOpen, Users, ShoppingBag,
+  LayoutDashboard, BookOpen, FolderOpen, Users, User, ShoppingBag,
   Tag, CreditCard, Zap, Webhook, Mail, UserPlus, BarChart2,
   Palette, Navigation, Settings, ExternalLink, ChevronRight, Package, Import,
 } from 'lucide-react'
@@ -16,7 +16,7 @@ const NAV_GROUPS = [
       { label: 'Products',    href: '/admin/products',    icon: Package },
       { label: 'Courses',     href: '/admin/courses',     icon: BookOpen },
       { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
-      { label: 'Instructors', href: '/admin/instructors', icon: UserCircle },
+      { label: 'Instructors', href: '/admin/instructors', icon: User },
       { label: 'Homepage',    href: '/admin/homepage',    icon: ExternalLink },
       { label: 'Reviews',     href: '/admin/reviews',     icon: MessageSquare },
       { label: 'Testimonials', href: '/admin/testimonials', icon: Star },

@@ -285,10 +285,12 @@ export default function VideoPlayer({
     return () => clearInterval(pollTimer.current)
   }, [provider, apiReady, ytCmd])
 
-  // ── Cleanup ──────────────────────────────────────────────────────────────
-  useEffect(() => () => {
-    clearTimeout(hideTimer.current)
-    clearInterval(pollTimer.current)
+  // ── Cleanup — clears all timers on unmount ───────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (hideTimer.current)  clearTimeout(hideTimer.current)
+      if (pollTimer.current)  clearInterval(pollTimer.current)
+    }
   }, [])
 
   // ── Vimeo: ping iframe on load so it sends "ready" ──────────────────────
