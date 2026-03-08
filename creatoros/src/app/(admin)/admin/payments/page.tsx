@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { Metadata } from 'next'
 import { prisma } from '@/lib/db/prisma'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
-import GatewayManager from './GatewayManager'
+import GatewayManager from '@/components/admin/GatewayManager'
 
 export const metadata: Metadata = { title: 'Payments — Admin' }
 

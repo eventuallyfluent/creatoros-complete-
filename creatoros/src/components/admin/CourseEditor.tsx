@@ -90,6 +90,20 @@ export default function CourseEditor({ course, instructors, productId }: Props) 
   return (
     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
 
+      {/* New course — explain the 2-step flow */}
+      {isNew && (
+        <div style={{ padding: '12px 20px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <span style={{ fontSize: '18px', flexShrink: 0 }}>ℹ️</span>
+          <div>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af', margin: '0 0 2px' }}>Step 1 of 2 — Course details</p>
+            <p style={{ fontSize: '13px', color: '#1d4ed8', margin: 0, lineHeight: 1.5 }}>
+              Fill in the title, upload a thumbnail image, set status and instructor, then click <strong>Save Course</strong>.
+              You'll be taken to the curriculum editor where you can add modules and lessons.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Pricing notice — points to Product editor */}
       {!isNew && (
         <div style={{ padding: '12px 20px', background: '#f0fdf4', borderBottom: '1px solid #d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
