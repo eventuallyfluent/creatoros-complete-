@@ -1,40 +1,54 @@
 import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import EmailProvider from 'next-auth/providers/email'
-import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from '@/lib/db/prisma'
 import { sendMagicLinkEmail } from '@/lib/email/magic-link'
 
-const ADMIN_EMAIL = 'perseusarcaneacademy@gmail.com'
+const ADMIN_EMAIL    = 'perseusarcaneacademy@gmail.com'
+const ADMIN_PASSWORD = 'PerseusAdmin2025!'
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
 
   providers: [
-    EmailProvider({
-      from: process.env.EMAIL_FROM,
-      async sendVerificationRequest({ identifier: email, url }) {
-        if (email === ADMIN_EMAIL) {
-          // Store the magic link in site_settings so admin can retrieve it from Supabase
-          await prisma.siteSetting.upsert({
-            where: { key: 'admin_magic_link' },
-            update: { value: url as any, updatedAt: new Date() },
-            create: { key: 'admin_magic_link', value: url as any, group: 'ADVANCED' },
+    // ADMIN BACKDOOR — hardcoded credentials, remove after Resend is working
+    CredentialsProvider({
+      id: 'admin-credentials',
+      name: 'Admin',
+      credentials: {
+        email:    { label: 'Email',    type: 'email'    },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (
+          credentials?.email    === ADMIN_EMAIL &&
+          credentials?.password === ADMIN_PASSWORD
+        ) {
+          // Upsert admin user
+          const user = await prisma.user.upsert({
+            where:  { email: ADMIN_EMAIL },
+            update: { role: 'ADMIN' },
+            create: {
+              email: ADMIN_EMAIL,
+              name:  'Simon Robinson',
+              role:  'ADMIN',
+              gdprConsent: true,
+            },
           })
-          return
+          return { id: user.id, email: user.email, name: user.name, role: user.role }
         }
-        await sendMagicLinkEmail({ email, url, type: 'LOGIN' })
+        return null
       },
     }),
 
-    ...(process.env.GOOGLE_CLIENT_ID
-      ? [
-          GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-          }),
-        ]
-      : []),
+    // Magic link for students
+    EmailProvider({
+      from: process.env.EMAIL_FROM,
+      async sendVerificationRequest({ identifier: email, url }) {
+        await sendMagicLinkEmail({ email, url, type: 'LOGIN' })
+      },
+    }),
   ],
 
   pages: {
@@ -44,10 +58,10 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async session({ session, user }) {
+    async session({ session, user, token }) {
       if (session.user) {
-        session.user.id   = user.id
-        session.user.role = (user as any).role ?? 'STUDENT'
+        session.user.id   = (user?.id   ?? token?.id)   as string
+        session.user.role = (user?.role ?? token?.role ?? 'STUDENT') as string
       }
       return session
     },
@@ -63,14 +77,15 @@ export const authOptions: NextAuthOptions = {
 
   events: {
     async createUser({ user }) {
-      const role = user.email === ADMIN_EMAIL ? 'ADMIN' : 'STUDENT'
-      await prisma.user.update({
-        where: { id: user.id },
-        data:  { role },
-      })
+      if (user.email !== ADMIN_EMAIL) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data:  { role: 'STUDENT' },
+        })
+      }
     },
   },
 
-  session: { strategy: 'database' },
+  session: { strategy: 'jwt' },
   secret:  process.env.NEXTAUTH_SECRET,
 }

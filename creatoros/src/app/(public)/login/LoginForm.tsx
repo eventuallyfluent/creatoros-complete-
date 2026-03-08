@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 
+const ADMIN_EMAIL = 'perseusarcaneacademy@gmail.com'
+
 export default function LoginForm({
   callbackUrl,
   error,
@@ -10,19 +12,32 @@ export default function LoginForm({
   error?:       string
 }) {
   const [email,     setEmail]     = useState('')
+  const [password,  setPassword]  = useState('')
   const [loading,   setLoading]   = useState(false)
   const [submitted, setSubmitted] = useState(false)
+
+  const isAdmin = email === ADMIN_EMAIL
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    await signIn('email', {
-      email,
-      callbackUrl: callbackUrl ?? '/portal',
-      redirect:    false,
-    })
-    setLoading(false)
-    setSubmitted(true)
+
+    if (isAdmin) {
+      const res = await signIn('admin-credentials', {
+        email,
+        password,
+        callbackUrl: callbackUrl ?? '/admin',
+        redirect:    true,
+      })
+    } else {
+      await signIn('email', {
+        email,
+        callbackUrl: callbackUrl ?? '/portal',
+        redirect:    false,
+      })
+      setLoading(false)
+      setSubmitted(true)
+    }
   }
 
   if (submitted) {
@@ -34,17 +49,11 @@ export default function LoginForm({
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: 1.6 }}>
           We sent a magic link to <strong style={{ color: 'var(--accent)' }}>{email}</strong>.
-          Click it to sign in — no password needed.
+          Click it to sign in.
         </p>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          Didn&apos;t get it? Check your spam folder, or{' '}
-          <button
-            onClick={() => setSubmitted(false)}
-            style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}
-          >
-            try again
-          </button>.
-        </p>
+        <button onClick={() => setSubmitted(false)} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
+          Try again
+        </button>
       </div>
     )
   }
@@ -61,15 +70,12 @@ export default function LoginForm({
           color: 'var(--danger)',
           marginBottom: '20px',
         }}>
-          {error === 'OAuthSignin' ? 'Problem signing in with Google. Try email instead.' : 'Something went wrong. Please try again.'}
+          Something went wrong. Please try again.
         </div>
       )}
 
       <div style={{ marginBottom: '16px' }}>
-        <label style={{
-          display: 'block', fontSize: '13px', fontWeight: 500,
-          color: 'var(--text-secondary)', marginBottom: '8px',
-        }}>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
           Email address
         </label>
         <input
@@ -89,22 +95,43 @@ export default function LoginForm({
             color: 'var(--text-primary)',
             outline: 'none',
             fontFamily: 'var(--font-ui)',
-            transition: 'border-color 0.15s, box-shadow 0.15s',
           }}
-          onFocus={e => {
-            e.target.style.borderColor = 'var(--brand)'
-            e.target.style.boxShadow   = '0 0 0 3px var(--brand-glow)'
-          }}
-          onBlur={e => {
-            e.target.style.borderColor = 'var(--border)'
-            e.target.style.boxShadow   = 'none'
-          }}
+          onFocus={e => { e.target.style.borderColor = 'var(--brand)'; e.target.style.boxShadow = '0 0 0 3px var(--brand-glow)' }}
+          onBlur={e =>  { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }}
         />
       </div>
 
+      {isAdmin && (
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Admin password"
+            required
+            style={{
+              width: '100%',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-md)',
+              padding: '12px 16px',
+              fontSize: '15px',
+              color: 'var(--text-primary)',
+              outline: 'none',
+              fontFamily: 'var(--font-ui)',
+            }}
+            onFocus={e => { e.target.style.borderColor = 'var(--brand)'; e.target.style.boxShadow = '0 0 0 3px var(--brand-glow)' }}
+            onBlur={e =>  { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }}
+          />
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={loading || !email}
+        disabled={loading || !email || (isAdmin && !password)}
         style={{
           width: '100%',
           background: loading ? 'var(--bg-elevated)' : 'var(--brand)',
@@ -116,11 +143,10 @@ export default function LoginForm({
           fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',
           fontFamily: 'var(--font-ui)',
-          transition: 'all 0.15s',
           marginBottom: '24px',
         }}
       >
-        {loading ? 'Sending...' : 'Send Magic Link →'}
+        {loading ? 'Signing in...' : isAdmin ? 'Sign In →' : 'Send Magic Link →'}
       </button>
 
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
