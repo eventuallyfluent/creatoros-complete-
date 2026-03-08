@@ -1,0 +1,1095 @@
+// CreatorOS — Complete Prisma Schema
+// Perseus Arcane Academy Edition
+// All tables documented in Architecture v2.0
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// AUTH & USERS
+// ============================================================
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  avatarUrl     String?
+  role          Role      @default(STUDENT)
+
+  // GDPR
+  gdprConsent     Boolean   @default(false)
+  gdprConsentAt   DateTime?
+  gdprConsentIp   String?
+
+  // Gateway-specific IDs stored flexibly
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts           Account[]
+  sessions           Session[]
+  enrollments        Enrollment[]
+  lessonProgress     LessonProgress[]
+  orders             Order[]
+  comments           Comment[]
+  instructorProfile  InstructorProfile?
+  emailSubscriber    EmailSubscriber?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// NextAuth verification tokens — used for magic links
+// type field extends standard NextAuth to support post-purchase tokens
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  type       String   @default("LOGIN") // LOGIN | POST_PURCHASE | PASSWORD_RESET
+  metadata   Json?    // For POST_PURCHASE: { orderId, redirectTo }
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================
+// INSTRUCTOR PROFILES
+// ============================================================
+
+model InstructorProfile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  slug           String  @unique
+  displayName    String
+  title          String?
+  bio            String? @db.Text
+  profileImageUrl String?  // Legacy - use avatarMediaId going forward
+  avatarMediaId   String?
+  bannerImageUrl  String?
+  socialLinks    Json?   // { twitter, instagram, youtube, website }
+  isPublic       Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses     Course[]
+  avatarAsset MediaAsset? @relation("InstructorAvatar", fields: [avatarMediaId], references: [id])
+
+  products Product[]
+
+  @@map("instructor_profiles")
+}
+
+// ============================================================
+// COURSES
+// ============================================================
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AccessType {
+  LIFETIME
+  SUBSCRIPTION
+  DRIP
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  subtitle    String?
+  description String?      @db.Text
+  thumbnailUrl String?
+  status      CourseStatus @default(DRAFT)
+
+  // Access (content-level — drip is per-lesson; course-level access type kept for portal logic)
+  accessType          AccessType @default(LIFETIME)
+  dripIntervalDays    Int?
+
+  // Featured image (media library)
+  featuredImageId  String?
+
+  // Reviews enabled flag (display on sales page)
+  reviewsEnabled   Boolean @default(true)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+
+  // Certificate
+  certificateEnabled  Boolean @default(false)
+  certificateTemplate String? @db.Text
+
+  // Instructor
+  instructorId String?
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  instructor      InstructorProfile? @relation(fields: [instructorId], references: [id])
+  modules         Module[]
+  lessons         Lesson[]
+  enrollments     Enrollment[]
+  // OrderItems now reference Product directly
+  collections     CourseCollection[]
+  // Upsells and OrderItems now live on Product
+  products        ProductCourse[]
+  libraryDocs     CourseLibraryDoc[]
+  comments        Comment[]
+  // SalesPage, SalesPagePrompts, CheckoutPages now belong to Product
+  emailSequence   CourseEmailSequence?
+  testimonials    Testimonial[]
+  reviews         CourseReview[]
+  mediaAssets     MediaAsset[]
+  featuredImage   MediaAsset?    @relation("CourseFeaturedImage", fields: [featuredImageId], references: [id])
+
+  @@map("courses")
+}
+
+model Module {
+  id          String  @id @default(cuid())
+  courseId    String
+  title       String
+  description String? @db.Text
+  sortOrder   Int     @default(0)
+  isPublished Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@map("modules")
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+  QUIZ
+  EMBED
+  DOWNLOAD
+}
+
+enum VideoProvider {
+  STREAMABLE
+  VIMEO
+  YOUTUBE
+  WISTIA
+  LOOM
+  BUNNY
+  MUXASSET
+  MUXPLAYBACK
+  CUSTOM
+}
+
+model Lesson {
+  id       String     @id @default(cuid())
+  moduleId String
+  courseId String
+  title    String
+  type     LessonType @default(VIDEO)
+
+  // Video
+  videoProvider VideoProvider @default(STREAMABLE)
+  videoId       String?
+  videoUrl      String?       @db.Text
+  // Aspect ratio as percentage string e.g. "56.25" (16:9), "150" (2:3 portrait)
+  // Defaults to 56.25 (16:9 landscape). Stored as string to avoid float precision issues.
+  aspectRatio   String?       // null = use default 56.25
+
+  // Content
+  content  String? @db.Text
+  duration Int?    // seconds
+
+  sortOrder   Int     @default(0)
+  isFree      Boolean @default(false)
+  isPublished Boolean @default(true)
+
+  // Drip
+  dripDaysAfterEnrollment Int?
+
+  // Attachments: [{ name, url, size }]
+  attachments Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  module   Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+  comments Comment[]
+
+  @@map("lessons")
+}
+
+// ============================================================
+// COLLECTIONS
+// ============================================================
+
+model Collection {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  name         String
+  description  String? @db.Text
+  bannerImageUrl String?
+  iconUrl      String?
+  sortOrder    Int     @default(0)
+  isFeatured   Boolean @default(false)
+  isPublished  Boolean @default(true)
+  instructorId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  courses CourseCollection[]
+
+  @@map("collections")
+}
+
+model CourseCollection {
+  courseId     String
+  collectionId String
+  sortOrder    Int    @default(0)
+
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, collectionId])
+  @@map("course_collections")
+}
+
+// ============================================================
+// ENROLLMENTS & PROGRESS
+// ============================================================
+
+enum EnrollmentStatus {
+  ACTIVE
+  SUSPENDED
+  REFUNDED
+  EXPIRED
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  userId    String
+  courseId  String
+  productId String?   // which Product was purchased (null for manual/legacy enrolments)
+  orderId   String?
+  status    EnrollmentStatus @default(ACTIVE)
+
+  enrolledAt   DateTime  @default(now())
+  expiresAt    DateTime?
+  completedAt  DateTime?
+  certificateUrl String?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order   Order?   @relation(fields: [orderId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id       String @id @default(cuid())
+  userId   String
+  lessonId String
+  courseId String
+
+  status         String  @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED
+  watchedSeconds Int     @default(0)
+  completedAt    DateTime?
+  notes          String? @db.Text
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+// ============================================================
+// COMMERCE — GATEWAY AGNOSTIC
+// ============================================================
+
+model PaymentGateway {
+  id        String  @id @default(cuid())
+  name      String
+  provider  String  // stripe | paypal | nowpayments | custom | webhook_only | manual
+  isActive  Boolean @default(false)
+  isDefault Boolean @default(false)
+
+  // Encrypted at rest in production
+  config Json?
+
+  webhookUrl    String?
+  webhookSecret String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders      Order[]
+  webhookLogs WebhookLog[]
+
+  @@map("payment_gateways")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CHARGEBACK
+}
+
+model Order {
+  id    String      @id @default(cuid())
+  userId String?
+  email String
+
+  status   OrderStatus @default(PENDING)
+  subtotal Decimal     @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  total    Decimal     @db.Decimal(10, 2)
+  currency String      @default("USD")
+
+  couponId  String?
+  gatewayId String?
+
+  // Gateway references
+  gatewayOrderId   String?
+  gatewayPaymentId String?
+
+  ipAddress String?
+  metadata  Json?
+
+  paidAt     DateTime?
+  refundedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user        User?           @relation(fields: [userId], references: [id])
+  coupon      Coupon?         @relation(fields: [couponId], references: [id])
+  gateway     PaymentGateway? @relation(fields: [gatewayId], references: [id])
+  items       OrderItem[]
+  enrollments Enrollment[]
+
+  @@map("orders")
+}
+
+enum ItemType {
+  MAIN
+  UPSELL
+  CROSSSELL
+  BUMP
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  productId       String
+  priceAtPurchase Decimal  @db.Decimal(10, 2)
+  itemType        ItemType @default(MAIN)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Coupon {
+  id   String @id @default(cuid())
+  code String @unique
+
+  type  String  // PERCENTAGE | FIXED_AMOUNT | FREE
+  value Decimal @db.Decimal(10, 2)
+
+  maxUses        Int?
+  usedCount      Int  @default(0)
+  maxUsesPerUser Int?
+
+  applicableProductIds String[] // empty = all products
+  minimumOrderAmount  Decimal? @db.Decimal(10, 2)
+
+  startsAt  DateTime?
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("coupons")
+}
+
+model Upsell {
+  id               String @id @default(cuid())
+  triggerProductId String
+  offerProductId   String
+  offerType        String // UPSELL | CROSSSELL | ORDER_BUMP
+  headline         String?
+  description      String? @db.Text
+  discountPercent  Int?
+  sortOrder        Int     @default(0)
+  isActive         Boolean @default(true)
+  createdAt        DateTime @default(now())
+
+  triggerProduct Product @relation("UpsellTrigger", fields: [triggerProductId], references: [id])
+  offerProduct   Product @relation("UpsellOffer", fields: [offerProductId], references: [id])
+
+  @@map("upsells")
+}
+
+// ============================================================
+// MARKETING & EMAIL
+// ============================================================
+
+model EmailSubscriber {
+  id     String @id @default(cuid())
+  email  String @unique
+  name   String?
+  userId String? @unique
+
+  source     String  // CHECKOUT | SALES_PAGE | PORTAL | FOOTER | MANUAL | IMPORT
+  sourceUrl  String?
+
+  gdprConsent   Boolean   @default(false)
+  gdprConsentAt DateTime?
+  gdprConsentIp String?
+
+  tags   String[]
+  status String   @default("SUBSCRIBED") // SUBSCRIBED | UNSUBSCRIBED | BOUNCED | COMPLAINED
+
+  unsubscribedAt DateTime?
+  subscribedAt   DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("email_subscribers")
+}
+
+model EmailTemplate {
+  id       String @id @default(cuid())
+  name     String
+  subject  String
+  htmlBody String @db.Text
+  textBody String @db.Text
+  type     String // TRANSACTIONAL | MARKETING | AUTOMATION
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+// ============================================================
+// COMMUNITY
+// ============================================================
+
+model Comment {
+  id       String  @id @default(cuid())
+  userId   String
+  lessonId String?
+  courseId String
+  parentId String?
+
+  body       String  @db.Text
+  isApproved Boolean @default(true)
+  isPinned   Boolean @default(false)
+  likeCount  Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user    User     @relation(fields: [userId], references: [id])
+  lesson  Lesson?  @relation(fields: [lessonId], references: [id])
+  course  Course   @relation(fields: [courseId], references: [id])
+  parent  Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model CourseLibraryDoc {
+  id       String @id @default(cuid())
+  courseId String
+  title    String
+  slug     String
+  body     String? @db.Text
+  type     String  // DOCUMENT | RESOURCE | TEMPLATE | WORKSHEET | LINK
+
+  fileUrl     String?
+  externalUrl String?
+  sortOrder   Int     @default(0)
+  isPublished Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, slug])
+  @@map("course_library_docs")
+}
+
+// ============================================================
+// AUTOMATIONS & WEBHOOKS
+// ============================================================
+
+model Automation {
+  id       String  @id @default(cuid())
+  name     String
+  isActive Boolean @default(false)
+
+  trigger       String  // ENROLLMENT | PURCHASE | LESSON_COMPLETE | COURSE_COMPLETE | SIGNUP | TAG_ADDED
+  triggerFilter Json?   // optional filter e.g. { courseId: '...' }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps      AutomationStep[]
+  executions AutomationExecution[]
+
+  @@map("automations")
+}
+
+model WebhookOutbound {
+  id     String   @id @default(cuid())
+  name   String
+  url    String
+  secret String?
+  events String[]
+  isActive Boolean @default(true)
+
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  logs WebhookLog[]
+
+  @@map("webhooks_outbound")
+}
+
+model WebhookLog {
+  id        String @id @default(cuid())
+  webhookId String?
+  gatewayId String?
+  direction String  // OUTBOUND | INBOUND
+
+  event          String
+  payload        Json
+  responseStatus Int?
+  responseBody   String? @db.Text
+  success        Boolean @default(false)
+  attempts       Int     @default(1)
+
+  createdAt DateTime @default(now())
+
+  webhook WebhookOutbound? @relation(fields: [webhookId], references: [id])
+  gateway PaymentGateway?  @relation(fields: [gatewayId], references: [id])
+
+  @@map("webhook_logs")
+}
+
+// ============================================================
+// CMS — PAGE EDITOR
+// ============================================================
+
+model Page {
+  id    String @id @default(cuid())
+  slug  String @unique
+  title String
+  type  String // STATIC | BLOG | LANDING | COURSE_SALES | COLLECTION
+
+  // Ordered array of block objects
+  // [{ id, type, data, order }]
+  blocks Json[] @default([])
+
+  // SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+  ogImageUrl      String?
+
+  status    String   @default("DRAFT") // DRAFT | PUBLISHED
+  revisions Json[]   @default([]) // Last 20 snapshots
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("pages")
+}
+
+// ============================================================
+// SITE SETTINGS
+// ============================================================
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  group String // BRANDING | NAVIGATION | AUTH | CHECKOUT | EMAIL | ADVANCED
+
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ============================================================
+// EMAIL LOG
+// ============================================================
+
+model EmailLog {
+  id       String @id @default(cuid())
+  to       String
+  subject  String
+  type     String // TRANSACTIONAL | MARKETING | AUTOMATION
+  status   String @default("SENT") // SENT | FAILED | BOUNCED | PENDING
+  resendId String?
+
+  sentAt DateTime @default(now())
+
+  @@map("email_logs")
+}
+
+// ============================================================
+// AUTOMATION — relational steps + execution tracking
+// ============================================================
+
+model AutomationStep {
+  id           String @id @default(cuid())
+  automationId String
+  action       String // send_email | delay | enroll_course | add_tag | remove_tag | webhook_post
+  actionData   Json   @default("{}")
+  sortOrder    Int    @default(0)
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@map("automation_steps")
+}
+
+model AutomationExecution {
+  id           String  @id @default(cuid())
+  automationId String
+  userId       String?
+  context      Json    @default("{}")
+  status       String  @default("RUNNING") // RUNNING | COMPLETED | FAILED
+  completedSteps Int   @default(0)
+  error        String?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@map("automation_executions")
+}
+
+// ============================================================
+// PRODUCT LAYER — what you sell
+// Course = content only. Product = the thing with a price.
+// ============================================================
+
+enum ProductType {
+  COURSE   // wraps exactly one Course
+  BUNDLE   // wraps multiple Courses
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Product {
+  id       String        @id @default(cuid())
+  type     ProductType   @default(COURSE)
+  status   ProductStatus @default(DRAFT)
+
+  // Identity
+  slug     String  @unique
+  title    String
+  subtitle String?
+  description String? @db.Text
+
+  // Pricing (the canonical price shown on checkout)
+  price          Decimal  @default(0) @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  currency       String   @default("USD")
+
+  // Commercial
+  affiliateEnabled Boolean @default(false)
+
+  // Single instructor (bundles show brand name if null)
+  instructorId String?
+
+  // Thumbnail / cover image
+  thumbnailUrl String?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  instructor    InstructorProfile? @relation(fields: [instructorId], references: [id])
+  courses       ProductCourse[]    // 1 row for COURSE type, many for BUNDLE
+  checkoutPages CheckoutPage[]
+  salesPage     SalesPage?
+  salesPrompts  SalesPagePrompts?
+  orderItems    OrderItem[]
+  enrollments   Enrollment[]
+  upsellsFrom   Upsell[]           @relation("UpsellTrigger")
+  upsellsTo     Upsell[]           @relation("UpsellOffer")
+  orderBumpsFor CheckoutPage[]     @relation("CheckoutOrderBump")
+
+  @@map("products")
+}
+
+model ProductCourse {
+  id        String @id @default(cuid())
+  productId String
+  courseId  String
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, courseId])
+  @@map("product_courses")
+}
+
+// ============================================================
+// MEDIA LIBRARY
+// ============================================================
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  uploaderId  String
+  filename    String
+  url         String
+  storagePath String
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  altText     String?
+  tags        String[]
+  courseId    String?  // optional: scope to a course
+
+  createdAt DateTime @default(now())
+
+  uploader          User               @relation(fields: [uploaderId], references: [id])
+  course            Course?            @relation(fields: [courseId], references: [id])
+  courseFeatured    Course[]           @relation("CourseFeaturedImage")
+  instructorAvatar  InstructorProfile[] @relation("InstructorAvatar")
+  salesPages        SalesPage[]        @relation("SalesPageSocialImage")
+  salesPageBlocks   SalesPageBlock[]
+
+  @@map("media_assets")
+}
+
+// ============================================================
+// SALES PAGE SYSTEM
+// ============================================================
+
+model SalesPagePrompts {
+  id        String @id @default(cuid())
+  productId String @unique
+
+  // Editable prompt questions (the labels)
+  q_headline         String @default("What is the headline for this course?")
+  q_subheadline      String @default("What is the supporting statement?")
+  q_problem          String @default("What problem does this course solve?")
+  q_whoIsItFor       String @default("Who is this course for?")
+  q_benefits         String @default("What are the main benefits? (one per line)")
+  q_transformation   String @default("What outcome or transformation will students experience?")
+  q_whatsIncluded    String @default("What is included? (one per line)")
+  q_curriculumSummary String @default("Briefly describe the curriculum or structure")
+  q_instructorBio    String @default("Why are you the right person to teach this?")
+  q_ctaText          String @default("What should the call-to-action button say?")
+  q_ctaSubtext       String @default("Any supporting text below the button? (e.g. guarantee)")
+
+  // Answers
+  headline          String?
+  subheadline       String?
+  problem           String? @db.Text
+  whoIsItFor        String? @db.Text
+  benefits          String? @db.Text // newline-separated
+  transformation    String? @db.Text
+  whatsIncluded     String? @db.Text // newline-separated
+  curriculumSummary String? @db.Text
+  instructorBio     String? @db.Text
+  ctaText           String?
+  ctaSubtext        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("sales_page_prompts")
+}
+
+enum SalesPageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model SalesPage {
+  id        String          @id @default(cuid())
+  productId String          @unique
+  status   SalesPageStatus @default(DRAFT)
+
+  metaTitle       String?
+  metaDescription String? @db.Text
+  socialImageId   String?
+
+  generatedFromPrompts Boolean   @default(false)
+  lastGeneratedAt      DateTime?
+  publishedAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  socialImage MediaAsset?  @relation("SalesPageSocialImage", fields: [socialImageId], references: [id])
+  blocks      SalesPageBlock[]
+
+  @@map("sales_pages")
+}
+
+enum SalesPageBlockType {
+  HERO
+  TEXT
+  IMAGE
+  BENEFITS
+  CURRICULUM
+  INSTRUCTOR
+  TESTIMONIALS
+  FAQ
+  CTA
+  DIVIDER
+}
+
+model SalesPageBlock {
+  id          String             @id @default(cuid())
+  salesPageId String
+  type        SalesPageBlockType
+  sortOrder   Int                @default(0)
+  visible     Boolean            @default(true)
+  content     Json               // type-specific content object
+  mediaAssetId String?           // for IMAGE blocks and hero backgrounds
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesPage  SalesPage   @relation(fields: [salesPageId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset? @relation(fields: [mediaAssetId], references: [id])
+
+  @@map("sales_page_blocks")
+}
+
+// ============================================================
+// CHECKOUT PAGE
+// ============================================================
+
+model CheckoutPage {
+  id        String  @id @default(cuid())
+  productId String
+  // Label identifies this checkout variant in admin (e.g. "One-time", "Payment plan", "Early bird")
+  label     String  @default("Default")
+  isDefault Boolean @default(false)
+
+  headline        String?
+  subtext         String?
+  guaranteeText   String?
+  showCouponField Boolean @default(true)
+  includesList    String[]
+  thankYouUrl     String?
+  thankYouHeadline String?
+
+  // Order bump — references a real Product (null = no bump)
+  orderBumpProductId  String?
+  orderBumpHeadline   String?
+  orderBumpDescription String? @db.Text
+  orderBumpPrice      Decimal? @db.Decimal(10, 2) // override product price if set
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderBump   Product? @relation("CheckoutOrderBump", fields: [orderBumpProductId], references: [id])
+
+  @@map("checkout_pages")
+}
+
+// ============================================================
+// COURSE EMAIL SEQUENCES
+// ============================================================
+
+enum EmailSequenceTrigger {
+  PURCHASED
+  ENROLLED
+  LESSON_COMPLETE
+  COURSE_COMPLETE
+  NO_PROGRESS_3_DAYS
+  NO_PROGRESS_7_DAYS
+  NO_PROGRESS_14_DAYS
+  ABANDONED_CHECKOUT
+}
+
+model CourseEmailSequence {
+  id       String @id @default(cuid())
+  courseId String @unique
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  steps  CourseEmailStep[]
+
+  @@map("course_email_sequences")
+}
+
+model CourseEmailStep {
+  id         String               @id @default(cuid())
+  sequenceId String
+  trigger    EmailSequenceTrigger
+  delayHours Int                  @default(0)
+  subject    String
+  bodyHtml   String               @db.Text
+  isActive   Boolean              @default(true)
+  sortOrder  Int                  @default(0)
+
+  createdAt DateTime @default(now())
+
+  sequence CourseEmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@map("course_email_steps")
+}
+
+// ============================================================
+// TESTIMONIALS
+// ============================================================
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TestimonialSource {
+  STUDENT_SUBMITTED
+  ADMIN_ENTERED
+}
+
+model Testimonial {
+  id              String            @id @default(cuid())
+  courseId        String?
+  userId          String?           // null if admin-entered
+  authorName      String
+  authorRole      String?
+  avatarMediaId   String?
+  quote           String            @db.Text
+  status          TestimonialStatus @default(PENDING)
+  isFeatured      Boolean           @default(false)
+  publicUseConsent Boolean          @default(false)
+  consentDate     DateTime?
+  source          TestimonialSource @default(ADMIN_ENTERED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course? @relation(fields: [courseId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@map("testimonials")
+}
+
+// ============================================================
+// COURSE REVIEWS
+// ============================================================
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model CourseReview {
+  id         String       @id @default(cuid())
+  courseId   String
+  userId     String
+  rating     Int          // 1-5
+  comment    String?      @db.Text
+  status     ReviewStatus @default(PENDING)
+  isFeatured Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId]) // one review per student per course
+  @@map("course_reviews")
+}
