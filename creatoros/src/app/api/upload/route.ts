@@ -4,10 +4,12 @@ import { authOptions } from '@/lib/auth/auth-options'
 import { createClient } from '@supabase/supabase-js'
 import { nanoid } from 'nanoid'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder'
+  )
+}
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const ALLOWED_FILE_TYPES  = [...ALLOWED_IMAGE_TYPES, 'application/pdf', 'application/zip', 'video/mp4']
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
   const bytes  = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
 
-  const { error } = await supabase.storage
+  const { error } = await getSupabase().storage
     .from('creatoros')
     .upload(filename, buffer, {
       contentType:  file.type,
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
 
-  const { data: { publicUrl } } = supabase.storage
+  const { data: { publicUrl } } = getSupabase().storage
     .from('creatoros')
     .getPublicUrl(filename)
 
