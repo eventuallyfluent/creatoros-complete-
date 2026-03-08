@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
-  LayoutDashboard, BookOpen, BookOpen,
+  LayoutDashboard, BookOpen,
   Star, Settings, LogOut, ExternalLink, Shield,
 } from 'lucide-react'
 

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, BookOpen, FolderOpen, Users, User, ShoppingBag,
-  Tag, CreditCard, Zap, Zap, Mail, UserPlus, BarChart2,
+  Tag, CreditCard, Zap, Mail, UserPlus, BarChart2,
   Palette, Navigation, Settings, ExternalLink, ChevronRight, Package, Download,
 } from 'lucide-react'
 
