@@ -112,7 +112,7 @@ export default function MediaPicker({ value, onChange, courseId, label = 'Choose
           <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '720px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827' }}>Media Library</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827' }}>Media BookOpen</h3>
               <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
                 <X size={20} />
               </button>

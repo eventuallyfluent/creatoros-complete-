@@ -4,15 +4,15 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
-  LayoutDashboard, BookOpen, Library,
-  Award, Settings, LogOut, ExternalLink, Shield,
+  LayoutDashboard, BookOpen, BookOpen,
+  Star, Settings, LogOut, ExternalLink, Shield,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',    href: '/portal',              icon: LayoutDashboard },
   { label: 'My Courses',   href: '/portal/courses',      icon: BookOpen },
-  { label: 'Library',      href: '/portal/library',      icon: Library },
-  { label: 'Certificates', href: '/portal/certificates', icon: Award },
+  { label: 'BookOpen',      href: '/portal/library',      icon: BookOpen },
+  { label: 'Certificates', href: '/portal/certificates', icon: Star },
   { label: 'Account',      href: '/portal/account',      icon: Settings },
 ]
 

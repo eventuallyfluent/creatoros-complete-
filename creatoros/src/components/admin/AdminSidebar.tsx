@@ -4,8 +4,8 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, BookOpen, FolderOpen, Users, User, ShoppingBag,
-  Tag, CreditCard, Zap, Webhook, Mail, UserPlus, BarChart2,
-  Palette, Navigation, Settings, ExternalLink, ChevronRight, Package, Import,
+  Tag, CreditCard, Zap, Zap, Mail, UserPlus, BarChart2,
+  Palette, Navigation, Settings, ExternalLink, ChevronRight, Package, Download,
 } from 'lucide-react'
 
 const NAV_GROUPS = [
@@ -18,10 +18,10 @@ const NAV_GROUPS = [
       { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
       { label: 'Instructors', href: '/admin/instructors', icon: User },
       { label: 'Homepage',    href: '/admin/homepage',    icon: ExternalLink },
-      { label: 'Reviews',     href: '/admin/reviews',     icon: MessageSquare },
+      { label: 'Reviews',     href: '/admin/reviews',     icon: MessageCircle },
       { label: 'Testimonials', href: '/admin/testimonials', icon: Star },
       { label: 'Pages',       href: '/admin/pages',       icon: FileText },
-      { label: 'Import',      href: '/admin/import',      icon: Import },
+      { label: 'Download',      href: '/admin/import',      icon: Download },
     ],
   },
   {
@@ -37,7 +37,7 @@ const NAV_GROUPS = [
     label: 'Marketing',
     items: [
       { label: 'Automations', href: '/admin/automations', icon: Zap },
-      { label: 'Webhooks',    href: '/admin/webhooks',    icon: Webhook },
+      { label: 'Zaps',    href: '/admin/webhooks',    icon: Zap },
       { label: 'Emails',      href: '/admin/emails',      icon: Mail },
       { label: 'Subscribers', href: '/admin/subscribers', icon: UserPlus },
       { label: 'Analytics',   href: '/admin/analytics',   icon: BarChart2 },

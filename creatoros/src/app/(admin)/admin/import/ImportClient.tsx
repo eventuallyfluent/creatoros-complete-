@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, Download, ExternalLink, X } from 'lucide-react'
 
-interface ImportResult {
+interface DownloadResult {
   course:   { id: string; slug: string; title: string }
   modules:  number
   lessons:  number
@@ -82,12 +82,12 @@ function previewCsv(text: string): ParsedPreview | null {
   }
 }
 
-export default function ImportClient() {
+export default function DownloadClient() {
   const [file,      setFile]      = useState<File | null>(null)
   const [preview,   setPreview]   = useState<ParsedPreview | null>(null)
   const [overwrite, setOverwrite] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [result,    setResult]    = useState<ImportResult | null>(null)
+  const [result,    setResult]    = useState<DownloadResult | null>(null)
   const [error,     setError]     = useState<string | null>(null)
   const [dragging,  setDragging]  = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -111,7 +111,7 @@ export default function ImportClient() {
     if (f) handleFile(f)
   }, [handleFile])
 
-  const handleImport = async () => {
+  const handleDownload = async () => {
     if (!file) return
     setUploading(true)
     setError(null)
@@ -125,7 +125,7 @@ export default function ImportClient() {
     const data = await res.json()
     setUploading(false)
 
-    if (!res.ok) { setError(data.error ?? 'Import failed.'); return }
+    if (!res.ok) { setError(data.error ?? 'Download failed.'); return }
     setResult(data)
   }
 
@@ -162,7 +162,7 @@ export default function ImportClient() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <CheckCircle size={28} color="#16a34a" />
             <div>
-              <p style={{ fontSize: '18px', fontWeight: 700, color: '#14532d', margin: 0 }}>Import successful</p>
+              <p style={{ fontSize: '18px', fontWeight: 700, color: '#14532d', margin: 0 }}>Download successful</p>
               <p style={{ fontSize: '14px', color: '#166534', margin: 0 }}>{result.course.title}</p>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function ImportClient() {
         )}
 
         <button onClick={reset} style={{ padding: '9px 18px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
-          Import another course
+          Download another course
         </button>
       </div>
     )
@@ -331,7 +331,7 @@ export default function ImportClient() {
               style={{ width: '15px', height: '15px', accentColor: '#7B2FBE' }} />
             Replace existing modules & lessons if course slug already exists
           </label>
-          <button onClick={handleImport} disabled={uploading || !preview}
+          <button onClick={handleDownload} disabled={uploading || !preview}
             style={{
               padding: '11px 28px', background: uploading ? '#e5e7eb' : '#7B2FBE',
               color: uploading ? '#9ca3af' : 'white',
@@ -339,7 +339,7 @@ export default function ImportClient() {
               cursor: uploading || !preview ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-ui)',
             }}>
-            {uploading ? 'Importing…' : 'Import Course'}
+            {uploading ? 'Downloading…' : 'Download Course'}
           </button>
         </div>
       )}

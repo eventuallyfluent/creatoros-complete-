@@ -26,7 +26,7 @@ import {
   useState, useEffect, useRef, useCallback,
 } from 'react'
 import {
-  Play, Pause, Volume2, VolumeX, Maximize, Loader2, AlertCircle,
+  Play, Pause, Volume2, VolumeX, Maximize2, Loader2, AlertCircle,
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -405,7 +405,7 @@ export default function VideoPlayer({
 
           {/* Fullscreen */}
           <button onClick={requestFullscreen} style={styles.ctrlBtn} title="Fullscreen">
-            <Maximize size={16} color="white" />
+            <Maximize2 size={16} color="white" />
           </button>
         </div>
       )}

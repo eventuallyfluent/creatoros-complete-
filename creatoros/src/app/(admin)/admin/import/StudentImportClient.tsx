@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Upload, CheckCircle, AlertCircle, Download, X, AlertTriangle } from 'lucide-react'
 
-interface ImportResult {
+interface DownloadResult {
   total:     number
   created:   number
   enrolled:  number
@@ -22,14 +22,14 @@ john.doe@example.com,John Doe,sixty-skills-level-1,2024-01-15
 jane.smith@example.com,Jane Smith,master-course,2024-02-20
 `
 
-export default function StudentImportClient() {
+export default function StudentDownloadClient() {
   const fileRef  = useRef<HTMLInputElement>(null)
   const [file,        setFile]        = useState<File | null>(null)
   const [csv,         setCsv]         = useState<string>('')
   const [preview,     setPreview]     = useState<{ rows: number; emails: string[] } | null>(null)
   const [dryRun,      setDryRun]      = useState(true)
   const [running,     setRunning]     = useState(false)
-  const [result,      setResult]      = useState<ImportResult | null>(null)
+  const [result,      setResult]      = useState<DownloadResult | null>(null)
   const [error,       setError]       = useState<string | null>(null)
   const [dragging,    setDragging]    = useState(false)
 
@@ -72,7 +72,7 @@ export default function StudentImportClient() {
     })
     const data = await res.json()
     setRunning(false)
-    if (!res.ok) { setError(data.error ?? 'Import failed'); return }
+    if (!res.ok) { setError(data.error ?? 'Download failed'); return }
     setResult(data)
   }
 
@@ -162,7 +162,7 @@ export default function StudentImportClient() {
           </label>
           <button onClick={handleRun} disabled={running}
             style={{ padding: '11px 28px', background: running ? '#e5e7eb' : dryRun ? '#4f46e5' : '#7B2FBE', color: running ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 600, cursor: running ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
-            {running ? 'Running…' : dryRun ? 'Run Dry Run →' : 'Import Students →'}
+            {running ? 'Running…' : dryRun ? 'Run Dry Run →' : 'Download Students →'}
           </button>
         </div>
       )}
@@ -190,7 +190,7 @@ export default function StudentImportClient() {
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '14px 18px', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <AlertTriangle size={16} color="#1d4ed8" style={{ flexShrink: 0 }} />
               <p style={{ fontSize: '13px', color: '#1e40af', margin: 0 }}>
-                This was a dry run — no data was saved. Uncheck "Dry run" and click Import to apply these changes.
+                This was a dry run — no data was saved. Uncheck "Dry run" and click Download to apply these changes.
               </p>
             </div>
           )}
@@ -239,7 +239,7 @@ export default function StudentImportClient() {
           )}
 
           <button onClick={reset} style={{ alignSelf: 'flex-start', padding: '9px 20px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-ui)' }}>
-            Import another file
+            Download another file
           </button>
         </div>
       )}

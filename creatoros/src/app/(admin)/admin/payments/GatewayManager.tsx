@@ -23,7 +23,7 @@ const GATEWAY_TEMPLATES: Record<string, { label: string; fields: { key: string; 
     fields: [
       { key: 'publishableKey', label: 'Publishable Key', placeholder: 'pk_live_…' },
       { key: 'secretKey',      label: 'Secret Key',      placeholder: 'sk_live_…', secret: true },
-      { key: 'webhookSecret',  label: 'Webhook Secret',  placeholder: 'whsec_…', secret: true },
+      { key: 'webhookSecret',  label: 'Zap Secret',  placeholder: 'whsec_…', secret: true },
     ],
   },
   paypal: {
@@ -41,9 +41,9 @@ const GATEWAY_TEMPLATES: Record<string, { label: string; fields: { key: string; 
     ],
   },
   webhook_only: {
-    label: 'Custom / Webhook-Only',
+    label: 'Custom / Zap-Only',
     fields: [
-      { key: 'webhookSecret', label: 'Webhook Secret', placeholder: 'your-secret', secret: true },
+      { key: 'webhookSecret', label: 'Zap Secret', placeholder: 'your-secret', secret: true },
     ],
   },
 }
@@ -60,7 +60,7 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
 
   const webhookBase = typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/` : '/api/webhooks/'
 
-  const copyWebhookUrl = (id: string) => {
+  const copyZapUrl = (id: string) => {
     navigator.clipboard.writeText(webhookBase + id)
     setCopied(id)
     setTimeout(() => setCopied(null), 2000)
@@ -149,14 +149,14 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
               {/* Expanded config */}
               {isOpen && (
                 <div style={{ padding: '18px', borderTop: '1px solid #f3f4f6', background: '#fafafa' }}>
-                  {/* Webhook URL */}
+                  {/* Zap URL */}
                   <div style={{ marginBottom: '18px' }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Webhook URL (paste this into your gateway dashboard)
+                      Zap URL (paste this into your gateway dashboard)
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input readOnly value={webhookBase + gateway.id} style={{ flex: 1, padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', color: '#374151', background: 'white', fontFamily: 'monospace', outline: 'none' }} />
-                      <button onClick={() => copyWebhookUrl(gateway.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-ui)' }}>
+                      <button onClick={() => copyZapUrl(gateway.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-ui)' }}>
                         {copied === gateway.id ? <><Check size={13} style={{ color: '#10b981' }} /> Copied</> : <><Copy size={13} /> Copy</>}
                       </button>
                     </div>

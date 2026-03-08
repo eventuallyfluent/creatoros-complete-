@@ -13,12 +13,12 @@ interface ParsedRow {
 
 interface Props { courses: Course[] }
 
-export default function CSVImporter({ courses }: Props) {
+export default function CSVDownloader({ courses }: Props) {
   const fileRef      = useRef<HTMLInputElement>(null)
   const [rows,       setRows]       = useState<ParsedRow[]>([])
   const [filename,   setFilename]   = useState<string | null>(null)
   const [courseId,   setCourseId]   = useState(courses[0]?.id ?? '')
-  const [importing,  setImporting]  = useState(false)
+  const [importing,  setDownloading]  = useState(false)
   const [result,     setResult]     = useState<{ imported: number; skipped: number; errors: string[] } | null>(null)
   const [step,       setStep]       = useState<'upload' | 'preview' | 'done'>('upload')
 
@@ -50,9 +50,9 @@ export default function CSVImporter({ courses }: Props) {
     setStep('preview')
   }
 
-  const handleImport = async () => {
+  const handleDownload = async () => {
     if (!courseId) { alert('Please select a course'); return }
-    setImporting(true)
+    setDownloading(true)
 
     const validRows = rows.filter(r => r.valid)
 
@@ -67,7 +67,7 @@ export default function CSVImporter({ courses }: Props) {
 
     const data = await res.json()
     setResult(data)
-    setImporting(false)
+    setDownloading(false)
     setStep('done')
   }
 
@@ -78,7 +78,7 @@ export default function CSVImporter({ courses }: Props) {
     return (
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '48px', textAlign: 'center', maxWidth: '560px', margin: '0 auto' }}>
         <CheckCircle size={48} style={{ color: '#10b981', marginBottom: '16px' }} />
-        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Import Complete</h2>
+        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Download Complete</h2>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', margin: '24px 0' }}>
           <div>
             <p style={{ fontSize: '32px', fontWeight: 700, color: '#10b981' }}>{result.imported}</p>
@@ -107,7 +107,7 @@ export default function CSVImporter({ courses }: Props) {
           onClick={() => { setStep('upload'); setRows([]); setFilename(null); setResult(null) }}
           style={{ padding: '10px 24px', background: '#7B2FBE', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}
         >
-          Import Another File
+          Download Another File
         </button>
       </div>
     )
@@ -238,7 +238,7 @@ export default function CSVImporter({ courses }: Props) {
           </div>
 
           <button
-            onClick={handleImport}
+            onClick={handleDownload}
             disabled={importing || validCount === 0}
             style={{
               width: '100%', padding: '14px', background: importing || validCount === 0 ? '#e5e7eb' : '#7B2FBE',
@@ -247,7 +247,7 @@ export default function CSVImporter({ courses }: Props) {
               cursor: importing || validCount === 0 ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)',
             }}
           >
-            {importing ? 'Importing...' : `Import ${validCount} Students${courseId ? ' & Enrol' : ''}`}
+            {importing ? 'Downloading...' : `Download ${validCount} Students${courseId ? ' & Enrol' : ''}`}
           </button>
         </div>
       )}

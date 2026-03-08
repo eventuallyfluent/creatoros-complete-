@@ -20,7 +20,7 @@ const ACTIONS = [
   { value: 'enroll_course', label: 'Enrol in Course',      icon: '🎓' },
   { value: 'add_tag',       label: 'Add Tag',              icon: '🏷'  },
   { value: 'remove_tag',    label: 'Remove Tag',           icon: '✂️' },
-  { value: 'webhook_post',  label: 'Webhook POST',         icon: '🔗' },
+  { value: 'webhook_post',  label: 'Zap POST',         icon: '🔗' },
 ]
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -226,7 +226,7 @@ function StepConfig({ step, onUpdate, courses, products, inp, lbl }: {
 
   if (step.action === 'webhook_post') return (
     <div>
-      <label style={lbl}>Webhook URL</label>
+      <label style={lbl}>Zap URL</label>
       <input value={d.url ?? ''} onChange={e => onUpdate({ ...d, url: e.target.value })} placeholder="https://hooks.zapier.com/…" style={inp} />
     </div>
   )
