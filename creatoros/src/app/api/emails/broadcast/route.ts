@@ -7,7 +7,6 @@ import { prisma } from '@/lib/db/prisma'
 import { sendBroadcast, renderBroadcastHtml } from '@/lib/email/email-service'
 
 export async function POST(req: NextRequest)  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -68,8 +67,4 @@ export async function POST(req: NextRequest)  {
   })
 
   return NextResponse.json({ sent: emails.length, success: succeeded })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

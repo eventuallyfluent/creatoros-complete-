@@ -9,7 +9,6 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { courseId: string; moduleId: string } }
 )  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -36,8 +35,4 @@ export async function POST(
   })
 
   return NextResponse.json(lesson, { status: 201 })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

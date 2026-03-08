@@ -11,7 +11,6 @@ function adminGuard(session: any) {
 }
 
 export async function POST(req: NextRequest)  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (!adminGuard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -45,8 +44,4 @@ export async function POST(req: NextRequest)  {
   await createCourseDefaults(course.id, course.title)
 
   return NextResponse.json(course, { status: 201 })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

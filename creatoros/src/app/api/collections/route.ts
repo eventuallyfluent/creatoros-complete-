@@ -10,7 +10,6 @@ function adminGuard(session: any) {
 }
 
 export async function GET()  {
-  try {
 
   const collections = await prisma.collection.findMany({
     where:   { isPublished: true },
@@ -58,8 +57,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(collection, { status: 201 })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

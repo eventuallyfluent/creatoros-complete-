@@ -8,7 +8,6 @@ import { prisma } from '@/lib/db/prisma'
 function guard(session: any) { return session?.user?.role === 'ADMIN' }
 
 export async function GET(req: NextRequest)  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (!guard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -47,8 +46,4 @@ export async function POST(req: NextRequest) {
     },
   })
   return NextResponse.json(t, { status: 201 })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

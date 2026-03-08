@@ -7,7 +7,6 @@ import { prisma } from '@/lib/db/prisma'
 
 // Free product enrolment (no payment required)
 export async function POST(req: NextRequest)  {
-  try {
 
   const session = await getServerSession(authOptions)
 
@@ -41,8 +40,4 @@ export async function POST(req: NextRequest)  {
   }
 
   return NextResponse.json({ enrolled: true })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

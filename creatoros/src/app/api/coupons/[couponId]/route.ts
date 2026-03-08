@@ -6,7 +6,6 @@ import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 
 export async function PATCH(req: NextRequest, { params }: { params: { couponId: string } })  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -34,8 +33,4 @@ export async function PATCH(req: NextRequest, { params }: { params: { couponId: 
     },
   })
   return NextResponse.json(coupon)
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

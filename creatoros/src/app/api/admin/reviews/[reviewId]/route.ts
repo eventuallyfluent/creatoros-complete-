@@ -6,7 +6,6 @@ import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 
 export async function PATCH(req: NextRequest, { params }: { params: { reviewId: string } })  {
-  try {
 
   const session = await getServerSession(authOptions)
   if ((session?.user as any)?.role !== 'ADMIN') {
@@ -21,8 +20,4 @@ export async function PATCH(req: NextRequest, { params }: { params: { reviewId: 
     data:  { status },
   })
   return NextResponse.json(review)
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

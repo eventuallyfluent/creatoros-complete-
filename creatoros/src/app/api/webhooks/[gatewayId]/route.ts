@@ -133,4 +133,3 @@ async function logWebhook(
     // Don't throw — logging failure shouldn't break webhook processing
     console.error('Failed to log webhook:', e)
   }
-}

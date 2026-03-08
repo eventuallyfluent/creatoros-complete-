@@ -7,7 +7,6 @@ import { prisma } from '@/lib/db/prisma'
 import { generateBlocksFromPrompts } from '@/lib/course/generate-blocks'
 
 export async function POST(req: NextRequest, { params }: { params: { courseId: string } })  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -66,8 +65,4 @@ export async function POST(req: NextRequest, { params }: { params: { courseId: s
   })
 
   return NextResponse.json({ ok: true, blocks: created })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

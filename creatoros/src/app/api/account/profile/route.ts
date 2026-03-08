@@ -6,7 +6,6 @@ import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 
 export async function PATCH(req: NextRequest)  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,8 +22,4 @@ export async function PATCH(req: NextRequest)  {
   })
 
   return NextResponse.json(user)
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }

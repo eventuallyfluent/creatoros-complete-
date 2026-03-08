@@ -8,7 +8,6 @@ import { markOrderPaid, refundOrder } from '@/lib/payments/order-service'
 import { getGatewayDriver } from '@/lib/payments/gateway-registry'
 
 export async function GET(req: NextRequest, { params }: { params: { orderId: string } })  {
-  try {
 
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -56,8 +55,4 @@ export async function PATCH(req: NextRequest, { params }: { params: { orderId: s
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
-}  } catch (error: any) {
-    console.error('Route error:', error)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
-  }
 }
