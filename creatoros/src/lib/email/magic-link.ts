@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let _resend: any = null
+const getResend = () => { if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? 'placeholder'); return _resend }
 
 interface MagicLinkEmailProps {
   email: string
@@ -28,7 +29,7 @@ export async function sendMagicLinkEmail({
 
   const buttonText = isPostPurchase ? 'Access My Course Now' : 'Sign In'
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from:    process.env.EMAIL_FROM!,
     to:      email,
     subject,

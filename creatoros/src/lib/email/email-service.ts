@@ -1,6 +1,11 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? 'placeholder')
+  return _resend
+}
+
 const FROM   = process.env.EMAIL_FROM ?? 'Perseus Arcane Academy <noreply@perseusarcaneacademy.com>'
 
 export interface SendEmailOptions {
@@ -19,7 +24,7 @@ export interface SendEmailResult {
 
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from:    FROM,
       to:      Array.isArray(opts.to) ? opts.to : [opts.to],
       subject: opts.subject,
@@ -68,7 +73,7 @@ export async function sendBroadcast(recipients: string[], subject: string, html:
   const chunks = chunk(recipients, 100)
   const results = []
   for (const batch of chunks) {
-    const result = await resend.batch.send(
+    const result = await getResend().batch.send(
       batch.map(to => ({ from: FROM, to, subject, html }))
     )
     results.push(result)
