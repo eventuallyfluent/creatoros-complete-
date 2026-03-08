@@ -69,10 +69,10 @@ export default async function HomePage() {
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
   })
 
-  // Enrollments
-  const enrollments = userId
-    ? await prisma.enrollment.findMany({ where: { userId, status: 'ACTIVE' } })
-    : []
+  let enrollments: { courseId: string }[] = []
+  if (userId) {
+    enrollments = await prisma.enrollment.findMany({ where: { userId, status: 'ACTIVE' } })
+  }
   const enrolledIds = new Set(enrollments.map((e: any) => e.courseId))
 
   return (
