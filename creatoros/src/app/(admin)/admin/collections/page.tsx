@@ -11,7 +11,7 @@ export default async function AdminCollectionsPage() {
   const collections = await prisma.collection.findMany({
     include: { _count: { select: { courses: true } } },
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

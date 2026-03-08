@@ -27,7 +27,7 @@ export default async function SalesPageEditorPage({ params }: { params: { course
         },
       },
     },
-  })
+  }).catch(() => null)
   if (!course) notFound()
 
   // Auto-create missing records (idempotent)
@@ -52,7 +52,7 @@ export default async function SalesPageEditorPage({ params }: { params: { course
           },
         },
       },
-    })
+    }).catch(() => null)
     if (!fresh) notFound()
     return renderPage(fresh)
   }

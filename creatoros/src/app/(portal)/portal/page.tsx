@@ -33,14 +33,14 @@ export default async function PortalDashboard() {
       },
     },
     orderBy: { enrolledAt: 'desc' },
-  })
+  }).catch(() => [])
 
   // Aggregate progress
   const courseIds = enrollments.map(e => e.courseId)
   const progressRecords = await prisma.lessonProgress.findMany({
     where:  { userId, courseId: { in: courseIds }, status: 'COMPLETED' },
     select: { courseId: true },
-  })
+  }).catch(() => [])
   const progressMap = new Map<string, number>()
   for (const p of progressRecords) {
     progressMap.set(p.courseId, (progressMap.get(p.courseId) ?? 0) + 1)
@@ -58,7 +58,7 @@ export default async function PortalDashboard() {
         include: { course: { select: { id: true, slug: true, title: true, thumbnailUrl: true } } },
       },
     },
-  })
+  }).catch(() => [])
 
   const productMap = new Map(products.map(p => [p.id, p]))
 

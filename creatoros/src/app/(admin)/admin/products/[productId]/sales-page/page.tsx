@@ -35,7 +35,7 @@ export default async function ProductSalesPageEditorPage({ params }: { params: {
         },
       },
     },
-  })
+  }).catch(() => null)
 
   if (!product) notFound()
 

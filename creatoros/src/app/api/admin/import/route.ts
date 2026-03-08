@@ -154,7 +154,9 @@ function extractEmbedSrc(val: string): string | null {
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest)  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -365,4 +367,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(result, { status: 201 })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

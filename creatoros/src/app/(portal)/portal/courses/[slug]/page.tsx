@@ -10,7 +10,7 @@ import Image from 'next/image'
 interface Props { params: { slug: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const course = await prisma.course.findUnique({ where: { slug: params.slug } })
+  const course = await prisma.course.findUnique({ where: { slug: params.slug } }).catch(() => null)
   return { title: course?.title ?? 'Course' }
 }
 
@@ -28,20 +28,20 @@ export default async function PortalCourseOverview({ params }: Props) {
         orderBy: { sortOrder: 'asc' },
       },
     },
-  })
+  }).catch(() => null)
 
   if (!course) notFound()
 
   const enrollment = await prisma.enrollment.findUnique({
     where: { userId_courseId: { userId, courseId: course.id } },
-  })
+  }).catch(() => null)
   if (!enrollment || enrollment.status !== 'ACTIVE') redirect(`/courses/${params.slug}`)
 
   const allLessons = course.modules.flatMap(m => m.lessons)
   const progressRecords = await prisma.lessonProgress.findMany({
     where:  { userId, courseId: course.id },
     select: { lessonId: true, status: true },
-  })
+  }).catch(() => [])
 
   const doneSet        = new Set(progressRecords.filter(p => p.status === 'COMPLETED').map(p => p.lessonId))
   const completedCount = doneSet.size

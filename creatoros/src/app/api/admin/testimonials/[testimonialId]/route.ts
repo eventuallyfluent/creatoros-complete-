@@ -7,7 +7,9 @@ import { prisma } from '@/lib/db/prisma'
 
 function guard(session: any) { return session?.user?.role === 'ADMIN' }
 
-export async function PATCH(req: NextRequest, { params }: { params: { testimonialId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: { testimonialId: string } })  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!guard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -34,4 +36,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { testimoni
   if (!guard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   await prisma.testimonial.delete({ where: { id: params.testimonialId } })
   return NextResponse.json({ deleted: true })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

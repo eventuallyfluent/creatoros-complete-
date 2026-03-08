@@ -7,7 +7,9 @@ import { prisma } from '@/lib/db/prisma'
 
 function guard(s: any) { return s?.user?.role === 'ADMIN' }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest)  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!guard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const pages = await prisma.page.findMany({ orderBy: { updatedAt: 'desc' } })
@@ -36,4 +38,8 @@ export async function POST(req: NextRequest) {
     },
   })
   return NextResponse.json(page, { status: 201 })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

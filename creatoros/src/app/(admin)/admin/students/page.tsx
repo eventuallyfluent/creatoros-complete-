@@ -35,7 +35,7 @@ export default async function AdminStudentsPage({
       skip,
     }),
     prisma.user.count({ where }),
-  ])
+  ]).catch(() => [])
 
   const totalPages = Math.ceil(total / take)
 

@@ -5,7 +5,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 
-export async function POST(req: NextRequest, { params }: { params: { courseId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { courseId: string } })  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -54,4 +56,8 @@ export async function POST(req: NextRequest, { params }: { params: { courseId: s
   })
 
   return NextResponse.json({ ok: true, blocks: updated })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

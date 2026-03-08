@@ -9,7 +9,9 @@ function adminGuard(session: any) {
   return !!(session && session.user?.role === 'ADMIN')
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { collectionId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: { collectionId: string } })  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!adminGuard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -60,4 +62,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { collectio
 
   await prisma.collection.delete({ where: { id: params.collectionId } })
   return NextResponse.json({ deleted: true })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

@@ -27,7 +27,7 @@ export default async function EditCoursePage({ params }: Props) {
       select:  { id: true, displayName: true },
       orderBy: { displayName: 'asc' },
     }),
-  ])
+  ]).catch(() => [])
 
   if (!course) notFound()
 

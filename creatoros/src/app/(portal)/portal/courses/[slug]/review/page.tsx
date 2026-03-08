@@ -10,7 +10,7 @@ import CourseReviews from '@/components/course/CourseReviews'
 interface Props { params: { slug: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const course = await prisma.course.findUnique({ where: { slug: params.slug } })
+  const course = await prisma.course.findUnique({ where: { slug: params.slug } }).catch(() => null)
   return { title: course ? `Review — ${course.title}` : 'Leave a Review' }
 }
 
@@ -23,12 +23,12 @@ export default async function CourseReviewPage({ params }: Props) {
   const course = await prisma.course.findUnique({
     where:   { slug: params.slug, status: 'PUBLISHED' },
     include: { instructor: { select: { displayName: true } } },
-  })
+  }).catch(() => null)
   if (!course) notFound()
 
   const enrollment = await prisma.enrollment.findUnique({
     where: { userId_courseId: { userId, courseId: course.id } },
-  })
+  }).catch(() => null)
   // Must be enrolled — otherwise send them to the sales page
   if (!enrollment || enrollment.status !== 'ACTIVE') {
     redirect(`/courses/${params.slug}`)
@@ -37,7 +37,7 @@ export default async function CourseReviewPage({ params }: Props) {
   // Check if they already reviewed
   const existingReview = await prisma.courseReview.findUnique({
     where: { courseId_userId: { courseId: course.id, userId } },
-  })
+  }).catch(() => null)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>

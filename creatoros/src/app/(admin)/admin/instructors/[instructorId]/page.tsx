@@ -11,7 +11,7 @@ export default async function EditInstructorPage({ params }: { params: { instruc
   const instructor = await prisma.instructorProfile.findUnique({
     where:   { id: params.instructorId },
     include: { _count: { select: { products: true } } },
-  })
+  }).catch(() => null)
   if (!instructor) notFound()
 
   return (

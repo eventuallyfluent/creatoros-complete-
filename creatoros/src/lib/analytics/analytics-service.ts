@@ -1,5 +1,9 @@
 import { prisma } from '@/lib/db/prisma'
 
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn() } catch { return fallback }
+}
+
 // ── Revenue ──────────────────────────────────────────────────
 export async function getRevenueStats() {
   const now        = new Date()

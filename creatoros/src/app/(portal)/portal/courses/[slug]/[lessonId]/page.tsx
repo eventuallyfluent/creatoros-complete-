@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lesson = await prisma.lesson.findUnique({
     where:   { id: params.lessonId },
     include: { course: { select: { title: true } } },
-  })
+  }).catch(() => null)
   return { title: lesson ? `${lesson.title} — ${lesson.course.title}` : 'Lesson' }
 }
 
@@ -30,12 +30,12 @@ export default async function LessonPage({ params }: Props) {
         orderBy: { sortOrder: 'asc' },
       },
     },
-  })
+  }).catch(() => null)
   if (!course) notFound()
 
   const enrollment = await prisma.enrollment.findUnique({
     where: { userId_courseId: { userId, courseId: course.id } },
-  })
+  }).catch(() => null)
   if (!enrollment || enrollment.status !== 'ACTIVE') redirect(`/courses/${params.slug}`)
 
   const allLessons = course.modules.flatMap(m => m.lessons)
@@ -51,7 +51,7 @@ export default async function LessonPage({ params }: Props) {
   const progressRecords = await prisma.lessonProgress.findMany({
     where:  { userId, courseId: course.id },
     select: { lessonId: true, status: true, notes: true },
-  })
+  }).catch(() => [])
 
   const progressMap    = new Map(progressRecords.map(p => [p.lessonId, p]))
   const currentIdx     = allLessons.findIndex(l => l.id === params.lessonId)

@@ -3,7 +3,9 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest)  {
+  try {
+
   const { code, productId } = await req.json()
 
   if (!code) return NextResponse.json({ valid: false, error: 'No code provided' })
@@ -55,4 +57,8 @@ export async function POST(req: NextRequest) {
     type:           coupon.type,
     value:          Number(coupon.value),
   })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

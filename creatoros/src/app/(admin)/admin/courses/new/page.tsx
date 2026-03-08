@@ -10,7 +10,7 @@ export default async function NewCoursePage() {
   const instructors = await prisma.instructorProfile.findMany({
     select: { id: true, displayName: true },
     orderBy: { displayName: 'asc' },
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

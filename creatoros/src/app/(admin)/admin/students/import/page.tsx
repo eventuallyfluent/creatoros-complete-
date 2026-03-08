@@ -11,7 +11,7 @@ export default async function ImportStudentsPage() {
     where:   { status: { not: 'ARCHIVED' } },
     select:  { id: true, title: true, slug: true },
     orderBy: { title: 'asc' },
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

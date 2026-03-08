@@ -32,7 +32,7 @@ export default async function ProductEditorPage({ params }: { params: { productI
       select:  { id: true, title: true, price: true, currency: true },
       orderBy: { title: 'asc' },
     }),
-  ])
+  ]).catch(() => [])
 
   if (!product) notFound()
 

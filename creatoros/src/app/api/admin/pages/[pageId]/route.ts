@@ -7,7 +7,9 @@ import { prisma } from '@/lib/db/prisma'
 
 function guard(s: any) { return s?.user?.role === 'ADMIN' }
 
-export async function PATCH(req: NextRequest, { params }: { params: { pageId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: { pageId: string } })  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!guard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -51,4 +53,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { pageId: s
 
   await prisma.page.delete({ where: { id: params.pageId } })
   return NextResponse.json({ deleted: true })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

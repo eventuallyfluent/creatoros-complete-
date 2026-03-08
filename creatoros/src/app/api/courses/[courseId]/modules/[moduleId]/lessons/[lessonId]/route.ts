@@ -8,7 +8,9 @@ import { prisma } from '@/lib/db/prisma'
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { courseId: string; moduleId: string; lessonId: string } }
-) {
+)  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -46,4 +48,8 @@ export async function DELETE(
 
   await prisma.lesson.delete({ where: { id: params.lessonId } })
   return NextResponse.json({ deleted: true })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

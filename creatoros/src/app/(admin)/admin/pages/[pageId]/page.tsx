@@ -8,7 +8,7 @@ import PageEditor from './PageEditor'
 export const metadata: Metadata = { title: 'Edit Page — Admin' }
 
 export default async function EditPagePage({ params }: { params: { pageId: string } }) {
-  const page = params.pageId === 'new' ? null : await prisma.page.findUnique({ where: { id: params.pageId } })
+  const page = params.pageId === 'new' ? null : await prisma.page.findUnique({ where: { id: params.pageId } }).catch(() => null)
   if (params.pageId !== 'new' && !page) notFound()
 
   // Extract body from blocks for editing

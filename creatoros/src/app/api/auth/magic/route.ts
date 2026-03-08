@@ -5,7 +5,9 @@ import { prisma } from '@/lib/db/prisma'
 
 // Handles post-purchase magic links (access links emailed after payment)
 // Standard login magic links are handled by NextAuth automatically
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest)  {
+  try {
+
   const { searchParams } = new URL(req.url)
   const token = searchParams.get('token')
   const email = searchParams.get('email')
@@ -78,4 +80,8 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(redirectTo)}`, req.url))
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

@@ -11,7 +11,7 @@ export default async function NewCollectionPage() {
     where:   { status: { not: 'ARCHIVED' } },
     select:  { id: true, title: true, slug: true, thumbnailUrl: true },
     orderBy: { title: 'asc' },
-  })
+  }).catch(() => [])
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader title="New Collection" backHref="/admin/collections" backLabel="Collections" />

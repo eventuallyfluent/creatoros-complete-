@@ -7,7 +7,7 @@ import CouponEditor from '@/components/admin/CouponEditor'
 export const metadata: Metadata = { title: 'New Coupon — Admin' }
 
 export default async function NewCouponPage() {
-  const courses = await prisma.course.findMany({ where: { status: { not: 'ARCHIVED' } }, select: { id: true, title: true }, orderBy: { title: 'asc' } })
+  const courses = await prisma.course.findMany({ where: { status: { not: 'ARCHIVED' } }, select: { id: true, title: true }, orderBy: { title: 'asc' } }).catch(() => [])
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader title="New Coupon" backHref="/admin/coupons" backLabel="All Coupons" />

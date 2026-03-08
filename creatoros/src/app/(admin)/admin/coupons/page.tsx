@@ -10,7 +10,7 @@ export default async function AdminCouponsPage() {
   const coupons = await prisma.coupon.findMany({
     include: { _count: { select: { orders: true } } },
     orderBy: { createdAt: 'desc' },
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

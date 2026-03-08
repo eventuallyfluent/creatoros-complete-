@@ -11,7 +11,7 @@ export default async function AdminInstructorsPage() {
   const instructors = await prisma.instructorProfile.findMany({
     include: { _count: { select: { products: { where: { status: 'PUBLISHED' } } } } },
     orderBy: { displayName: 'asc' },
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

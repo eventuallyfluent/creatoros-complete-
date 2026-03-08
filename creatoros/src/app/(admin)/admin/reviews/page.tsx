@@ -13,7 +13,7 @@ export default async function ReviewsAdminPage() {
       user:   { select: { name: true, email: true } },
       course: { select: { title: true, slug: true } },
     },
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

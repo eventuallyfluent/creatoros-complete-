@@ -22,7 +22,7 @@ export default async function AdminProductsPage() {
       select:  { id: true, displayName: true },
       orderBy: { displayName: 'asc' },
     }),
-  ])
+  ]).catch(() => [])
 
   return (
     <ProductsPageClient

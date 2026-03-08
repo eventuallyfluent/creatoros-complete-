@@ -13,12 +13,12 @@ export const metadata: Metadata = { title: 'Analytics — Admin' }
 export default async function AdminAnalyticsPage() {
   const [revenueStats, revenueByDay, studentStats, signupsByDay, courseStats, orderSummary] =
     await Promise.all([
-      getRevenueStats(),
-      getRevenueByDay(30),
-      getStudentStats(),
-      getSignupsByDay(30),
-      getCourseStats(),
-      getOrderSummary(),
+      getRevenueStats().catch(() => ({ totalAllTime:0, last30Days:0, last7Days:0, today:0, pctChange30:0 })),
+      getRevenueByDay(30).catch(() => []),
+      getStudentStats().catch(() => ({ total:0, last30Days:0, last7Days:0, today:0, pctChange30:0 })),
+      getSignupsByDay(30).catch(() => []),
+      getCourseStats().catch(() => []),
+      getOrderSummary().catch(() => ({ pending:0, paid:0, failed:0, refunded:0 })),
     ])
 
   return (

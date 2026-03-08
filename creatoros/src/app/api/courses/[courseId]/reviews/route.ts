@@ -6,7 +6,9 @@ import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 
 // GET: public — returns approved reviews for a course
-export async function GET(_req: NextRequest, { params }: { params: { courseId: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: { courseId: string } })  {
+  try {
+
   const reviews = await prisma.courseReview.findMany({
     where:   { courseId: params.courseId, status: 'APPROVED' },
     include: { user: { select: { name: true } } },
@@ -64,4 +66,8 @@ export async function POST(req: NextRequest, { params }: { params: { courseId: s
   })
 
   return NextResponse.json(review, { status: 201 })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

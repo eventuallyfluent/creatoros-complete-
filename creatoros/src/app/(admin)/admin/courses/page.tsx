@@ -13,7 +13,7 @@ export default async function AdminCoursesPage() {
       _count: { select: { enrollments: true, modules: true, lessons: true } },
     },
     orderBy: { createdAt: 'desc' },
-  })
+  }).catch(() => [])
 
   const statusColor: Record<string, string> = {
     PUBLISHED: '#10b981',

@@ -11,14 +11,15 @@ export default async function AccountPage() {
   const session = await getServerSession(authOptions)
   const userId  = (session!.user as any).id
 
-  const [user, orders, enrollments] = await Promise.all([
+  let _data: any
+  try {const [user, orders, enrollments] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: userId },
       select: { id: true, email: true, name: true, image: true, createdAt: true },
     }),
     prisma.order.findMany({
       where:   { userId, status: 'PAID' },
-      include: { items: { include: { course: { select: { title: true, slug: true } } } } },
+      include: { items: { include: { product: { select: { title: true, slug: true } } } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.enrollment.findMany({
@@ -26,7 +27,9 @@ export default async function AccountPage() {
       include: { course: { select: { id: true, title: true, slug: true, thumbnailUrl: true } } },
       orderBy: { enrolledAt: 'desc' },
     }),
-  ])
+  ]).catch(() => [])
+  } catch(e) { console.error("Page DB error:", e) }
+  
 
   const courseIds   = enrollments.map(e => e.courseId)
   const [progressMap, completedCourses] = await Promise.all([
@@ -39,7 +42,7 @@ export default async function AccountPage() {
       where:  { userId, completedAt: { not: null } },
       select: { courseId: true, completedAt: true },
     }),
-  ])
+  ]).catch(() => [])
 
   const lessonTotals = await prisma.lesson.groupBy({
     by:    ['courseId'],

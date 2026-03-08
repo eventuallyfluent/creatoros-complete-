@@ -11,11 +11,11 @@ export default async function OrderDetailPage({ params }: { params: { orderId: s
   const order = await prisma.order.findUnique({
     where:   { id: params.orderId },
     include: {
-      items:  { include: { course: true } },
+      items:  { include: { product: true } },
       coupon: true,
       user:   { select: { id: true, email: true, name: true } },
     },
-  })
+  }).catch(() => null)
   if (!order) notFound()
 
   const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (

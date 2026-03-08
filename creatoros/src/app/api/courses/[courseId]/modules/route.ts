@@ -9,7 +9,9 @@ function adminOnly(session: any) {
   return session?.user?.role === 'ADMIN'
 }
 
-export async function POST(req: NextRequest, { params }: { params: { courseId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { courseId: string } })  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!adminOnly(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -25,4 +27,8 @@ export async function POST(req: NextRequest, { params }: { params: { courseId: s
   })
 
   return NextResponse.json(module, { status: 201 })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

@@ -9,7 +9,9 @@ function adminGuard(session: any) {
   return !!(session?.user?.role === 'ADMIN')
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { instructorId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: { instructorId: string } })  {
+  try {
+
   const session = await getServerSession(authOptions)
   if (!adminGuard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -50,4 +52,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { instructo
   })
 
   return NextResponse.json({ hidden: true })
+}  } catch (error: any) {
+    console.error('Route error:', error)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

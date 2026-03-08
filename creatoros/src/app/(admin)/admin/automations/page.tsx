@@ -31,7 +31,7 @@ export default async function AdminAutomationsPage() {
       executions: { select: { id: true, status: true } },
     },
     orderBy: { createdAt: 'desc' },
-  })
+  }).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

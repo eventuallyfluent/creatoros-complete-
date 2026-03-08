@@ -20,7 +20,7 @@ export default async function TestimonialsPage() {
       select:  { id: true, title: true },
       orderBy: { title: 'asc' },
     }),
-  ])
+  ]).catch(() => [])
 
   return (
     <div style={{ padding: '32px' }}>

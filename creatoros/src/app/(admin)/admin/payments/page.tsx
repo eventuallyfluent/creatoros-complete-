@@ -7,7 +7,7 @@ import GatewayManager from './GatewayManager'
 export const metadata: Metadata = { title: 'Payments — Admin' }
 
 export default async function AdminPaymentsPage() {
-  const gateways = await prisma.paymentGateway.findMany({ orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] })
+  const gateways = await prisma.paymentGateway.findMany({ orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] }).catch(() => [])
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader title="Payment Gateways" description="Configure how students pay for courses" />

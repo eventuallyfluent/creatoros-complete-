@@ -7,7 +7,7 @@ import PagesClient from './PagesClient'
 export const metadata: Metadata = { title: 'Pages — Admin' }
 
 export default async function AdminPagesPage() {
-  const pages = await prisma.page.findMany({ orderBy: { updatedAt: 'desc' } })
+  const pages = await prisma.page.findMany({ orderBy: { updatedAt: 'desc' } }).catch(() => [])
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader
