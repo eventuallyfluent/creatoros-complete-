@@ -179,8 +179,7 @@ export default async function HomePage() {
                     enrollment={firstCourse && enrolledIds.has(firstCourse.id) ? { progressPercent: 0, lessonsCompleted: 0, totalLessons: 0 } : undefined}
                   />
                 )
-              }
-              ))}
+              })}
             </div>
           </div>
         </section>
