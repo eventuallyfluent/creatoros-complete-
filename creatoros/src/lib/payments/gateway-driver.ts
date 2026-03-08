@@ -81,10 +81,24 @@ export interface GatewayDriver {
 export class ManualGatewayDriver implements GatewayDriver {
   readonly provider = 'manual'
 
+  constructor(private config: Record<string, string> = {}) {}
+
   async createPaymentSession(order: OrderPayload) {
-    // No redirect — admin marks manually
+    // Encode bank details into pending page URL so student sees them
+    const params = new URLSearchParams({ orderId: order.orderId })
+    if (this.config.bankName)      params.set('bankName',      this.config.bankName)
+    if (this.config.accountName)   params.set('accountName',   this.config.accountName)
+    if (this.config.accountNumber) params.set('accountNumber', this.config.accountNumber)
+    if (this.config.sortCode)      params.set('sortCode',      this.config.sortCode)
+    if (this.config.iban)          params.set('iban',          this.config.iban)
+    if (this.config.bic)           params.set('bic',           this.config.bic)
+    if (this.config.reference)     params.set('reference',     order.orderId.slice(0, 8).toUpperCase())
+    if (this.config.instructions)  params.set('instructions',  this.config.instructions)
+    const amount = (order.amount / 100).toFixed(2)
+    params.set('amount',   amount)
+    params.set('currency', order.currency.toUpperCase())
     return {
-      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${order.metadata?.courseSlug}/pending?orderId=${order.orderId}`,
+      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/bank-transfer?${params.toString()}`,
       sessionId: order.orderId,
     }
   }

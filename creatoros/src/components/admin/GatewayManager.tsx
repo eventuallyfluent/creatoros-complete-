@@ -25,11 +25,19 @@ const PROVIDER_GUIDES: Record<string, {
   fields:      { key: string; label: string; placeholder: string; secret?: boolean; help?: string }[]
 }> = {
   manual: {
-    label: 'Manual / Bank Transfer',
+    label: 'Bank Transfer',
     status: 'live',
-    checkoutNote: 'Student sees "pending" page. You mark the order paid manually in Orders.',
+    checkoutNote: 'Student clicks Pay → sees your bank details on screen with a unique payment reference → transfers the money → you mark the order as paid in Orders → they get course access.',
     setupUrl: '',
-    fields: [],
+    fields: [
+      { key: 'bankName',      label: 'Bank Name',           placeholder: 'e.g. Barclays, HSBC, ANZ' },
+      { key: 'accountName',   label: 'Account Name',        placeholder: 'Perseus Arcane Academy Ltd' },
+      { key: 'accountNumber', label: 'Account Number',      placeholder: '12345678' },
+      { key: 'sortCode',      label: 'Sort Code (UK)',       placeholder: '12-34-56' },
+      { key: 'iban',          label: 'IBAN (international)', placeholder: 'GB29 NWBK 6016 1331 9268 19' },
+      { key: 'bic',           label: 'BIC / SWIFT',         placeholder: 'NWBKGB2L' },
+      { key: 'instructions',  label: 'Extra instructions (optional)', placeholder: 'e.g. Please allow 1–2 business days for confirmation' },
+    ],
   },
   webhook_only: {
     label: 'Webhook / Custom Integration',

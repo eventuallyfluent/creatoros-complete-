@@ -15,7 +15,7 @@ import { prisma } from '@/lib/db/prisma'
 type DriverFactory = (config: any) => GatewayDriver
 
 const registry = new Map<string, DriverFactory>([
-  ['manual',       (config) => new ManualGatewayDriver()],
+  ['manual',       (config) => new ManualGatewayDriver(config)],
   ['webhook_only', (config) => new WebhookOnlyGatewayDriver(config)],
   // Future gateways registered here — no other files touched:
   // ['stripe',        (config) => new StripeDriver(config)],
