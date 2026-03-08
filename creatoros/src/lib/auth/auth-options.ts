@@ -11,22 +11,22 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
 
   providers: [
-    // PRIMARY: Magic link — passwordless email login
     EmailProvider({
       from: process.env.EMAIL_FROM,
       async sendVerificationRequest({ identifier: email, url }) {
         if (email === ADMIN_EMAIL) {
-          // Admin bypass — magic link printed to Vercel logs instead of email
-          console.log('=== ADMIN MAGIC LINK ===')
-          console.log(url)
-          console.log('========================')
+          // Store the magic link in site_settings so admin can retrieve it from Supabase
+          await prisma.siteSetting.upsert({
+            where: { key: 'admin_magic_link' },
+            update: { value: url as any, updatedAt: new Date() },
+            create: { key: 'admin_magic_link', value: url as any, group: 'ADVANCED' },
+          })
           return
         }
         await sendMagicLinkEmail({ email, url, type: 'LOGIN' })
       },
     }),
 
-    // OPTIONAL: Google OAuth
     ...(process.env.GOOGLE_CLIENT_ID
       ? [
           GoogleProvider({
