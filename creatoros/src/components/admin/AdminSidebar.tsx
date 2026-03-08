@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, BookOpen, FolderOpen, Users, User, ShoppingBag,
-  Tag, CreditCard, Zap, Mail, UserPlus, BarChart2,
+  Tag, CreditCard, Zap, Mail, MessageSquare, UserPlus, BarChart2,
   Palette, Navigation, Settings, ExternalLink, ChevronRight, Package, Download,
 } from 'lucide-react'
 
@@ -18,7 +18,7 @@ const NAV_GROUPS = [
       { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
       { label: 'Instructors', href: '/admin/instructors', icon: User },
       { label: 'Homepage',    href: '/admin/homepage',    icon: ExternalLink },
-      { label: 'Reviews',     href: '/admin/reviews',     icon: MessageCircle },
+      { label: 'Reviews',     href: '/admin/reviews',     icon: MessageSquare },
       { label: 'Testimonials', href: '/admin/testimonials', icon: Star },
       { label: 'Pages',       href: '/admin/pages',       icon: FileText },
       { label: 'Download',      href: '/admin/import',      icon: Download },
