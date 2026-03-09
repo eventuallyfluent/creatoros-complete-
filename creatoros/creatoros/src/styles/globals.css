@@ -1,0 +1,434 @@
+/* ============================================================
+   CreatorOS — Global Styles & Design Tokens
+   Perseus Arcane Academy Theme
+   
+   ALL colours, fonts, and spacing are defined here as CSS
+   custom properties. Components reference var(--token) only.
+   Never hardcode hex values in components.
+   
+   To switch to the neutral CreatorOS theme:
+   Replace this file with theme-default.css
+   Zero component changes required.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   DESIGN TOKENS — PERSEUS ARCANE ACADEMY THEME
+   ============================================================ */
+:root {
+  /* Backgrounds — layered depth */
+  --bg-base:      #0D0D1A;
+  --bg-surface:   #1A1A2E;
+  --bg-elevated:  #252540;
+  --bg-hover:     #2E2E52;
+
+  /* Brand */
+  --brand:        #7B2FBE;
+  --brand-hover:  #9B3FDE;
+  --brand-glow:   rgba(123, 47, 190, 0.35);
+
+  /* Accent */
+  --accent:       #C084FC;
+  --accent-soft:  rgba(192, 132, 252, 0.15);
+
+  /* Gold — premium */
+  --accent-gold:  #D4A855;
+  --gold-soft:    rgba(212, 168, 85, 0.15);
+
+  /* Text */
+  --text-primary:   #F0EAF8;
+  --text-secondary: #A78BCA;
+  --text-muted:     #6B5B8A;
+  --text-inverse:   #0D0D1A;
+
+  /* Borders */
+  --border:         #2E2E4E;
+  --border-bright:  #4A3A6E;
+
+  /* Status */
+  --success:  #34D399;
+  --warning:  #FBBF24;
+  --danger:   #F87171;
+
+  /* Admin (light) */
+  --surface-light: #FAFAFA;
+
+  /* Typography */
+  --font-display: 'Cinzel Decorative', serif;
+  --font-ui:      'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* Spacing scale */
+  --s1: 4px;   --s2: 8px;   --s3: 12px;  --s4: 16px;
+  --s5: 24px;  --s6: 32px;  --s7: 48px;  --s8: 64px;
+  --s9: 96px;  --s10: 128px;
+
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --admin-sidebar-width: 220px;
+  --nav-height: 64px;
+  --max-width: 1280px;
+}
+
+/* ============================================================
+   BASE RESET & DEFAULTS
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-ui);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Subtle noise texture — the mystical depth */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+/* Ensure all content sits above the noise overlay */
+#__next { position: relative; z-index: 1; }
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+/* Display headings — Cinzel Decorative ONLY for public hero sections */
+.display-heading {
+  font-family: var(--font-display);
+  line-height: 1.1;
+}
+
+p { color: var(--text-secondary); line-height: 1.7; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--text-primary); }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+
+/* ============================================================
+   FOCUS STYLES — Accessible
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ============================================================
+   LAYOUT UTILITIES
+   ============================================================ */
+.platform-container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--s5);
+}
+
+/* Public page sections */
+.section-padding { padding: var(--s9) 0 var(--s8); }
+.section-padding-sm { padding: var(--s7) 0; }
+
+/* Portal layout — GroupApp style */
+/* portal-layout now defined below */
+
+.portal-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 40;
+}
+
+.portal-main {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--bg-base);
+  overflow-x: hidden;
+  width: calc(100vw - var(--sidebar-width));
+  min-width: 0;
+  flex: 1;
+}
+
+.portal-layout {
+  display: flex !important;
+}
+
+/* Admin layout */
+.admin-layout {
+  display: block;
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--admin-sidebar-width);
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  z-index: 40;
+}
+
+.admin-main {
+  margin-left: var(--admin-sidebar-width);
+  min-height: 100vh;
+  background: var(--surface-light);
+  overflow-x: hidden;
+  width: calc(100vw - var(--admin-sidebar-width));
+  min-width: 0;
+}
+
+/* ============================================================
+   COMPONENT BASE STYLES
+   ============================================================ */
+
+/* Cards */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.card:hover {
+  border-color: rgba(192, 132, 252, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(192, 132, 252, 0.1);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+/* Progress */
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  border-radius: var(--r-pill);
+  transition: width 0.6s ease;
+}
+
+/* Nav sidebar item — GroupApp pattern */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+
+.sidebar-nav-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.sidebar-nav-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+/* Hero section background */
+.hero-bg {
+  background: linear-gradient(180deg, #0D0522 0%, var(--bg-base) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(123, 47, 190, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--r-md);
+}
+
+/* Staggered animation helpers */
+.animate-fade-up { animation: fadeUp 0.5s ease both; }
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+
+/* ============================================================
+   BUTTON COMPONENT STYLES
+   Referenced by src/components/ui/Button.tsx
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--r-md);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 11px 22px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-full { width: 100%; }
+
+/* Sizes */
+.btn-sm { font-size: 13px; padding: 7px 14px; }
+.btn-lg { font-size: 17px; padding: 14px 28px; }
+
+/* Variants */
+.btn-primary {
+  background: var(--brand);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background: var(--brand-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--brand-glow);
+}
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+.btn-gold {
+  background: linear-gradient(135deg, var(--accent-gold), #C49040);
+  color: var(--bg-base);
+}
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--gold-soft);
+}
+.btn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+.btn-danger:hover { opacity: 0.9; }

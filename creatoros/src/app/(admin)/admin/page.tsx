@@ -28,7 +28,7 @@ export default async function AdminDashboard() {
   }).catch(() => [])
 
   const stats = [
-    { label: 'Published Courses',  value: courseCount,                   href: '/admin/courses',  color: '#7B2FBE' },
+    { label: 'Published Courses',  value: courseCount,                   href: '/admin/products', color: '#7B2FBE' },
     { label: 'Total Students',     value: studentCount,                  href: '/admin/students', color: '#0ea5e9' },
     { label: 'Paid Orders',        value: orderCount,                    href: '/admin/orders',   color: '#10b981' },
     { label: 'Total Revenue',      value: `$${totalRevenue.toFixed(2)}`, href: '/admin/orders',   color: '#f59e0b' },

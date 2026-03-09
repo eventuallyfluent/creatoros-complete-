@@ -25,10 +25,7 @@ export default async function AdminInstructorsPage() {
         <div style={{ background: 'white', border: '2px dashed #e5e7eb', borderRadius: '12px', padding: '56px', textAlign: 'center' }}>
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>👤</div>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>No instructors yet</h2>
-          <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>Create an instructor profile to link to courses and products.</p>
-          <Link href="/admin/instructors/new" style={{ display: 'inline-block', background: '#7B2FBE', color: 'white', padding: '10px 24px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', textDecoration: 'none' }}>
-            Create First Instructor →
-          </Link>
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>Use the &ldquo;+ New Instructor&rdquo; button above to create a profile.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

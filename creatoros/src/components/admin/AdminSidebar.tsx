@@ -15,7 +15,6 @@ const NAV_GROUPS = [
     items: [
       { label: 'Dashboard',    href: '/admin',              icon: LayoutDashboard },
       { label: 'Products',     href: '/admin/products',     icon: Package },
-      { label: 'Courses',      href: '/admin/courses',      icon: BookOpen },
       { label: 'Collections',  href: '/admin/collections',  icon: FolderOpen },
       { label: 'Instructors',  href: '/admin/instructors',  icon: User },
       { label: 'Homepage',     href: '/admin/homepage',     icon: ExternalLink },

@@ -20,7 +20,10 @@ export async function createProductForCourse(
     currency?:     string
     status?:       'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
     instructorId?: string | null
-    thumbnailUrl?: string | null
+    thumbnailUrl?:   string | null
+    billingType?:    string
+    billingInterval?:string | null
+    trialDays?:      number | null
   }
 ): Promise<{ productId: string }> {
 
@@ -37,7 +40,10 @@ export async function createProductForCourse(
       compareAtPrice:opts.compareAtPrice ?? null,
       currency:      opts.currency ?? 'USD',
       instructorId:  opts.instructorId ?? null,
-      thumbnailUrl:  opts.thumbnailUrl ?? null,
+      thumbnailUrl:   opts.thumbnailUrl ?? null,
+      billingType:    (opts.billingType as any) ?? 'ONE_TIME',
+      billingInterval:(opts.billingInterval as any) ?? null,
+      trialDays:      opts.trialDays ?? null,
     },
     update: {}, // don't overwrite if exists
   })
