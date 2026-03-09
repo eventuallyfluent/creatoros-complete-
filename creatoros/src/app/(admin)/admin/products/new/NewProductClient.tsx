@@ -15,7 +15,7 @@ export default function NewProductClient({ courses, instructors }: Props) {
   const [error,   setError]   = useState<string | null>(null)
 
   // COURSE form
-  const [courseMode,    setCourseMode]    = useState<'existing' | 'new'>('existing')
+  const [courseMode,    setCourseMode]    = useState<'existing' | 'new'>('new')
   const [courseId,      setCourseId]      = useState('')
   const [newTitle,      setNewTitle]      = useState('')
   const [newSlug,       setNewSlug]       = useState('')
@@ -157,10 +157,16 @@ export default function NewProductClient({ courses, instructors }: Props) {
           </div>
 
           {courseMode === 'existing' ? (
+            courses.length === 0 ? (
+              <div style={{ padding: '14px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', color: '#92400e' }}>
+                No courses yet — use <strong>+ Create new course</strong> above to create one first.
+              </div>
+            ) : (
             <select value={courseId} onChange={e => setCourseId(e.target.value)} style={inp}>
               <option value="">— Select a course —</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
+            )
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
