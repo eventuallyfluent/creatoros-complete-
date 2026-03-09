@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, BookOpen, FolderOpen, Users, User, ShoppingBag,
   Tag, CreditCard, Mail, UserPlus, Settings, Package,
-  FileText, Search, MessageSquare, BarChart2, Zap,
+  FileText, Search, MessageSquare, BarChart2, Zap, BookOpen,
   ChevronRight, ExternalLink, Shield,
 } from 'lucide-react'
 
@@ -35,7 +35,8 @@ const NAV_GROUPS = [
   {
     label: 'Marketing',
     items: [
-      { label: 'Email Sequences', href: '/admin/automations',  icon: Zap },
+      { label: 'Automations',      href: '/admin/automations',  icon: Zap },
+      { label: 'Email Sequences',   href: '/admin/sequences',    icon: BookOpen },
       { label: 'Subscribers',     href: '/admin/subscribers',  icon: Mail },
       { label: 'Broadcasts',      href: '/admin/emails',       icon: Mail },
       { label: 'Analytics',       href: '/admin/analytics',    icon: BarChart2 },

@@ -33,9 +33,9 @@ export default async function AdminStudentsPage({
       orderBy: { createdAt: 'desc' },
       take,
       skip,
-    }),
-    prisma.user.count({ where }),
-  ]).catch(() => [])
+    }).catch(() => []),
+    prisma.user.count({ where }).catch(() => 0),
+  ])
 
   const totalPages = Math.ceil(total / take)
 

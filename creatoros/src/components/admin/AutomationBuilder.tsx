@@ -16,8 +16,6 @@ const TRIGGERS = [
 const ACTIONS = [
   { value: 'send_email',    label: 'Send Email',          icon: '✉️' },
   { value: 'delay',         label: 'Wait (delay)',         icon: '⏱'  },
-  { value: 'grant_product', label: 'Grant Product Access', icon: '🔑' },
-  { value: 'enroll_course', label: 'Enrol in Course',      icon: '🎓' },
   { value: 'add_tag',       label: 'Add Tag',              icon: '🏷'  },
   { value: 'remove_tag',    label: 'Remove Tag',           icon: '✂️' },
   { value: 'webhook_post',  label: 'Zap POST',         icon: '🔗' },
