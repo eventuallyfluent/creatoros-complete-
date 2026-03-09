@@ -13,10 +13,10 @@ interface Gateway {
   config:        Record<string, string>
 }
 
-// Providers with a fully wired SDK driver (no webhook needed)
-const DRIVER_PROVIDERS = ['manual']
-// Providers that work via webhook (save creds, paste URL in their dashboard, done)
-const WEBHOOK_PROVIDERS = ['webhook_only', 'stripe', 'paypal', 'razorpay', 'nowpayments', 'paymongo', 'ecpay', 'mercadopago']
+// Providers with a fully wired driver (live payments work today)
+const DRIVER_PROVIDERS = ['manual', 'stripe']
+// Providers that receive webhooks but need a driver built for outbound API calls
+const WEBHOOK_PROVIDERS = ['webhook_only', 'paypal', 'razorpay', 'nowpayments', 'paymongo', 'ecpay', 'mercadopago']
 
 const PROVIDER_GUIDES: Record<string, {
   label:        string
@@ -43,6 +43,34 @@ const PROVIDER_GUIDES: Record<string, {
       { key: 'instructions',  label: 'Extra instructions (optional)', placeholder: 'e.g. Please allow 1–2 business days for confirmation' },
     ],
   },
+  generic_api: {
+    label: 'Any API Gateway (Generic)',
+    mode: 'api_driver',
+    checkoutNote: 'Works with any payment provider that has a REST API. Fill in their API URL, your auth credentials, and tell us which field in their response contains the redirect URL. We handle the rest.',
+    setupUrl: '',
+    webhookPath: 'your payment provider dashboard → Webhooks or IPN settings',
+    fields: [
+      { key: 'checkoutApiUrl',      label: 'Checkout API URL',         placeholder: 'https://api.myprovider.com/v1/checkout',    help: 'The endpoint we POST to when a student clicks Pay.' },
+      { key: 'authHeaderName',      label: 'Auth Header Name',         placeholder: 'Authorization  or  X-Api-Key',              help: 'The HTTP header name your provider uses for authentication.' },
+      { key: 'authHeaderValue',     label: 'Auth Header Value',        placeholder: 'Bearer sk_live_xxx  or  sk_live_xxx',       help: 'The full header value including Bearer prefix if required.', secret: true },
+      { key: 'checkoutUrlField',    label: 'Redirect URL Field',       placeholder: 'checkout_url  or  data.url',               help: 'The field in their API response that contains the URL to redirect the student to. Use dot notation for nested fields.' },
+      { key: 'webhookOrderIdField', label: 'Webhook Order ID Field',   placeholder: 'metadata.orderId  or  reference',          help: 'The field in their webhook payload that contains our order ID. We send this as "reference", "order_id", and inside "metadata.orderId".' },
+      { key: 'webhookSigHeader',    label: 'Webhook Signature Header', placeholder: 'x-signature  or  x-webhook-secret',        help: 'The header they send with each webhook for verification. Leave blank to skip signature checking.' },
+      { key: 'webhookSecret',       label: 'Webhook Secret',           placeholder: 'your-secret-key',                          help: 'The secret used to verify webhook signatures.', secret: true },
+      { key: 'webhookSigAlgorithm', label: 'Signature Algorithm',      placeholder: 'hmac-sha256  (default)',                   help: 'hmac-sha256 (default), hmac-sha1, or none.' },
+      { key: 'webhookSigEncoding',  label: 'Signature Encoding',       placeholder: 'hex  (default)',                           help: 'hex (default) or base64.' },
+      { key: 'extraCheckoutFields', label: 'Extra Fields (optional)',   placeholder: '{"locale":"en","payment_type":"card"}',    help: 'Any extra fields their checkout API requires. JSON format.' },
+    ],
+    webhookSteps: [
+      'Get the checkout API endpoint URL from your provider docs (usually POST /v1/checkout or similar)',
+      'Find the authentication method — most use Authorization: Bearer sk_xxx or X-Api-Key: xxx',
+      'Check what field in their response contains the redirect URL (e.g. checkout_url, url, redirect)',
+      'Fill in all fields above and save',
+      'Copy the Webhook URL below and paste it into your provider's dashboard',
+      'Find what field in their webhook contains the order reference — we send it as "reference", "order_id", and "metadata.orderId"',
+      'If they sign webhooks, find the signature header name and secret and fill those in too',
+    ],
+  },
   webhook_only: {
     label: 'Webhook / Custom',
     mode: 'webhook',
@@ -53,24 +81,47 @@ const PROVIDER_GUIDES: Record<string, {
       { key: 'webhookSecret', label: 'Webhook Secret (optional)', placeholder: 'your-secret-key', secret: true, help: 'Set a shared secret in your payment platform and paste it here. We verify every incoming webhook.' },
     ],
   },
+  creem: {
+    label: 'Creem (Merchant of Record)',
+    mode: 'api_driver',
+    checkoutNote: 'Customer clicks Pay → redirected to Creem's hosted checkout → pays with card, PayPal, Apple Pay, or local methods → Creem handles all global tax compliance → webhook fires → student enrolled. Creem is a Merchant of Record: they collect VAT/GST in 190+ countries so you never touch a tax form. Fee: 3.9% + 30¢, no monthly cost.',
+    setupUrl: 'https://creem.io/dashboard/developers',
+    webhookPath: 'Creem Dashboard → Developers → Webhooks → Add Webhook',
+    fields: [
+      { key: 'apiKey',        label: 'API Key',        placeholder: 'creem_live_…', help: 'Creem Dashboard → Developers → API Keys' },
+      { key: 'webhookSecret', label: 'Webhook Secret', placeholder: 'creem_whs_…', secret: true, help: 'Generated when you create the webhook endpoint below.' },
+      { key: 'testMode',      label: 'Test Mode',      placeholder: 'true or false', help: 'Set to "true" to use Creem sandbox for testing.' },
+    ],
+    webhookSteps: [
+      'Sign up at creem.io — no monthly fee, takes 2 minutes',
+      'Create a product in Creem Dashboard matching each of your courses (note the prod_xxx ID)',
+      'Go to Creem Dashboard → Developers → API Keys — copy your live API key',
+      'Paste it above, save, then copy the Webhook URL below',
+      'Go to Creem Dashboard → Developers → Webhooks → Add Webhook',
+      'Paste the Webhook URL, select event: checkout.completed',
+      'Copy the Webhook Secret shown and paste it above',
+      'Done — Creem handles all payments, tax, and compliance automatically',
+    ],
+  },
   stripe: {
     label: 'Stripe',
-    mode: 'webhook_external',
-    checkoutNote: 'Customer clicks Pay → redirected to Stripe Checkout → pays → returns to your site. Stripe fires a webhook → student enrolled instantly.',
+    mode: 'api_driver',
+    checkoutNote: 'Fully wired and ready to go live. Student clicks Pay → CreatorOS calls Stripe API to create a checkout session → student is redirected to Stripe's hosted payment page → pays with card, Apple Pay, Google Pay → Stripe fires a webhook back → student enrolled automatically. You never handle card data.',
     setupUrl: 'https://dashboard.stripe.com/apikeys',
     webhookPath: 'Stripe Dashboard → Developers → Webhooks → Add endpoint',
     fields: [
       { key: 'publishableKey', label: 'Publishable Key', placeholder: 'pk_live_…', help: 'Stripe Dashboard → Developers → API Keys' },
-      { key: 'secretKey',      label: 'Secret Key',      placeholder: 'sk_live_…', secret: true, help: 'Never share this. Server-side only.' },
-      { key: 'webhookSecret',  label: 'Webhook Signing Secret', placeholder: 'whsec_…', secret: true, help: 'Created after you add the webhook endpoint in step 3 below.' },
+      { key: 'secretKey',      label: 'Secret Key',      placeholder: 'sk_live_…', secret: true, help: 'Used server-side to call the Stripe API. Never exposed to students.' },
+      { key: 'webhookSecret',  label: 'Webhook Signing Secret', placeholder: 'whsec_…', secret: true, help: 'Generated in step 4. Verifies webhook payloads are genuinely from Stripe.' },
     ],
     webhookSteps: [
-      'Copy your Secret Key from Stripe Dashboard → Developers → API Keys',
-      'Paste your Publishable Key and Secret Key above and save',
+      'Go to Stripe Dashboard → Developers → API Keys — copy the Secret Key (sk_live_…)',
+      'Paste Secret Key and Publishable Key above and click Save',
       'Go to Stripe Dashboard → Developers → Webhooks → Add endpoint',
       'Paste the Webhook URL below as the endpoint URL',
-      'Set events to listen for: checkout.session.completed, payment_intent.succeeded',
-      'After saving, copy the Signing Secret (whsec_…) and paste it above',
+      'Under "Select events", add: checkout.session.completed and charge.refunded',
+      'Save the endpoint — Stripe shows a Signing Secret (whsec_…) — copy and paste it above',
+      'Save again. Stripe is now fully live — no further code needed.',
     ],
   },
   paypal: {
@@ -274,9 +325,10 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
         )}
         {gateways.map(gateway => {
           const guide  = PROVIDER_GUIDES[gateway.provider]
-          const isBank = guide?.mode === 'bank_transfer'
-          const isOpen = expanded === gateway.id
-          const isReady = DRIVER_PROVIDERS.includes(gateway.provider) || WEBHOOK_PROVIDERS.includes(gateway.provider)
+          const isBank    = guide?.mode === 'bank_transfer'
+          const isApiDriver = guide?.mode === 'api_driver'
+          const isOpen    = expanded === gateway.id
+          const isReady   = DRIVER_PROVIDERS.includes(gateway.provider) || WEBHOOK_PROVIDERS.includes(gateway.provider)
 
           return (
             <div key={gateway.id} style={{ background: 'white', border: gateway.isDefault ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
@@ -374,7 +426,7 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
                       </>
                     )}
 
-                    {/* WEBHOOK PROVIDERS: step-by-step setup + webhook URL */}
+                    {/* WEBHOOK / API DRIVER PROVIDERS: step-by-step setup */}
                     {!isBank && guide && (
                       <>
                         {/* Step-by-step */}
@@ -459,8 +511,15 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
         <div style={{ background: 'white', border: '2px dashed #7B2FBE', borderRadius: '12px', padding: '22px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', marginBottom: '6px' }}>Add Payment Gateway</h3>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 18px', lineHeight: 1.5 }}>
-            Choose a provider below or type any name. Credentials are saved securely.
+            Choose a known provider below, or type any name to add a custom gateway. Credentials are saved securely — each gateway gets its own webhook URL.
           </p>
+          <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#065f46', margin: '0 0 4px' }}>How any API-based gateway works</p>
+            <p style={{ fontSize: '12px', color: '#166534', margin: 0, lineHeight: 1.6 }}>
+              1. You enter your API credentials here → 2. When student clicks Pay, CreatorOS calls their API to create a checkout session → 3. Student is redirected to their hosted payment page → 4. Their webhook fires to your Webhook URL → student is enrolled automatically.
+              <br />For providers not listed, use <strong>Webhook / Custom</strong> — paste their webhook URL guide in the instructions field and save credentials in the key/value fields.
+            </p>
+          </div>
 
           {/* Quick-select */}
           <div style={{ marginBottom: '16px' }}>
