@@ -331,9 +331,9 @@ function SalesTab({ product }: { product: Product }) {
   return (
     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
       <div>
-        <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Sales Page Editor</p>
+        <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Sales Page</p>
         <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
-          Customise your sales page — headline, benefits, curriculum preview, instructor bio, testimonials, FAQ, and call-to-action. AI-generated from your answers, fully editable.
+          Edit your sales page — headline, benefits, curriculum preview, instructor bio, testimonials, FAQ, and call-to-action.
         </p>
       </div>
       <a href={`/admin/products/${product.id}/sales-page`}
