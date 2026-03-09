@@ -33,15 +33,15 @@ export default async function ProductEditorPage({ params }: { params: { productI
         salesPrompts:  true,
         _count:        { select: { enrollments: true, orderItems: true } },
       },
-    }).catch(() => null),
+    })),
     prisma.instructorProfile.findMany({
       select: { id: true, displayName: true }, orderBy: { displayName: 'asc' },
-    }).catch(() => []),
+    })),
     prisma.product.findMany({
       where:   { status: 'PUBLISHED' },
       select:  { id: true, title: true, price: true, currency: true },
       orderBy: { title: 'asc' },
-    }).catch(() => []),
+    })),
   ])
 
   if (!product) notFound()

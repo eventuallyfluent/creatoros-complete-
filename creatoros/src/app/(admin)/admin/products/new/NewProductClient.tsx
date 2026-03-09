@@ -23,9 +23,6 @@ export default function NewProductClient({ courses, instructors }: Props) {
   const [price,         setPrice]         = useState('')
   const [compareAt,     setCompareAt]     = useState('')
   const [currency,      setCurrency]      = useState('USD')
-  const [billingType,   setBillingType]   = useState<'ONE_TIME' | 'SUBSCRIPTION'>('ONE_TIME')
-  const [billingInterval, setBillingInterval] = useState<'MONTHLY' | 'QUARTERLY' | 'YEARLY'>('MONTHLY')
-  const [trialDays,     setTrialDays]     = useState('')
 
   // BUNDLE form
   const [bundleTitle,       setBundleTitle]       = useState('')
@@ -75,17 +72,13 @@ export default function NewProductClient({ courses, instructors }: Props) {
         body = {
           type: 'COURSE', courseId: courseData.id, instructorId: instructorId || null,
           price: parseFloat(price) || 0, compareAtPrice: parseFloat(compareAt) || null,
-          currency, billingType,
-          billingInterval: billingType === 'SUBSCRIPTION' ? billingInterval : null,
-          trialDays: billingType === 'SUBSCRIPTION' && trialDays ? parseInt(trialDays) : null,
+          currency,
         }
       } else if (type === 'COURSE') {
         body = {
           type: 'COURSE', courseId, instructorId: instructorId || null,
           price: parseFloat(price) || 0, compareAtPrice: parseFloat(compareAt) || null,
-          currency, billingType,
-          billingInterval: billingType === 'SUBSCRIPTION' ? billingInterval : null,
-          trialDays: billingType === 'SUBSCRIPTION' && trialDays ? parseInt(trialDays) : null,
+          currency,
         }
       } else {
         body = {
@@ -188,19 +181,9 @@ export default function NewProductClient({ courses, instructors }: Props) {
         <div style={card}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Pricing</h3>
 
-          {/* Billing type toggle */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {(['ONE_TIME', 'SUBSCRIPTION'] as const).map(bt => (
-              <button key={bt} onClick={() => setBillingType(bt)}
-                style={{ padding: '7px 16px', borderRadius: '6px', border: 'none', fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', background: billingType === bt ? '#7B2FBE' : '#f3f4f6', color: billingType === bt ? 'white' : '#374151' }}>
-                {bt === 'ONE_TIME' ? 'One-time payment' : 'Subscription'}
-              </button>
-            ))}
-          </div>
-
           <div style={row}>
             <div>
-              <label style={lbl}>{billingType === 'SUBSCRIPTION' ? 'Price per period' : 'Price'}</label>
+              <label style={lbl}>Price</label>
               <input type="number" min="0" step="0.01" placeholder="97.00" value={price} onChange={e => setPrice(e.target.value)} style={inp} />
             </div>
             <div>
@@ -208,30 +191,11 @@ export default function NewProductClient({ courses, instructors }: Props) {
               <input type="number" min="0" step="0.01" placeholder="147.00" value={compareAt} onChange={e => setCompareAt(e.target.value)} style={inp} />
             </div>
           </div>
-
-          <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: billingType === 'SUBSCRIPTION' ? '1fr 1fr 1fr' : '1fr', gap: '16px' }}>
-            <div>
-              <label style={lbl}>Currency</label>
-              <select value={currency} onChange={e => setCurrency(e.target.value)} style={inp}>
-                {['USD','GBP','EUR','AUD','CAD'].map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            {billingType === 'SUBSCRIPTION' && (
-              <>
-                <div>
-                  <label style={lbl}>Billing interval</label>
-                  <select value={billingInterval} onChange={e => setBillingInterval(e.target.value as any)} style={inp}>
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="QUARTERLY">Quarterly</option>
-                    <option value="YEARLY">Yearly</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Free trial days <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
-                  <input type="number" min="0" placeholder="0" value={trialDays} onChange={e => setTrialDays(e.target.value)} style={inp} />
-                </div>
-              </>
-            )}
+          <div style={{ marginTop: '16px' }}>
+            <label style={lbl}>Currency</label>
+            <select value={currency} onChange={e => setCurrency(e.target.value)} style={{ ...inp, width: '140px' }}>
+              {['USD','GBP','EUR','AUD','CAD'].map(c => <option key={c}>{c}</option>)}
+            </select>
           </div>
         </div>
 

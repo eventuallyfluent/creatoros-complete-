@@ -33,7 +33,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const {
     title, subtitle, status, price, compareAtPrice,
     currency, affiliateEnabled, instructorId,
-    billingType, billingInterval, trialDays,
   } = body
 
   try {
@@ -48,9 +47,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         currency:        currency,
         affiliateEnabled:affiliateEnabled !== undefined ? affiliateEnabled : undefined,
         instructorId:    instructorId !== undefined ? instructorId : undefined,
-        billingType:     billingType ?? undefined,
-        billingInterval: billingInterval ?? null,
-        trialDays:       trialDays !== undefined ? trialDays : undefined,
       },
     })
     return NextResponse.json(product)

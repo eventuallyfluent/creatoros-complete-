@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   try {
     if (type === 'COURSE') {
-      const { courseId, price, compareAtPrice, currency, instructorId, billingType, billingInterval, trialDays } = body
+      const { courseId, price, compareAtPrice, currency, instructorId } = body
       if (!courseId) return NextResponse.json({ error: 'courseId is required' }, { status: 400 })
 
       const course = await prisma.course.findUnique({ where: { id: courseId } })
@@ -57,9 +57,6 @@ export async function POST(req: NextRequest) {
         status:         'DRAFT',
         instructorId:   instructorId ?? null,
         thumbnailUrl:   course.thumbnailUrl ?? null,
-        billingType:    billingType ?? 'ONE_TIME',
-        billingInterval:billingInterval ?? null,
-        trialDays:      trialDays ?? null,
       })
 
       // Sync instructorId back to Course if supplied

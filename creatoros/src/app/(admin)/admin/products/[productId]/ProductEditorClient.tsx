@@ -25,8 +25,7 @@ interface CourseData {
 interface Product {
   id: string; type: string; status: string; slug: string
   title: string; subtitle: string | null; price: number; compareAtPrice: number | null
-  currency: string; billingType: string; billingInterval: string | null; trialDays: number | null
-  instructorId: string | null; checkoutPages: CheckoutPageData[]
+  currency: string; instructorId: string | null; checkoutPages: CheckoutPageData[]
   courses: { course: CourseData }[]
 }
 
@@ -163,12 +162,9 @@ function OverviewTab({ product, instructors, inp, lbl, card, row2 }: any) {
 
 function BillingTab({ product, inp, lbl, card, row2 }: any) {
   const [form, setForm] = useState({
-    price:           String(product.price),
-    compareAtPrice:  product.compareAtPrice ? String(product.compareAtPrice) : '',
-    currency:        product.currency,
-    billingType:     product.billingType ?? 'ONE_TIME',
-    billingInterval: product.billingInterval ?? 'MONTHLY',
-    trialDays:       product.trialDays ? String(product.trialDays) : '',
+    price:          String(product.price),
+    compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
+    currency:       product.currency,
   })
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
@@ -181,12 +177,9 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
     const res = await fetch(`/api/admin/products/${product.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        price:           parseFloat(form.price) || 0,
-        compareAtPrice:  parseFloat(form.compareAtPrice) || null,
-        currency:        form.currency,
-        billingType:     form.billingType,
-        billingInterval: form.billingType === 'SUBSCRIPTION' ? form.billingInterval : null,
-        trialDays:       form.billingType === 'SUBSCRIPTION' && form.trialDays ? parseInt(form.trialDays) : null,
+        price:          parseFloat(form.price) || 0,
+        compareAtPrice: parseFloat(form.compareAtPrice) || null,
+        currency:       form.currency,
       }),
     })
     const data = await res.json()
@@ -198,29 +191,10 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
   return (
     <>
       <div style={card}>
-        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Billing Type</h3>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          {(['ONE_TIME', 'SUBSCRIPTION'] as const).map(bt => (
-            <button key={bt} onClick={() => set('billingType', bt)}
-              style={{ padding: '9px 20px', borderRadius: '8px', border: `2px solid ${form.billingType === bt ? '#7B2FBE' : '#e5e7eb'}`, fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', background: form.billingType === bt ? 'rgba(123,47,190,0.06)' : 'white', color: form.billingType === bt ? '#7B2FBE' : '#374151', transition: 'all 0.15s' }}>
-              {bt === 'ONE_TIME' ? 'One-time payment' : 'Subscription'}
-            </button>
-          ))}
-        </div>
-        {form.billingType === 'SUBSCRIPTION' && (
-          <p style={{ fontSize: '12px', color: '#6b7280', margin: '8px 0 0' }}>
-            Subscription billing requires a payment provider that supports recurring charges (Stripe or Creem).
-          </p>
-        )}
-      </div>
-
-      <div style={card}>
-        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>
-          {form.billingType === 'SUBSCRIPTION' ? 'Price per period' : 'Price'}
-        </h3>
+        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Price</h3>
         <div style={row2}>
           <div>
-            <label style={lbl}>{form.billingType === 'SUBSCRIPTION' ? 'Amount per period' : 'Price'}</label>
+            <label style={lbl}>Price</label>
             <input type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} style={inp} placeholder="97.00" />
           </div>
           <div>
@@ -236,32 +210,11 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
         </div>
       </div>
 
-      {form.billingType === 'SUBSCRIPTION' && (
-        <div style={card}>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Subscription Settings</h3>
-          <div style={row2}>
-            <div>
-              <label style={lbl}>Billing interval</label>
-              <select value={form.billingInterval} onChange={e => set('billingInterval', e.target.value)} style={inp}>
-                <option value="MONTHLY">Monthly</option>
-                <option value="QUARTERLY">Quarterly (every 3 months)</option>
-                <option value="YEARLY">Yearly</option>
-              </select>
-            </div>
-            <div>
-              <label style={lbl}>Free trial days <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
-              <input type="number" min="0" placeholder="e.g. 7" value={form.trialDays} onChange={e => set('trialDays', e.target.value)} style={inp} />
-              <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>Set to 0 or leave blank for no trial.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {error && <Alert type="error" message={error} />}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button onClick={save} disabled={saving}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 24px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
-          {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}</>}
+          {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving\u2026' : 'Save Changes'}</>}
         </button>
       </div>
     </>

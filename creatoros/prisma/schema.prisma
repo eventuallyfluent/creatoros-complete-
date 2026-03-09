@@ -751,17 +751,6 @@ model AutomationExecution {
 // Course = content only. Product = the thing with a price.
 // ============================================================
 
-enum BillingType {
-  ONE_TIME
-  SUBSCRIPTION
-}
-
-enum BillingInterval {
-  MONTHLY
-  QUARTERLY
-  YEARLY
-}
-
 enum ProductType {
   COURSE   // wraps exactly one Course
   BUNDLE   // wraps multiple Courses
@@ -788,11 +777,6 @@ model Product {
   price          Decimal  @default(0) @db.Decimal(10, 2)
   compareAtPrice Decimal? @db.Decimal(10, 2)
   currency       String   @default("USD")
-
-  // Billing
-  billingType     BillingType    @default(ONE_TIME)
-  billingInterval BillingInterval?
-  trialDays       Int?           // free trial days for subscriptions
 
   // Commercial
   affiliateEnabled Boolean @default(false)
