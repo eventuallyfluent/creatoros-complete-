@@ -7,16 +7,23 @@ import { getActiveGateways } from '@/lib/payments/gateway-registry'
 import Image from 'next/image'
 import CheckoutForm from './CheckoutForm'
 
-interface Props { params: { slug: string } }
+interface Props {
+  params:      { slug: string }
+  searchParams: { preview?: string }
+}
 
 export const metadata: Metadata = { title: 'Checkout' }
 
-export default async function CheckoutPage({ params }: Props) {
-  const session = await getServerSession(authOptions)
-  const userId  = (session?.user as any)?.id
+export default async function CheckoutPage({ params, searchParams }: Props) {
+  const session   = await getServerSession(authOptions)
+  const userId    = (session?.user as any)?.id
+  const isAdmin   = (session?.user as any)?.role === 'ADMIN'
+  const isPreview = isAdmin && searchParams.preview === '1'
 
   const product = await prisma.product.findUnique({
-    where:   { slug: params.slug, status: 'PUBLISHED' },
+    where:   isPreview
+      ? { slug: params.slug }                          // admin preview: any status
+      : { slug: params.slug, status: 'PUBLISHED' },   // public: published only
     include: {
       instructor: true,
       courses:    {
@@ -32,11 +39,25 @@ export default async function CheckoutPage({ params }: Props) {
 
   if (!product) notFound()
 
-  // Free products don't go through paid checkout
-  if (Number(product.price) === 0) redirect(`/courses/${params.slug}`)
+  // Free products — enrol immediately if logged in, otherwise redirect to login
+  if (Number(product.price) === 0 && !isPreview) {
+    if (userId) {
+      for (const pc of product.courses) {
+        await prisma.enrollment.upsert({
+          where:  { userId_courseId: { userId, courseId: pc.courseId } },
+          create: { userId, courseId: pc.courseId, productId: product.id, status: 'ACTIVE' },
+          update: { status: 'ACTIVE' },
+        })
+      }
+      const firstCourseId = product.courses[0]?.course?.id
+      redirect(firstCourseId ? `/portal/courses/${product.courses[0]?.course?.id}` : '/portal')
+    } else {
+      redirect(`/login?callbackUrl=${encodeURIComponent(`/checkout/${params.slug}`)}`)
+    }
+  }
 
-  // Already enrolled — go to portal
-  if (userId) {
+  // Already enrolled — go to portal (skip in preview)
+  if (userId && !isPreview) {
     const courseIds  = product.courses.map(pc => pc.courseId)
     const enrollment = await prisma.enrollment.findFirst({
       where: { userId, courseId: { in: courseIds }, status: 'ACTIVE' },
@@ -44,7 +65,13 @@ export default async function CheckoutPage({ params }: Props) {
     if (enrollment) redirect(`/portal/courses/${product.courses[0]?.course?.id ?? params.slug}`)
   }
 
-  const gateways = await getActiveGateways()
+  const liveGateways = await getActiveGateways()
+
+  // Admin preview: inject a mock gateway so the form renders
+  const gateways = liveGateways.length > 0 ? liveGateways : isPreview ? [{
+    id: 'preview', name: 'Card Payment', provider: 'stripe', isDefault: true,
+  }] : []
+
   if (gateways.length === 0) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -60,7 +87,6 @@ export default async function CheckoutPage({ params }: Props) {
   const price   = Number(product.price)
   const compare = product.compareAtPrice ? Number(product.compareAtPrice) : null
 
-  // Order bump product
   let bumpProduct = null
   if (checkoutPage?.orderBumpProductId) {
     bumpProduct = await prisma.product.findUnique({
@@ -75,6 +101,14 @@ export default async function CheckoutPage({ params }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingTop: 'var(--s7)', paddingBottom: 'var(--s8)' }}>
       <div className="platform-container" style={{ maxWidth: '960px' }}>
+
+        {/* Preview banner */}
+        {isPreview && (
+          <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '10px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#92400e' }}>
+            <span>👁</span>
+            <strong>Admin Preview</strong> — this is how your checkout looks to students. The Pay button is disabled in preview mode.
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--s7)' }}>
@@ -106,12 +140,12 @@ export default async function CheckoutPage({ params }: Props) {
               userEmail={session?.user?.email ?? ''}
               userName={session?.user?.name ?? ''}
               userId={userId ?? null}
+              isPreview={isPreview}
             />
           </div>
 
           {/* Right — order summary */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', position: 'sticky', top: 'calc(var(--nav-height) + 24px)' }}>
-            {/* Thumbnail */}
             <div style={{ height: '160px', background: 'linear-gradient(135deg, #1A0A2E, #2D1045)', position: 'relative' }}>
               {product.thumbnailUrl ? (
                 <Image src={product.thumbnailUrl} alt={product.title} fill style={{ objectFit: 'cover' }} />
@@ -143,10 +177,9 @@ export default async function CheckoutPage({ params }: Props) {
                     <span>− {product.currency} {(compare - price).toFixed(2)}</span>
                   </div>
                 )}
-                <div id="coupon-summary-line" />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' }}>
                   <span>Total</span>
-                  <span id="order-total-display">{product.currency} {price.toFixed(2)}</span>
+                  <span>{product.currency} {price.toFixed(2)}</span>
                 </div>
               </div>
 

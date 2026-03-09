@@ -68,30 +68,19 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
     setError(null); setSaving(true)
     try {
       if (selected === 'COURSE') {
-        // Create course — defaults (Product, SalesPage etc) are auto-created by the API
         const courseRes = await fetch('/api/courses', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: newTitle, slug: newSlug, status: 'DRAFT',
             instructorId: instructorId || null,
+            price:          parseFloat(price) || 0,
+            compareAtPrice: parseFloat(compareAt) || null,
+            currency,
           }),
         })
         const courseData = await courseRes.json()
         if (!courseRes.ok) { setError(courseData.error ?? 'Failed to create course'); setSaving(false); return }
-
-        // Update the auto-created product with pricing
-        const patchRes = await fetch(`/api/admin/products/by-course/${courseData.id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            price: parseFloat(price) || 0,
-            compareAtPrice: parseFloat(compareAt) || null,
-            currency,
-            instructorId: instructorId || null,
-          }),
-        })
-        const patchData = await patchRes.json()
-        if (!patchRes.ok) { setError(patchData.error ?? 'Failed to set pricing'); setSaving(false); return }
-        onCreated(patchData.id)
+        onCreated(courseData.productId)
       } else {
         const body = { type: 'BUNDLE', title: bundleTitle, slug: bundleSlug,
           price: parseFloat(bundlePrice) || 0, compareAtPrice: parseFloat(bundleCompare) || null,

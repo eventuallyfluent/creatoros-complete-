@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Save, Plus, Trash2, AlertCircle, CheckCircle, BookOpen, FileText, ShoppingCart, AlertTriangle, Users } from 'lucide-react'
 import CourseEditor from '@/components/admin/CourseEditor'
 import CurriculumBuilder from '@/components/admin/CurriculumBuilder'
+import SalesPageEditor from './sales-page/SalesPageEditor'
 import Link from 'next/link'
 
 interface CheckoutPageData {
@@ -328,20 +329,10 @@ function ContentTab({ product, course, instructors }: { product: Product; course
 // ── Sales Page Tab ────────────────────────────────────────────────────────────
 
 function SalesTab({ product }: { product: Product }) {
-  return (
-    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
-      <div>
-        <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Sales Page</p>
-        <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
-          Edit your sales page — headline, benefits, curriculum preview, instructor bio, testimonials, FAQ, and call-to-action.
-        </p>
-      </div>
-      <a href={`/admin/products/${product.id}/sales-page`}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '12px 24px', background: '#7B2FBE', color: 'white', borderRadius: '8px', fontWeight: 600, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-        Edit Sales Page →
-      </a>
-    </div>
-  )
+  const allModules = (product as any).courses?.flatMap((pc: any) =>
+    pc.course?.modules ?? []
+  ) ?? []
+  return <SalesPageEditor product={product as any} allModules={allModules} />
 }
 
 // ── Checkout Tab ──────────────────────────────────────────────────────────────

@@ -22,8 +22,8 @@ export async function createCourseDefaults(
     thumbnailUrl?:  string | null
     subtitle?:      string | null
   }
-): Promise<void> {
-  await Promise.all([
+): Promise<{ productId: string }> {
+  const [{ productId }] = await Promise.all([
     createProductForCourse(courseId, {
       title:          opts.title,
       slug:           opts.slug,
@@ -41,6 +41,7 @@ export async function createCourseDefaults(
       update: {},
     }),
   ])
+  return { productId }
 }
 
 /**

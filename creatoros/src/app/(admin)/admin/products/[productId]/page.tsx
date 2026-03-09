@@ -29,7 +29,8 @@ export default async function ProductEditorPage({ params }: { params: { productI
           orderBy: { sortOrder: 'asc' },
         },
         checkoutPages: { orderBy: { isDefault: 'desc' } },
-        salesPage:     true,
+        salesPage:     { include: { blocks: { orderBy: { sortOrder: 'asc' } } } },
+        salesPrompts:  true,
         _count:        { select: { enrollments: true, orderItems: true } },
       },
     }).catch(() => null),
@@ -51,13 +52,24 @@ export default async function ProductEditorPage({ params }: { params: { productI
 
   return (
     <div style={{ padding: '32px' }}>
-      <AdminPageHeader
-        title={product.title}
-        description={`/courses/${product.slug} · ${product.type === 'BUNDLE' ? `Bundle · ${product.courses.length} courses` : 'Single Course'}`}
-        backHref="/admin/products"
-        backLabel="All Products"
-        action={{ label: 'View Live Page →', href: `/courses/${product.slug}` }}
-      />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <AdminPageHeader
+          title={product.title}
+          description={`/courses/${product.slug} · ${product.type === 'BUNDLE' ? `Bundle · ${product.courses.length} courses` : 'Single Course'}`}
+          backHref="/admin/products"
+          backLabel="All Products"
+        />
+        <div style={{ display: 'flex', gap: '10px', flexShrink: 0, alignItems: 'center' }}>
+          <Link href={`/checkout/${product.slug}?preview=1`} target="_blank"
+            style={{ padding: '9px 18px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Preview Checkout →
+          </Link>
+          <Link href={`/courses/${product.slug}`} target="_blank"
+            style={{ padding: '9px 18px', background: '#7B2FBE', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: 'white', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            View Live Page →
+          </Link>
+        </div>
+      </div>
 
       {/* Stats bar */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap' }}>

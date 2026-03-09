@@ -121,7 +121,7 @@ function BlockRow({ block, onToggle, onDelete, onMove, isFirst, isLast, expanded
   )
 }
 
-export default function SalesPageEditor({ product }: { product: any }) {
+export default function SalesPageEditor({ product, allModules = [] }: { product: any; allModules?: any[] }) {
   const router   = useRouter()
   const prompts  = product.salesPrompts ?? {}
   const [promptData, setPromptData] = useState<Record<string,string>>({

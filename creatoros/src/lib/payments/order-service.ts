@@ -46,6 +46,9 @@ export async function calculateOrderTotals(
 
   const currency     = products[0].currency
   const subtotal     = products.reduce((sum, p) => sum + Number(p.price), 0)
+  // Coupon applies only to the primary product (first in list), not order bumps
+  const primaryProduct = products.find(p => p.id === productIds[0]) ?? products[0]
+  const primaryPrice   = Number(primaryProduct.price)
   let discountAmount = 0
   let couponId: string | undefined
 
@@ -71,9 +74,9 @@ export async function calculateOrderTotals(
         const applicable = productIds.some(id => coupon.applicableProductIds.includes(id))
         if (!applicable) throw new Error('Coupon not valid for these products')
       }
-      if (coupon.type === 'PERCENTAGE')       discountAmount = subtotal * (Number(coupon.value) / 100)
-      else if (coupon.type === 'FIXED_AMOUNT') discountAmount = Math.min(Number(coupon.value), subtotal)
-      else if (coupon.type === 'FREE')         discountAmount = subtotal
+      if (coupon.type === 'PERCENTAGE')       discountAmount = primaryPrice * (Number(coupon.value) / 100)
+      else if (coupon.type === 'FIXED_AMOUNT') discountAmount = Math.min(Number(coupon.value), primaryPrice)
+      else if (coupon.type === 'FREE')         discountAmount = primaryPrice
       couponId = coupon.id
     }
   }
