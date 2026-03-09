@@ -9,7 +9,10 @@ import ProductEditorClient from './ProductEditorClient'
 export const metadata: Metadata = { title: 'Edit Product — Admin' }
 
 export default async function ProductEditorPage({ params }: { params: { productId: string } }) {
-  const [product, instructors, allProducts] = await Promise.all([
+  let product: any, instructors: any[], allProducts: any[]
+
+  try {
+    ;[product, instructors, allProducts] = await Promise.all([
     prisma.product.findUnique({
       where:   { id: params.productId },
       include: {
@@ -42,7 +45,17 @@ export default async function ProductEditorPage({ params }: { params: { productI
       select:  { id: true, title: true, price: true, currency: true },
       orderBy: { title: 'asc' },
     }),
-  ])
+    ])
+  } catch (err: any) {
+    return (
+      <div style={{ padding: '32px', fontFamily: 'monospace' }}>
+        <h2 style={{ color: '#dc2626', marginBottom: '12px' }}>DB Query Error — productId: {params.productId}</h2>
+        <pre style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '16px', fontSize: '13px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          {err?.message ?? String(err)}
+        </pre>
+      </div>
+    )
+  }
 
   if (!product) notFound()
 
