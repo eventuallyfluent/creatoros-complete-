@@ -13,22 +13,26 @@ interface Gateway {
   config:        Record<string, string>
 }
 
-// Providers with native SDK drivers built and registered
-const LIVE_PROVIDERS = ['manual', 'webhook_only']
+// Providers with a fully wired SDK driver (no webhook needed)
+const DRIVER_PROVIDERS = ['manual']
+// Providers that work via webhook (save creds, paste URL in their dashboard, done)
+const WEBHOOK_PROVIDERS = ['webhook_only', 'stripe', 'paypal', 'razorpay', 'nowpayments', 'paymongo', 'ecpay', 'mercadopago']
 
-// Setup guide for known providers — shown as helper when admin types/selects them
 const PROVIDER_GUIDES: Record<string, {
-  label:       string
-  status:      'live' | 'config_only'   // live = driver wired; config_only = store creds, webhook receives
+  label:        string
+  mode:         'bank_transfer' | 'webhook' | 'webhook_external'
   checkoutNote: string
-  setupUrl:    string
-  fields:      { key: string; label: string; placeholder: string; secret?: boolean; help?: string }[]
+  setupUrl:     string
+  webhookPath:  string   // where in the provider dashboard to paste the webhook URL
+  fields:       { key: string; label: string; placeholder: string; secret?: boolean; help?: string }[]
+  webhookSteps?: string[]
 }> = {
   manual: {
     label: 'Bank Transfer',
-    status: 'live',
-    checkoutNote: 'Student clicks Pay → sees your bank details on screen with a unique payment reference → transfers the money → you mark the order as paid in Orders → they get course access.',
+    mode: 'bank_transfer',
+    checkoutNote: 'Student clicks Pay → sees your bank details + a unique reference → transfers the money → you mark the order paid in Orders → they get course access.',
     setupUrl: '',
+    webhookPath: '',
     fields: [
       { key: 'bankName',      label: 'Bank Name',           placeholder: 'e.g. Barclays, HSBC, ANZ' },
       { key: 'accountName',   label: 'Account Name',        placeholder: 'Perseus Arcane Academy Ltd' },
@@ -40,84 +44,141 @@ const PROVIDER_GUIDES: Record<string, {
     ],
   },
   webhook_only: {
-    label: 'Webhook / Custom Integration',
-    status: 'live',
-    checkoutNote: 'Use the webhook URL below in any payment platform that sends HTTP callbacks (Payhip, Gumroad, ThriveCart, etc.).',
+    label: 'Webhook / Custom',
+    mode: 'webhook',
+    checkoutNote: 'Use with any platform that sends payment webhooks — Payhip, Gumroad, ThriveCart, etc.',
     setupUrl: '',
+    webhookPath: 'your payment platform → settings → webhooks',
     fields: [
       { key: 'webhookSecret', label: 'Webhook Secret (optional)', placeholder: 'your-secret-key', secret: true, help: 'Set a shared secret in your payment platform and paste it here. We verify every incoming webhook.' },
     ],
   },
   stripe: {
     label: 'Stripe',
-    status: 'config_only',
-    checkoutNote: 'Customer clicks Pay → redirected to Stripe Checkout → returns to your site. Webhook fires → student enrolled instantly.',
+    mode: 'webhook_external',
+    checkoutNote: 'Customer clicks Pay → redirected to Stripe Checkout → pays → returns to your site. Stripe fires a webhook → student enrolled instantly.',
     setupUrl: 'https://dashboard.stripe.com/apikeys',
+    webhookPath: 'Stripe Dashboard → Developers → Webhooks → Add endpoint',
     fields: [
-      { key: 'publishableKey', label: 'Publishable Key', placeholder: 'pk_live_…', help: 'From Stripe Dashboard → Developers → API Keys' },
+      { key: 'publishableKey', label: 'Publishable Key', placeholder: 'pk_live_…', help: 'Stripe Dashboard → Developers → API Keys' },
       { key: 'secretKey',      label: 'Secret Key',      placeholder: 'sk_live_…', secret: true, help: 'Never share this. Server-side only.' },
-      { key: 'webhookSecret',  label: 'Webhook Signing Secret', placeholder: 'whsec_…', secret: true, help: 'From Stripe Dashboard → Developers → Webhooks → your endpoint → Signing secret' },
+      { key: 'webhookSecret',  label: 'Webhook Signing Secret', placeholder: 'whsec_…', secret: true, help: 'Created after you add the webhook endpoint in step 3 below.' },
+    ],
+    webhookSteps: [
+      'Copy your Secret Key from Stripe Dashboard → Developers → API Keys',
+      'Paste your Publishable Key and Secret Key above and save',
+      'Go to Stripe Dashboard → Developers → Webhooks → Add endpoint',
+      'Paste the Webhook URL below as the endpoint URL',
+      'Set events to listen for: checkout.session.completed, payment_intent.succeeded',
+      'After saving, copy the Signing Secret (whsec_…) and paste it above',
     ],
   },
   paypal: {
     label: 'PayPal',
-    status: 'config_only',
-    checkoutNote: 'Customer clicks Pay → PayPal popup/redirect → returns to your site. Webhook fires → student enrolled.',
+    mode: 'webhook_external',
+    checkoutNote: 'Customer clicks Pay → PayPal payment page → returns to your site. PayPal fires a webhook → student enrolled.',
     setupUrl: 'https://developer.paypal.com/dashboard/applications/live',
+    webhookPath: 'PayPal Developer Dashboard → My Apps → your app → Webhooks',
     fields: [
-      { key: 'clientId',     label: 'Client ID',     placeholder: 'AX…', help: 'From PayPal Developer Dashboard → My Apps → your app' },
+      { key: 'clientId',     label: 'Client ID',     placeholder: 'AX…', help: 'PayPal Developer Dashboard → My Apps → your app → Credentials' },
       { key: 'clientSecret', label: 'Client Secret', placeholder: 'EH…', secret: true },
     ],
-  },
-  nowpayments: {
-    label: 'NOWPayments (Crypto)',
-    status: 'config_only',
-    checkoutNote: 'Customer selects crypto, pays on-chain. Webhook confirms → student enrolled.',
-    setupUrl: 'https://nowpayments.io/',
-    fields: [
-      { key: 'apiKey',       label: 'API Key',       placeholder: 'xxxx-xxxx-xxxx', help: 'From NOWPayments → Store settings → API key' },
-      { key: 'ipnSecretKey', label: 'IPN Secret Key', placeholder: 'your-ipn-secret', secret: true },
+    webhookSteps: [
+      'Go to developer.paypal.com → My Apps & Credentials → Create App (Live mode)',
+      'Copy Client ID and Client Secret and paste above',
+      'In the same app, go to Webhooks → Add Webhook',
+      'Paste the Webhook URL below',
+      'Tick: PAYMENT.CAPTURE.COMPLETED',
+      'Save and you\'re done',
     ],
   },
   razorpay: {
     label: 'Razorpay',
-    status: 'config_only',
-    checkoutNote: 'Customer pays via Razorpay checkout. Webhook confirms → student enrolled.',
+    mode: 'webhook_external',
+    checkoutNote: 'Customer pays via Razorpay checkout. Webhook confirms payment → student enrolled.',
     setupUrl: 'https://dashboard.razorpay.com/app/keys',
+    webhookPath: 'Razorpay Dashboard → Settings → Webhooks → Add New Webhook',
     fields: [
-      { key: 'keyId',     label: 'Key ID',     placeholder: 'rzp_live_…' },
+      { key: 'keyId',     label: 'Key ID',     placeholder: 'rzp_live_…', help: 'Razorpay Dashboard → Settings → API Keys' },
       { key: 'keySecret', label: 'Key Secret', placeholder: 'your-secret', secret: true },
+    ],
+    webhookSteps: [
+      'Go to Razorpay Dashboard → Settings → API Keys → Generate Live Key',
+      'Copy Key ID and Key Secret and paste above',
+      'Go to Settings → Webhooks → Add New Webhook',
+      'Paste the Webhook URL below as the webhook URL',
+      'Set secret to the same value as Key Secret',
+      'Tick events: payment.captured',
+    ],
+  },
+  nowpayments: {
+    label: 'NOWPayments (Crypto)',
+    mode: 'webhook_external',
+    checkoutNote: 'Customer selects crypto, pays on-chain. Webhook confirms → student enrolled.',
+    setupUrl: 'https://nowpayments.io/',
+    webhookPath: 'NOWPayments → Store settings → IPN (Instant Payment Notification)',
+    fields: [
+      { key: 'apiKey',       label: 'API Key',       placeholder: 'xxxx-xxxx-xxxx', help: 'NOWPayments → Store settings → API key' },
+      { key: 'ipnSecretKey', label: 'IPN Secret Key', placeholder: 'your-ipn-secret', secret: true },
+    ],
+    webhookSteps: [
+      'Log in to nowpayments.io → Store settings → API Key — copy it',
+      'Set an IPN Secret Key in Store settings and paste it above',
+      'Go to Store settings → IPN callback URL',
+      'Paste the Webhook URL below',
     ],
   },
   paymongo: {
     label: 'PayMongo (Philippines)',
-    status: 'config_only',
-    checkoutNote: 'Supports GCash, Maya, cards. Customer completes payment on PayMongo-hosted page.',
+    mode: 'webhook_external',
+    checkoutNote: 'Supports GCash, Maya, cards via PayMongo-hosted payment page.',
     setupUrl: 'https://dashboard.paymongo.com',
+    webhookPath: 'PayMongo Dashboard → Developers → Webhooks',
     fields: [
-      { key: 'publicKey',  label: 'Public Key',  placeholder: 'pk_live_…' },
-      { key: 'secretKey',  label: 'Secret Key',  placeholder: 'sk_live_…', secret: true },
-      { key: 'webhookSecret', label: 'Webhook Secret', placeholder: 'whsk_…', secret: true },
+      { key: 'publicKey',     label: 'Public Key',     placeholder: 'pk_live_…' },
+      { key: 'secretKey',     label: 'Secret Key',     placeholder: 'sk_live_…', secret: true },
+      { key: 'webhookSecret', label: 'Webhook Secret', placeholder: 'whsk_…', secret: true, help: 'Generated when you create the webhook in PayMongo dashboard.' },
+    ],
+    webhookSteps: [
+      'Go to PayMongo Dashboard → Developers → API Keys — copy Public and Secret keys',
+      'Paste them above and save',
+      'Go to Developers → Webhooks → Add webhook',
+      'Paste the Webhook URL below, select events: payment.paid',
+      'Copy the webhook secret shown and paste it in the Webhook Secret field above',
     ],
   },
   ecpay: {
     label: 'ECPay (Taiwan)',
-    status: 'config_only',
+    mode: 'webhook_external',
     checkoutNote: 'Customer redirected to ECPay. Supports ATM, credit card, convenience store.',
     setupUrl: 'https://vendor.ecpay.com.tw',
+    webhookPath: 'ECPay merchant portal → Payment result notification URL',
     fields: [
       { key: 'merchantId', label: 'Merchant ID', placeholder: '2000132' },
       { key: 'hashKey',    label: 'Hash Key',    placeholder: '…', secret: true },
       { key: 'hashIV',     label: 'Hash IV',     placeholder: '…', secret: true },
     ],
+    webhookSteps: [
+      'Log in to vendor.ecpay.com.tw → Special stores → your store',
+      'Copy Merchant ID, Hash Key, and Hash IV and paste above',
+      'In ECPay store settings, set the payment result notification URL to the Webhook URL below',
+    ],
   },
   mercadopago: {
     label: 'Mercado Pago (LATAM)',
-    status: 'config_only',
-    checkoutNote: 'Customer redirected to Mercado Pago checkout. Covers Brazil, Argentina, Mexico and more.',
+    mode: 'webhook_external',
+    checkoutNote: 'Covers Brazil, Argentina, Mexico and more via Mercado Pago checkout.',
     setupUrl: 'https://www.mercadopago.com/developers/panel',
+    webhookPath: 'Mercado Pago Developers → Webhooks → Add webhook',
     fields: [
-      { key: 'accessToken', label: 'Access Token', placeholder: 'APP_USR-…', secret: true },
+      { key: 'accessToken', label: 'Access Token', placeholder: 'APP_USR-…', secret: true, help: 'Mercado Pago Developers → Credentials → Access token (Production)' },
+    ],
+    webhookSteps: [
+      'Go to mercadopago.com/developers/panel → Credentials → copy Production Access Token',
+      'Paste it above and save',
+      'Go to Your integrations → Webhooks → Add webhook',
+      'Paste the Webhook URL below',
+      'Select topic: Payments',
     ],
   },
 }
@@ -195,12 +256,12 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
   return (
     <div style={{ maxWidth: '760px' }}>
 
-      {/* How it works */}
+      {/* Intro */}
       <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '12px', padding: '16px 20px', marginBottom: '28px' }}>
-        <p style={{ fontSize: '14px', fontWeight: 700, color: '#4c1d95', margin: '0 0 6px' }}>How checkout works</p>
+        <p style={{ fontSize: '14px', fontWeight: 700, color: '#4c1d95', margin: '0 0 6px' }}>How payments work</p>
         <p style={{ fontSize: '13px', color: '#5b21b6', margin: 0, lineHeight: 1.7 }}>
-          Your branded checkout page stays on <strong>your site</strong>. When a customer clicks Pay, they're sent to the payment provider (Stripe, PayPal, etc.), complete payment, then return here.
-          The payment gateway sends a webhook to your unique URL below → CreatorOS instantly enrols the student. No manual work.
+          Your branded checkout stays on <strong>your site</strong>. The student clicks Pay → goes to the payment provider → completes payment → the provider sends a webhook back here → CreatorOS enrols the student automatically.
+          For bank transfer, you get notified and mark the order paid manually.
         </p>
       </div>
 
@@ -213,13 +274,14 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
         )}
         {gateways.map(gateway => {
           const guide  = PROVIDER_GUIDES[gateway.provider]
-          const isLive = LIVE_PROVIDERS.includes(gateway.provider)
+          const isBank = guide?.mode === 'bank_transfer'
           const isOpen = expanded === gateway.id
+          const isReady = DRIVER_PROVIDERS.includes(gateway.provider) || WEBHOOK_PROVIDERS.includes(gateway.provider)
 
           return (
             <div key={gateway.id} style={{ background: 'white', border: gateway.isDefault ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
 
-              {/* Header */}
+              {/* Header row */}
               <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -230,13 +292,12 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
                     <span style={{ fontSize: '11px', color: gateway.isActive ? '#10b981' : '#6b7280', background: gateway.isActive ? 'rgba(16,185,129,0.1)' : 'rgba(107,114,128,0.1)', padding: '2px 8px', borderRadius: '999px', fontWeight: 700 }}>
                       {gateway.isActive ? 'ACTIVE' : 'INACTIVE'}
                     </span>
-                    {/* Driver status */}
-                    {isLive
+                    {isReady
                       ? <span style={{ fontSize: '11px', color: '#065f46', background: '#d1fae5', padding: '2px 8px', borderRadius: '999px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <CheckCircle size={10} /> DRIVER READY
+                          <CheckCircle size={10} /> READY
                         </span>
                       : <span style={{ fontSize: '11px', color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: '999px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <AlertCircle size={10} /> NEEDS DRIVER
+                          <AlertCircle size={10} /> CUSTOM
                         </span>
                     }
                   </div>
@@ -264,10 +325,10 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
               {isOpen && (
                 <div style={{ borderTop: '1px solid #f3f4f6', background: '#fafafa' }}>
 
-                  {/* Checkout behaviour note */}
+                  {/* Checkout flow note */}
                   {guide && (
                     <div style={{ padding: '12px 18px', background: '#f0fdf4', borderBottom: '1px solid #d1fae5', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: '16px', flexShrink: 0 }}>💳</span>
+                      <span style={{ fontSize: '16px', flexShrink: 0 }}>{isBank ? '🏦' : '💳'}</span>
                       <div>
                         <p style={{ fontSize: '13px', color: '#166534', margin: '0 0 4px', fontWeight: 600 }}>What happens at checkout</p>
                         <p style={{ fontSize: '13px', color: '#166534', margin: 0, lineHeight: 1.6 }}>{guide.checkoutNote}</p>
@@ -281,32 +342,7 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
                     </div>
                   )}
 
-                  {/* Driver status warning */}
-                  {!isLive && (
-                    <div style={{ padding: '12px 18px', background: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
-                      <p style={{ fontSize: '13px', color: '#92400e', margin: 0, lineHeight: 1.6 }}>
-                        <strong>⚠ Driver not yet wired:</strong> Credentials are saved and the webhook URL is ready.
-                        To activate live payments, a developer needs to create <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', fontSize: '12px' }}>src/lib/payments/drivers/{gateway.provider}.ts</code> and register it in <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', fontSize: '12px' }}>gateway-registry.ts</code>.
-                        Until then, <strong>Manual</strong> or <strong>Webhook Only</strong> gateways work today with no code needed.
-                      </p>
-                    </div>
-                  )}
-
                   <div style={{ padding: '18px' }}>
-                    {/* Webhook URL */}
-                    <div style={{ marginBottom: '18px' }}>
-                      <label style={labelStyle}>
-                        Your Webhook URL — paste this into your payment provider dashboard
-                      </label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input readOnly value={webhookBase + gateway.id}
-                          style={{ flex: 1, padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', color: '#374151', background: 'white', fontFamily: 'monospace', outline: 'none' }} />
-                        <button onClick={() => copyToClipboard(webhookBase + gateway.id, gateway.id + '_url')}
-                          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-ui)', flexShrink: 0 }}>
-                          {copied === gateway.id + '_url' ? <><Check size={13} style={{ color: '#10b981' }} /> Copied</> : <><Copy size={13} /> Copy</>}
-                        </button>
-                      </div>
-                    </div>
 
                     {/* Active toggle */}
                     <div style={{ marginBottom: '18px' }}>
@@ -314,23 +350,79 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
                         <input type="checkbox" checked={gateway.isActive}
                           onChange={e => setGateways(g => g.map(gw => gw.id === gateway.id ? { ...gw, isActive: e.target.checked } : gw))}
                           style={{ width: '16px', height: '16px' }} />
-                        <span style={{ fontSize: '14px', color: '#374151', fontWeight: 500 }}>Active (shown as a payment option at checkout)</span>
+                        <span style={{ fontSize: '14px', color: '#374151', fontWeight: 500 }}>Active — shown as a payment option at checkout</span>
                       </label>
                     </div>
 
-                    {/* Config fields — from guide if known, otherwise free-form key/value */}
-                    {guide?.fields.map(field => (
-                      <div key={field.key} style={{ marginBottom: '16px' }}>
-                        <label style={labelStyle}>{field.label}</label>
-                        {field.help && <p style={{ fontSize: '12px', color: '#6b7280', margin: '-4px 0 6px', lineHeight: 1.5 }}>{field.help}</p>}
-                        <input
-                          type={field.secret ? 'password' : 'text'}
-                          value={gateway.config[field.key] ?? ''}
-                          onChange={e => setGateways(g => g.map(gw => gw.id === gateway.id ? { ...gw, config: { ...gw.config, [field.key]: e.target.value } } : gw))}
-                          placeholder={field.placeholder}
-                          style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', outline: 'none', fontFamily: field.secret ? 'monospace' : 'var(--font-ui)', background: 'white' }} />
-                      </div>
-                    ))}
+                    {/* BANK TRANSFER: just show the config fields, no webhook section */}
+                    {isBank && (
+                      <>
+                        <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
+                          Enter your bank details below. These are shown to the student immediately after they click Pay, along with a unique payment reference so you can match the transfer.
+                        </p>
+                        {guide.fields.map(field => (
+                          <div key={field.key} style={{ marginBottom: '14px' }}>
+                            <label style={labelStyle}>{field.label}</label>
+                            <input
+                              type="text"
+                              value={gateway.config[field.key] ?? ''}
+                              onChange={e => setGateways(g => g.map(gw => gw.id === gateway.id ? { ...gw, config: { ...gw.config, [field.key]: e.target.value } } : gw))}
+                              placeholder={field.placeholder}
+                              style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', outline: 'none', fontFamily: 'var(--font-ui)', background: 'white' }} />
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* WEBHOOK PROVIDERS: step-by-step setup + webhook URL */}
+                    {!isBank && guide && (
+                      <>
+                        {/* Step-by-step */}
+                        {guide.webhookSteps && (
+                          <div style={{ marginBottom: '20px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px' }}>
+                            <p style={{ fontSize: '13px', fontWeight: 700, color: '#111827', margin: '0 0 12px' }}>Setup steps</p>
+                            {guide.webhookSteps.map((step, i) => (
+                              <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start' }}>
+                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#7B2FBE', color: 'white', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>{i + 1}</div>
+                                <p style={{ fontSize: '13px', color: '#374151', margin: 0, lineHeight: 1.5 }}>{step}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* API credential fields */}
+                        {guide.fields.map(field => (
+                          <div key={field.key} style={{ marginBottom: '14px' }}>
+                            <label style={labelStyle}>{field.label}</label>
+                            {field.help && <p style={{ fontSize: '12px', color: '#6b7280', margin: '-2px 0 6px', lineHeight: 1.5 }}>{field.help}</p>}
+                            <input
+                              type={field.secret ? 'password' : 'text'}
+                              value={gateway.config[field.key] ?? ''}
+                              onChange={e => setGateways(g => g.map(gw => gw.id === gateway.id ? { ...gw, config: { ...gw.config, [field.key]: e.target.value } } : gw))}
+                              placeholder={field.placeholder}
+                              style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', outline: 'none', fontFamily: field.secret ? 'monospace' : 'var(--font-ui)', background: 'white' }} />
+                          </div>
+                        ))}
+
+                        {/* Webhook URL box */}
+                        <div style={{ marginTop: '20px', padding: '14px 16px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '10px' }}>
+                          <p style={{ fontSize: '12px', fontWeight: 700, color: '#4c1d95', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>
+                            Your Webhook URL
+                          </p>
+                          <p style={{ fontSize: '12px', color: '#5b21b6', margin: '0 0 10px', lineHeight: 1.5 }}>
+                            {guide.webhookPath ? `Paste this into: ${guide.webhookPath}` : 'Paste this into your payment provider as the webhook endpoint.'}
+                          </p>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input readOnly value={webhookBase + gateway.id}
+                              style={{ flex: 1, padding: '9px 12px', border: '1px solid #ddd6fe', borderRadius: '8px', fontSize: '13px', color: '#374151', background: 'white', fontFamily: 'monospace', outline: 'none' }} />
+                            <button onClick={() => copyToClipboard(webhookBase + gateway.id, gateway.id + '_url')}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', border: '1px solid #ddd6fe', borderRadius: '8px', background: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: '#7B2FBE', fontFamily: 'var(--font-ui)', flexShrink: 0 }}>
+                              {copied === gateway.id + '_url' ? <><Check size={13} style={{ color: '#10b981' }} /> Copied</> : <><Copy size={13} /> Copy</>}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     {/* Unknown provider — free-form config fields */}
                     {!guide && (
@@ -348,7 +440,7 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                       <button onClick={() => handleSave(gateway)} disabled={saving === gateway.id}
                         style={{ padding: '9px 22px', background: '#7B2FBE', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
                         {saving === gateway.id ? 'Saving…' : 'Save Gateway'}
@@ -367,35 +459,32 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
         <div style={{ background: 'white', border: '2px dashed #7B2FBE', borderRadius: '12px', padding: '22px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', marginBottom: '6px' }}>Add Payment Gateway</h3>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 18px', lineHeight: 1.5 }}>
-            Enter any provider name — Stripe, PayPal, Razorpay, ECPay, your bank, anything.
-            Credentials are saved securely. Each gateway gets its own webhook URL.
+            Choose a provider below or type any name. Credentials are saved securely.
           </p>
 
-          {/* Quick-select buttons for common providers */}
+          {/* Quick-select */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={labelStyle}>Quick select a known provider</label>
+            <label style={labelStyle}>Choose a provider</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {KNOWN_PROVIDERS.map(p => (
                 <button key={p} type="button"
                   onClick={() => { setNewProvider(p); setNewName(PROVIDER_GUIDES[p].label) }}
-                  style={{ padding: '6px 14px', fontSize: '13px', fontWeight: 600, border: `1px solid ${newProvider === p ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '999px', background: newProvider === p ? 'rgba(123,47,190,0.08)' : 'white', color: newProvider === p ? '#7B2FBE' : '#374151', cursor: 'pointer', fontFamily: 'var(--font-ui)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {LIVE_PROVIDERS.includes(p) && <span style={{ color: '#10b981', fontSize: '10px' }}>●</span>}
+                  style={{ padding: '6px 14px', fontSize: '13px', fontWeight: 600, border: `1px solid ${newProvider === p ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '999px', background: newProvider === p ? 'rgba(123,47,190,0.08)' : 'white', color: newProvider === p ? '#7B2FBE' : '#374151', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
                   {PROVIDER_GUIDES[p].label}
                 </button>
               ))}
             </div>
-            <p style={{ fontSize: '11px', color: '#10b981', margin: '6px 0 0' }}>● = driver ready (works today, no code needed)</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <div>
-              <label style={labelStyle}>Provider ID <span style={{ fontWeight: 400 }}>(internal key, lowercase)</span></label>
+              <label style={labelStyle}>Provider ID <span style={{ fontWeight: 400 }}>(internal, lowercase)</span></label>
               <input value={newProvider}
                 onChange={e => {
                   const val = e.target.value
                   setNewProvider(val)
-                  const guide = PROVIDER_GUIDES[val.trim().toLowerCase().replace(/\s+/g, '_')]
-                  if (guide) setNewName(guide.label)
+                  const g = PROVIDER_GUIDES[val.trim().toLowerCase().replace(/\s+/g, '_')]
+                  if (g) setNewName(g.label)
                 }}
                 placeholder="e.g. stripe, paypal, my_bank"
                 style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', outline: 'none', fontFamily: 'var(--font-ui)' }} />
@@ -409,12 +498,8 @@ export default function GatewayManager({ gateways: initial }: { gateways: Gatewa
             </div>
           </div>
 
-          {/* Live preview of guide for selected provider */}
           {suggestedGuide && (
-            <div style={{ marginBottom: '16px', padding: '14px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#065f46', margin: '0 0 4px' }}>
-                {LIVE_PROVIDERS.includes(suggestedProvider) ? '✅ Driver ready' : '⚙️ Credentials stored — driver needed to go live'}
-              </p>
+            <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
               <p style={{ fontSize: '13px', color: '#166534', margin: 0, lineHeight: 1.5 }}>{suggestedGuide.checkoutNote}</p>
             </div>
           )}

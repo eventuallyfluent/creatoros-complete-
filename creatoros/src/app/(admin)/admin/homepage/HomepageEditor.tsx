@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
 import type { SiteSettings, HomepageSection } from '@/lib/settings/site-settings'
 
-interface Course { id: string; title: string; thumbnailUrl: string | null }
-interface Props  { settings: SiteSettings; courses: Course[] }
+interface Course       { id: string; title: string; thumbnailUrl: string | null }
+interface DBTestimonial { id: string; authorName: string; authorRole: string | null; quote: string; isFeatured: boolean }
+interface Props  { settings: SiteSettings; courses: Course[]; testimonials?: DBTestimonial[] }
 
 type Tab = 'hero' | 'courses' | 'sections' | 'optin'
 
@@ -16,7 +17,7 @@ const TAB_LABELS: { id: Tab; label: string; icon: string }[] = [
   { id: 'optin',    label: 'Email Sign-up',    icon: '✉️' },
 ]
 
-export default function HomepageEditor({ settings, courses }: Props) {
+export default function HomepageEditor({ settings, courses, testimonials = [] }: Props) {
   const router  = useRouter()
   const [tab,    setTab]    = useState<Tab>('hero')
   const [form,   setForm]   = useState({ ...settings })
@@ -226,19 +227,75 @@ export default function HomepageEditor({ settings, courses }: Props) {
                             <label style={lbl}>Section Heading</label>
                             <input value={section.heading ?? ''} onChange={e => updateSection(section.id, { heading: e.target.value })} style={inp} />
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
-                            {(section.items ?? []).map((item, i) => (
-                              <div key={i} style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                                  <input value={item.name} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, name: e.target.value }; updateSection(section.id, { items }) }} placeholder="Name" style={{ ...inp, fontSize: '13px' }} />
-                                  <input value={item.role ?? ''} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, role: e.target.value }; updateSection(section.id, { items }) }} placeholder="Role (optional)" style={{ ...inp, fontSize: '13px' }} />
-                                </div>
-                                <textarea value={item.quote} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, quote: e.target.value }; updateSection(section.id, { items }) }} placeholder="Quote…" rows={2} style={{ ...inp, fontSize: '13px', resize: 'none' }} />
+
+                          {/* Pick from existing testimonials */}
+                          {testimonials.length > 0 && (
+                            <div style={{ marginBottom: '14px' }}>
+                              <label style={{ ...lbl, marginBottom: '8px' }}>Pick from your approved testimonials</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto', padding: '2px' }}>
+                                {testimonials.map(t => {
+                                  const alreadyAdded = (section.items ?? []).some((item: any) => item.sourceId === t.id)
+                                  return (
+                                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', background: alreadyAdded ? 'rgba(123,47,190,0.05)' : '#f9fafb', border: `1px solid ${alreadyAdded ? 'rgba(123,47,190,0.25)' : '#e5e7eb'}`, borderRadius: '8px' }}>
+                                      <input type="checkbox" checked={alreadyAdded}
+                                        style={{ marginTop: '2px', accentColor: '#7B2FBE', flexShrink: 0 }}
+                                        onChange={e => {
+                                          let items = [...(section.items ?? [])]
+                                          if (e.target.checked) {
+                                            items.push({ sourceId: t.id, name: t.authorName, role: t.authorRole ?? '', quote: t.quote.slice(0, 220) })
+                                          } else {
+                                            items = items.filter((item: any) => item.sourceId !== t.id)
+                                          }
+                                          updateSection(section.id, { items })
+                                        }}
+                                      />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>
+                                          {t.authorName}{t.authorRole ? ` — ${t.authorRole}` : ''}{t.isFeatured ? ' ⭐' : ''}
+                                        </p>
+                                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          "{t.quote.slice(0, 100)}{t.quote.length > 100 ? '…' : ''}"
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
+
+                          {testimonials.length === 0 && (
+                            <div style={{ marginBottom: '12px', padding: '12px', background: '#fef9f0', border: '1px solid #fde68a', borderRadius: '8px' }}>
+                              <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
+                                No approved testimonials yet. Go to <strong>Admin → Testimonials</strong>, add some and set their status to Approved, then come back here to select them.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Selected items preview + manual overrides */}
+                          {(section.items ?? []).length > 0 && (
+                            <div style={{ marginBottom: '10px' }}>
+                              <label style={{ ...lbl, marginBottom: '6px' }}>Selected ({(section.items ?? []).length}) — click to edit text</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(section.items ?? []).map((item: any, i: number) => (
+                                  <div key={i} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                                      <input value={item.name} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, name: e.target.value }; updateSection(section.id, { items }) }} placeholder="Name" style={{ ...inp, fontSize: '12px' }} />
+                                      <input value={item.role ?? ''} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, role: e.target.value }; updateSection(section.id, { items }) }} placeholder="Role" style={{ ...inp, fontSize: '12px' }} />
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                      <textarea value={item.quote} onChange={e => { const val = e.target.value.slice(0, 220); const items = [...(section.items ?? [])]; items[i] = { ...item, quote: val }; updateSection(section.id, { items }) }} rows={2} style={{ ...inp, fontSize: '12px', resize: 'none', paddingBottom: '18px' }} maxLength={220} />
+                                      <span style={{ position: 'absolute', bottom: '5px', right: '8px', fontSize: '10px', color: (item.quote?.length ?? 0) > 200 ? '#ef4444' : '#9ca3af' }}>{item.quote?.length ?? 0}/220</span>
+                                    </div>
+                                    <button onClick={() => { const items = [...(section.items ?? [])]; items.splice(i, 1); updateSection(section.id, { items }) }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', padding: '2px 0', marginTop: '2px' }}>Remove</button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <button onClick={() => { const items = [...(section.items ?? []), { name: '', quote: '', role: '' }]; updateSection(section.id, { items }) }} style={{ fontSize: '12px', color: '#7B2FBE', background: 'none', border: '1px dashed #d1d5db', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Plus size={12} /> Add Testimonial
+                            <Plus size={12} /> Add Manually
                           </button>
                         </>
                       )}
