@@ -66,7 +66,7 @@ const PROVIDER_GUIDES: Record<string, {
       'Find the authentication method — most use Authorization: Bearer sk_xxx or X-Api-Key: xxx',
       'Check what field in their response contains the redirect URL (e.g. checkout_url, url, redirect)',
       'Fill in all fields above and save',
-      'Copy the Webhook URL below and paste it into your provider's dashboard',
+      "Copy the Webhook URL below and paste it into your provider's dashboard",
       'Find what field in their webhook contains the order reference — we send it as "reference", "order_id", and "metadata.orderId"',
       'If they sign webhooks, find the signature header name and secret and fill those in too',
     ],
@@ -84,7 +84,7 @@ const PROVIDER_GUIDES: Record<string, {
   creem: {
     label: 'Creem (Merchant of Record)',
     mode: 'api_driver',
-    checkoutNote: 'Customer clicks Pay → redirected to Creem's hosted checkout → pays with card, PayPal, Apple Pay, or local methods → Creem handles all global tax compliance → webhook fires → student enrolled. Creem is a Merchant of Record: they collect VAT/GST in 190+ countries so you never touch a tax form. Fee: 3.9% + 30¢, no monthly cost.',
+    checkoutNote: "Customer clicks Pay → redirected to Creem's hosted checkout → pays with card, PayPal, Apple Pay, or local methods → Creem handles all global tax compliance → webhook fires → student enrolled. Creem is a Merchant of Record: they collect VAT/GST in 190+ countries so you never touch a tax form. Fee: 3.9% + 30¢, no monthly cost.",
     setupUrl: 'https://creem.io/dashboard/developers',
     webhookPath: 'Creem Dashboard → Developers → Webhooks → Add Webhook',
     fields: [
@@ -106,7 +106,7 @@ const PROVIDER_GUIDES: Record<string, {
   stripe: {
     label: 'Stripe',
     mode: 'api_driver',
-    checkoutNote: 'Fully wired and ready to go live. Student clicks Pay → CreatorOS calls Stripe API to create a checkout session → student is redirected to Stripe's hosted payment page → pays with card, Apple Pay, Google Pay → Stripe fires a webhook back → student enrolled automatically. You never handle card data.',
+    checkoutNote: "Fully wired and ready to go live. Student clicks Pay → CreatorOS calls Stripe API to create a checkout session → student is redirected to Stripe's hosted payment page → pays with card, Apple Pay, Google Pay → Stripe fires a webhook back → student enrolled automatically. You never handle card data.",
     setupUrl: 'https://dashboard.stripe.com/apikeys',
     webhookPath: 'Stripe Dashboard → Developers → Webhooks → Add endpoint',
     fields: [
