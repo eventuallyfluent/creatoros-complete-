@@ -46,8 +46,6 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
   }, [handleKey])
 
   // ── COURSE form state ──────────────────────────────────────────────────────
-  const [courseMode,   setCourseMode]   = useState<'new' | 'existing'>('new')
-  const [courseId,     setCourseId]     = useState('')
   const [newTitle,     setNewTitle]     = useState('')
   const [newSlug,      setNewSlug]      = useState('')
   const [instructorId, setInstructorId] = useState('')
@@ -69,39 +67,49 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
   const handleSubmit = async () => {
     setError(null); setSaving(true)
     try {
-      let body: any
       if (selected === 'COURSE') {
-        let resolvedCourseId = courseId
-        if (courseMode === 'new') {
-          const courseRes = await fetch('/api/courses', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: newTitle, slug: newSlug, status: 'DRAFT', instructorId: instructorId || null }),
-          })
-          const courseData = await courseRes.json()
-          if (!courseRes.ok) { setError(courseData.error ?? 'Failed to create course'); setSaving(false); return }
-          resolvedCourseId = courseData.id
-        }
-        body = { type: 'COURSE', courseId: resolvedCourseId, instructorId: instructorId || null,
-          price: parseFloat(price) || 0, compareAtPrice: parseFloat(compareAt) || null, currency }
+        // Create course — defaults (Product, SalesPage etc) are auto-created by the API
+        const courseRes = await fetch('/api/courses', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newTitle, slug: newSlug, status: 'DRAFT',
+            instructorId: instructorId || null,
+          }),
+        })
+        const courseData = await courseRes.json()
+        if (!courseRes.ok) { setError(courseData.error ?? 'Failed to create course'); setSaving(false); return }
+
+        // Update the auto-created product with pricing
+        const patchRes = await fetch(`/api/admin/products/by-course/${courseData.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            price: parseFloat(price) || 0,
+            compareAtPrice: parseFloat(compareAt) || null,
+            currency,
+            instructorId: instructorId || null,
+          }),
+        })
+        const patchData = await patchRes.json()
+        if (!patchRes.ok) { setError(patchData.error ?? 'Failed to set pricing'); setSaving(false); return }
+        onCreated(patchData.id)
       } else {
-        body = { type: 'BUNDLE', title: bundleTitle, slug: bundleSlug,
+        const body = { type: 'BUNDLE', title: bundleTitle, slug: bundleSlug,
           price: parseFloat(bundlePrice) || 0, compareAtPrice: parseFloat(bundleCompare) || null,
           currency, courseIds: selectedIds, instructorId: bundleInstructor || null }
+        const res  = await fetch('/api/admin/products', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error ?? 'Failed to create product'); return }
+        onCreated(data.id)
       }
-
-      const res  = await fetch('/api/admin/products', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Failed to create product'); return }
-      onCreated(data.id)
     } finally {
       setSaving(false)
     }
   }
 
-  const canSubmitCourse = courseMode === 'new' ? (!!newTitle && !!newSlug) : !!courseId
+  const canSubmitCourse = !!newTitle && !!newSlug
   const canSubmitBundle = !!bundleTitle && !!bundleSlug && selectedIds.length > 0
 
   // ── Styles ─────────────────────────────────────────────────────────────────
@@ -207,47 +215,20 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
           {selected === 'COURSE' && (
             <>
               <div style={section}>
-                <label style={lbl}>Course</label>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-                  {(['new', 'existing'] as const).map(m => (
-                    <button key={m} onClick={() => setCourseMode(m)}
-                      style={{ padding: '6px 14px', borderRadius: '6px', border: 'none', fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', background: courseMode === m ? '#7B2FBE' : '#f3f4f6', color: courseMode === m ? 'white' : '#374151' }}>
-                      {m === 'new' ? '+ Create new' : 'Link existing'}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={lbl}>Course Title</label>
+                    <input value={newTitle} onChange={e => { setNewTitle(e.target.value); setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) }}
+                      placeholder="e.g. Advanced Tarot Reading" style={inp} autoFocus />
+                  </div>
+                  <div>
+                    <label style={lbl}>URL Slug</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '13px', color: '#9ca3af', whiteSpace: 'nowrap' }}>/courses/</span>
+                      <input value={newSlug} onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} style={inp} />
+                    </div>
+                  </div>
                 </div>
-                {courseMode === 'new' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <label style={lbl}>Course Title</label>
-                      <input value={newTitle} onChange={e => { setNewTitle(e.target.value); setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) }}
-                        placeholder="e.g. Advanced Tarot Reading" style={inp} />
-                    </div>
-                    <div>
-                      <label style={lbl}>URL Slug</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '13px', color: '#9ca3af', whiteSpace: 'nowrap' }}>/courses/</span>
-                        <input value={newSlug} onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} style={inp} />
-                      </div>
-                    </div>
-                  </div>
-                ) : courses.length === 0 ? (
-                  <div style={{ padding: '12px 14px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', color: '#92400e' }}>
-                    No courses yet — use <strong>+ Create new</strong> above.
-                  </div>
-                ) : (
-                  <>
-                    <select value={courseId} onChange={e => setCourseId(e.target.value)} style={inp}>
-                      <option value="">— Select a course —</option>
-                      {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                    </select>
-                    {courseId && courses.find(c => c.id === courseId) && (
-                      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '5px' }}>
-                        URL: /courses/{courses.find(c => c.id === courseId)!.slug}
-                      </p>
-                    )}
-                  </>
-                )}
               </div>
               <div style={section}>
                 <div style={row2}>
