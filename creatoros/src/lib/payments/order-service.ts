@@ -161,7 +161,7 @@ export async function fulfilOrder(orderId: string) {
   for (const item of order.items) {
     // ISSUE 2 FIX: Guard against deleted products
     if (!item.product) {
-      console.error(`fulfilOrder: product ${item.productId} not found for order ${orderId} — skipping item`)
+      logger.warn('fulfilOrder: product not found — skipping item', { orderId, productId: item.productId })
       continue
     }
 
@@ -205,12 +205,11 @@ export async function fulfilOrder(orderId: string) {
       })
     } catch (emailErr) {
       // Email failure should NOT roll back enrollments — log and continue
-      console.error(`fulfilOrder: failed to send magic link for order ${orderId}:`, emailErr)
+      logger.error('fulfilOrder: failed to send magic link', emailErr, { orderId })
     }
   }
 
-  // ISSUE 3 FIX: Pass deduplication key to prevent double-firing automations
-  const dedupeKey = `order:${order.id}`
+  // Automations — dedup key is computed internally from triggerType + context
   const { runAutomations } = await import('@/lib/automations/automation-engine')
 
   for (const item of order.items) {
@@ -218,7 +217,7 @@ export async function fulfilOrder(orderId: string) {
     await runAutomations('PURCHASE', {
       userId: user.id, email: user.email,
       productId: item.productId, orderId: order.id,
-    }, dedupeKey).catch(err => console.error('PURCHASE automation failed:', err))
+    }).catch(err => logger.error('PURCHASE automation failed', err, { orderId: order.id }))
   }
 
   for (const item of order.items) {
@@ -228,8 +227,8 @@ export async function fulfilOrder(orderId: string) {
         userId: user.id, email: user.email,
         productId: item.productId, courseId: pc.courseId, orderId: order.id,
       }
-      await runAutomations('ENROLLMENT',     ctx, dedupeKey).catch(err => console.error('ENROLLMENT automation failed:', err))
-      await runAutomations('ACCESS_GRANTED', ctx, dedupeKey).catch(err => console.error('ACCESS_GRANTED automation failed:', err))
+      await runAutomations('ENROLLMENT',     ctx).catch(err => logger.error('ENROLLMENT automation failed', err, { orderId: order.id }))
+      await runAutomations('ACCESS_GRANTED', ctx).catch(err => logger.error('ACCESS_GRANTED automation failed', err, { orderId: order.id }))
     }
   }
 

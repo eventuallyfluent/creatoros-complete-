@@ -19,7 +19,6 @@ const NAV_GROUPS = [
       { label: 'Instructors',  href: '/admin/instructors',  icon: User },
       { label: 'Homepage',     href: '/admin/homepage',     icon: ExternalLink },
       { label: 'Reviews',      href: '/admin/reviews',      icon: MessageSquare },
-      { label: 'Testimonials', href: '/admin/testimonials', icon: Tag },
       { label: 'Pages',        href: '/admin/pages',        icon: FileText },
       { label: 'Import',       href: '/admin/import',       icon: Users },
     ],

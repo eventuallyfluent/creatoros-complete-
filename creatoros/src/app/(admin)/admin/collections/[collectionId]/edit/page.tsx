@@ -18,12 +18,12 @@ export default async function EditCollectionPage({ params }: { params: { collect
           include: { course: { select: { id: true, title: true, slug: true, thumbnailUrl: true } } },
         },
       },
-    }),
+    }).catch(() => null),
     prisma.course.findMany({
       where:   { status: { not: 'ARCHIVED' } },
       select:  { id: true, title: true, slug: true, thumbnailUrl: true },
       orderBy: { title: 'asc' },
-    }),
+    }).catch(() => []),
   ])
 
   if (!collection) notFound()

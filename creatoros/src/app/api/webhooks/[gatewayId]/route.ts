@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { getGatewayDriver } from '@/lib/payments/gateway-registry'
-import { markOrderPaid, refundOrder } from '@/lib/payments/order-service'
+import { fulfilOrder, refundOrder } from '@/lib/payments/order-service'
 
 // ============================================================
 // UNIVERSAL WEBHOOK ENDPOINT
@@ -84,8 +84,23 @@ export async function POST(
   }
 
   try {
-    if (event.status === 'paid' && order.status !== 'PAID') {
-      await markOrderPaid(order.id, event.gatewayOrderId, event.gatewayPaymentId)
+    if (event.status === 'paid') {
+      // Atomic claim: only one concurrent webhook wins — updateMany WHERE status=PENDING
+      // returns count=0 if another request already claimed it
+      const claimed = await prisma.order.updateMany({
+        where: { id: order.id, status: 'PENDING' },
+        data:  {
+          status:           'PAID',
+          gatewayOrderId:   event.gatewayOrderId,
+          gatewayPaymentId: event.gatewayPaymentId ?? null,
+          paidAt:           new Date(),
+        },
+      })
+      if (claimed.count === 0) {
+        await logWebhook(params.gatewayId, 'INBOUND', 'order.paid.duplicate', { orderId: order.id }, true, 'Already processed')
+        return NextResponse.json({ received: true })
+      }
+      await fulfilOrder(order.id)
       await logWebhook(params.gatewayId, 'INBOUND', 'order.paid', { orderId: order.id }, true)
     }
 
