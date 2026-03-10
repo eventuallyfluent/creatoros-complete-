@@ -257,14 +257,12 @@ export async function POST(req: NextRequest)  {
     warnings.push('No MODULE rows found — all lessons placed in a single default module.')
   }
 
-  // ── 4. Create modules — sequential (need IDs for moduleMap) ──────────────
-  // Modules must be sequential (each needs its DB id for the lesson map)
-  // But we parallelise where safe using Promise.all on independent rows
-  await Promise.all(moduleRows.map(async (row) => {
+  // ── 4. Create modules ─────────────────────────────────────────────────────
+  for (const row of moduleRows) {
     const moduleTitle = row.title?.trim()
     if (!moduleTitle) {
       skipped.push(`MODULE row with empty title (sort_order=${row.sort_order}) — skipped.`)
-      return
+      continue
     }
     const sortOrder = parseInt(row.sort_order || '0') || 0
     const mod = await prisma.module.create({
@@ -277,10 +275,10 @@ export async function POST(req: NextRequest)  {
       },
     })
     moduleMap.set(moduleTitle.toLowerCase(), { id: mod.id, sortOrder })
-  }))
+  }
 
-  // ── 5. Build lesson data array then batch insert ─────────────────────────
-  const lessonData: any[] = []
+  // ── 5. Create lessons ─────────────────────────────────────────────────────
+  let lessonCount = 0
 
   for (const row of lessonRows) {
     const lessonTitle = row.title?.trim()
@@ -295,6 +293,7 @@ export async function POST(req: NextRequest)  {
       ? (moduleMap.get(rawModuleTitle.toLowerCase()) ?? null)
       : null
 
+    // Fallback: default module or first module
     if (!moduleEntry) {
       moduleEntry = moduleMap.get('__default__') ?? [...moduleMap.values()][0] ?? null
     }
@@ -307,49 +306,56 @@ export async function POST(req: NextRequest)  {
     const type     = lessonType(row.lesson_type || 'VIDEO')
     const provider = videoProvider(row.video_provider || 'STREAMABLE')
 
+    // Support pasting a full embed code into video_url column —
+    // extract src URL and aspect ratio from it automatically
     const rawVideoUrl    = row.video_url?.trim() || null
     const embedSrc       = rawVideoUrl ? extractEmbedSrc(rawVideoUrl) : null
     const aspectRatioRaw = row.aspect_ratio?.trim() || null
 
+    // If the video_url cell contains an embed code, pull aspect ratio from it
     const aspectRatio =
       parseAspectRatio(aspectRatioRaw ?? '') ??
       (rawVideoUrl ? parseAspectRatio(rawVideoUrl) : null)
 
     let videoId  = row.video_id?.trim() || null
-    let videoUrl = embedSrc ?? rawVideoUrl
+    let videoUrl = embedSrc ?? rawVideoUrl  // prefer extracted src over raw
 
     if (!videoId && videoUrl) {
+      // Try to extract streamable ID from URL: streamable.com/XXXXX
       const streamableMatch = videoUrl.match(/streamable\.com\/([a-z0-9]+)/i)
       if (streamableMatch) videoId = streamableMatch[1]
+      // Vimeo: vimeo.com/123456789
       const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/i)
       if (vimeoMatch) videoId = vimeoMatch[1]
+      // YouTube: youtube.com/watch?v=XXX or youtu.be/XXX
       const ytMatch = videoUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
       if (ytMatch) videoId = ytMatch[1]
     }
 
-    lessonData.push({
-      moduleId:      moduleEntry.id,
-      courseId:      course.id,
-      title:         lessonTitle,
-      type:          type,
-      videoProvider: provider,
-      videoId:       videoId,
-      videoUrl:      videoUrl,
-      aspectRatio:   aspectRatio,
-      content:       (type === 'TEXT' ? row.description?.trim() : null) || null,
-      duration:      row.duration_seconds ? parseInt(row.duration_seconds) : null,
-      sortOrder:     parseInt(row.sort_order || '0') || 0,
-      isFree:        bool(row.is_free, false),
-      isPublished:   bool(row.is_published, true),
-      dripDaysAfterEnrollment: row.drip_days ? parseInt(row.drip_days) : null,
-    })
-  }
+    const dripDays = row.drip_days ? parseInt(row.drip_days) : null
+    const duration = row.duration_seconds ? parseInt(row.duration_seconds) : null
 
-  // Batch insert all lessons in one query
-  if (lessonData.length > 0) {
-    await prisma.lesson.createMany({ data: lessonData })
+    await prisma.lesson.create({
+      data: {
+        moduleId:      moduleEntry.id,
+        courseId:      course.id,
+        title:         lessonTitle,
+        type:          type as any,
+        videoProvider: provider as any,
+        videoId:       videoId,
+        videoUrl:      videoUrl,
+        aspectRatio:   aspectRatio,
+        content:       (type === 'TEXT' ? row.description?.trim() : null) || null,
+        duration:      duration,
+        sortOrder:     parseInt(row.sort_order || '0') || 0,
+        isFree:        bool(row.is_free, false),
+        isPublished:   bool(row.is_published, true),
+        dripDaysAfterEnrollment: dripDays,
+      },
+    })
+
+    lessonCount++
   }
-  const lessonCount = lessonData.length
 
   const result: ImportResult = {
     course:   { id: course.id, slug: course.slug, title: course.title },

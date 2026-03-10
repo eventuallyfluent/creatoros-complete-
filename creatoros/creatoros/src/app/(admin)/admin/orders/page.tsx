@@ -34,7 +34,7 @@ export default async function AdminOrdersPage({
     prisma.order.findMany({
       where,
       include: {
-        items: { include: { product: { select: { title: true, slug: true } } } },
+        items: { include: { course: { select: { title: true, slug: true } } } },
         coupon: { select: { code: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -88,7 +88,7 @@ export default async function AdminOrdersPage({
                   {order.email}
                 </td>
                 <td style={{ padding: '12px 14px', fontSize: '13px', color: '#374151', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {order.items[0]?.product?.title ?? '—'}
+                  {order.items[0]?.course.title ?? '—'}
                   {order.items.length > 1 && ` +${order.items.length - 1}`}
                 </td>
                 <td style={{ padding: '12px 14px', fontSize: '13px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>

@@ -1,7 +1,4 @@
 import { GatewayDriver, ManualGatewayDriver, WebhookOnlyGatewayDriver } from './gateway-driver'
-import { CreemDriver } from './drivers/creem'
-import { GenericApiDriver } from './drivers/generic-api'
-import { StripeDriver } from './drivers/stripe'
 import { prisma } from '@/lib/db/prisma'
 
 // ============================================================
@@ -18,12 +15,10 @@ import { prisma } from '@/lib/db/prisma'
 type DriverFactory = (config: any) => GatewayDriver
 
 const registry = new Map<string, DriverFactory>([
-  ['manual',       (config) => new ManualGatewayDriver(config)],
+  ['manual',       (config) => new ManualGatewayDriver()],
   ['webhook_only', (config) => new WebhookOnlyGatewayDriver(config)],
-  ['stripe',       (config) => new StripeDriver(config)],
-  ['creem',        (config) => new CreemDriver(config)],
-  ['generic_api',  (config) => new GenericApiDriver(config)],
   // Future gateways registered here — no other files touched:
+  // ['stripe',        (config) => new StripeDriver(config)],
   // ['paypal',        (config) => new PayPalDriver(config)],
   // ['nowpayments',   (config) => new NowPaymentsDriver(config)],
   // ['ecpay',         (config) => new ECPayDriver(config)],

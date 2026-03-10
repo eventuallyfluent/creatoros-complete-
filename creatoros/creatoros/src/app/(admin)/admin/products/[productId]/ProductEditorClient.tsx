@@ -166,9 +166,13 @@ function DetailsTab({ product, instructors, inp, lbl, card, row2 }: any) {
         </select>
       </div>
 
-      <div style={{ ...card, opacity: 0.6 }}>
-        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Affiliates <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', background: '#f3f4f6', padding: '2px 8px', borderRadius: '999px', marginLeft: '6px', verticalAlign: 'middle' }}>COMING SOON</span></h3>
-        <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Affiliate tracking and commission management will be available in a future update.</p>
+      <div style={card}>
+        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 12px' }}>Affiliates</h3>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={form.affiliateEnabled} onChange={e => set('affiliateEnabled', e.target.checked)}
+            style={{ width: '15px', height: '15px', accentColor: '#7B2FBE' }} />
+          <span style={{ fontSize: '14px', color: '#374151' }}>Enable affiliate programme for this product</span>
+        </label>
       </div>
 
       {error && <Alert type="error" message={error} />}

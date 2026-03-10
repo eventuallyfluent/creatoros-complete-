@@ -1,6 +1,5 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
 import { Eye, EyeOff, GripVertical, Trash2, Plus, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 
 const inp: React.CSSProperties = {
@@ -83,19 +82,20 @@ function BlockContentEditor({ type, content, onChange }: { type: string; content
     case 'TESTIMONIALS': return <><F label="Section Heading"><input value={content.heading ?? ''} onChange={e => set('heading', e.target.value)} style={inp} /></F><Tog label="Auto-populate from approved testimonials" field="pullFromApproved" /></>
     case 'FAQ': return <><F label="Section Heading"><input value={content.heading ?? ''} onChange={e => set('heading', e.target.value)} style={inp} /></F><div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '7px' }}>{(content.items ?? []).map((item: any, i: number) => <div key={i} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px' }}><div style={{ display: 'flex', gap: '6px', marginBottom: '5px' }}><input value={item.question} onChange={e => { const a=[...(content.items??[])]; a[i]={...item,question:e.target.value}; set('items',a) }} placeholder="Question" style={{ ...inp, flex: 1, fontSize: '12px' }} /><button onClick={() => set('items',(content.items??[]).filter((_:any,idx:number)=>idx!==i))} style={{ width:'28px',height:'34px',border:'1px solid #fecaca',borderRadius:'6px',background:'white',color:'#ef4444',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}><Trash2 size={10}/></button></div><textarea value={item.answer} onChange={e => { const a=[...(content.items??[])]; a[i]={...item,answer:e.target.value}; set('items',a) }} rows={2} style={{ ...inp, resize: 'vertical', fontSize: '12px' }} placeholder="Answer"/></div>)}</div><button onClick={() => set('items',[...(content.items??[]),{question:'',answer:''}])} style={{ fontSize:'11px',color:'#7B2FBE',background:'none',border:'1px dashed #d1d5db',borderRadius:'5px',padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',fontWeight:600,display:'flex',alignItems:'center',gap:'3px' }}><Plus size={10}/> Add Q</button></>
     case 'CTA': return <><F label="Heading (optional)"><input value={content.heading ?? ''} onChange={e => set('heading', e.target.value || undefined)} style={inp} /></F><F label="Button Label"><input value={content.buttonLabel ?? ''} onChange={e => set('buttonLabel', e.target.value)} placeholder="Enrol Now" style={inp} /></F><F label="Below-button text"><input value={content.buttonSubtext ?? ''} onChange={e => set('buttonSubtext', e.target.value)} style={inp} /></F></>
+    case 'IMAGE': return <><F label="Image URL" hint="Paste a direct image URL (e.g. from your media library or an external host)"><input value={content.src ?? ''} onChange={e => set('src', e.target.value)} placeholder="https://..." style={inp} /></F><F label="Alt text"><input value={content.altText ?? ''} onChange={e => set('altText', e.target.value)} placeholder="Describe the image" style={inp} /></F><F label="Caption (optional)"><input value={content.caption ?? ''} onChange={e => set('caption', e.target.value || undefined)} style={inp} /></F></>
     case 'DIVIDER': return <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Ornamental divider — no settings.</p>
     default: return <p style={{ fontSize: '13px', color: '#9ca3af' }}>Unknown type: {type}</p>
   }
 }
 
-function BlockRow({ block, onToggle, onDelete, onMove, isFirst, isLast, expanded, onExpand, onUpdateContent }: any) {
+function BlockRow({ block, onToggle, onDelete, onMove, isFirst, isLast, expanded, onExpand, onUpdateContent, onDragStart, onDragOver, onDragEnd }: any) {
   const meta      = BLOCK_META[block.type] ?? { icon: '□', label: block.type }
   const singleton = ['HERO','CURRICULUM','INSTRUCTOR'].includes(block.type)
   const c         = block.content ?? {}
   return (
-    <div style={{ background: 'white', border: `1px solid ${expanded ? 'rgba(123,47,190,0.4)' : '#e5e7eb'}`, borderRadius: '10px', overflow: 'hidden', opacity: block.visible ? 1 : 0.55 }}>
+    <div draggable onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} style={{ background: 'white', border: `1px solid ${expanded ? 'rgba(123,47,190,0.4)' : '#e5e7eb'}`, borderRadius: '10px', overflow: 'hidden', opacity: block.visible ? 1 : 0.55, cursor: 'grab' }}>
       <div onClick={onExpand} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 13px', cursor: 'pointer', background: expanded ? 'rgba(123,47,190,0.03)' : 'white', userSelect: 'none' }}>
-        <GripVertical size={13} style={{ color: '#d1d5db', flexShrink: 0 }} />
+        <GripVertical size={13} style={{ color: '#9ca3af', flexShrink: 0, cursor: 'grab' }} />
         <span style={{ fontSize: '15px', flexShrink: 0 }}>{meta.icon}</span>
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827', flex: 1 }}>
           {meta.label}
@@ -122,7 +122,6 @@ function BlockRow({ block, onToggle, onDelete, onMove, isFirst, isLast, expanded
 }
 
 export default function SalesPageEditor({ product, allModules = [] }: { product: any; allModules?: any[] }) {
-  const router   = useRouter()
   const prompts  = product.salesPrompts ?? {}
   const [promptData, setPromptData] = useState<Record<string,string>>({
     q_headline: prompts.q_headline ?? 'What is the headline for this course?',
@@ -156,18 +155,28 @@ export default function SalesPageEditor({ product, allModules = [] }: { product:
   const [savedB,       setSavedB]       = useState(false)
   const [error,        setError]        = useState<string|null>(null)
   const [promptsOpen,  setPromptsOpen]  = useState(true)
+  const dragIndex = React.useRef<number | null>(null)
 
   const setP = (k: string, v: string) => setPromptData(p => ({ ...p, [k]: v }))
 
   const savePrompts = async () => {
     setSavingP(true); setError(null)
-    const res  = await fetch(`/api/admin/products/${product.id}/sales-page/prompts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(promptData) })
-    const data = await res.json()
-    setSavingP(false)
-    if (!res.ok) { setError(data.error ?? 'Save failed'); return }
-    if (data.blocks) setBlocks(data.blocks)
-    setSavedP(true); setTimeout(() => setSavedP(false), 2500)
-    router.refresh()
+    try {
+      const res  = await fetch(`/api/admin/products/${product.id}/sales-page/prompts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(promptData) })
+      const data = await res.json()
+      setSavingP(false)
+      if (!res.ok) { setError(data.error ?? `Save failed (${res.status})`); return }
+      if (Array.isArray(data.blocks) && data.blocks.length > 0) {
+        setBlocks(data.blocks)
+      } else if (Array.isArray(data.blocks) && data.blocks.length === 0) {
+        setError('Prompts saved but no blocks were generated. Fill in at least a headline and save again.')
+        return
+      }
+      setSavedP(true); setTimeout(() => setSavedP(false), 2500)
+    } catch (err: any) {
+      setSavingP(false)
+      setError(err.message ?? 'Network error')
+    }
   }
 
   const saveBlocks = async () => {
@@ -187,9 +196,20 @@ export default function SalesPageEditor({ product, allModules = [] }: { product:
     if (idx + dir < 0 || idx + dir >= blocks.length) return
     const n = [...blocks]; [n[idx], n[idx+dir]] = [n[idx+dir], n[idx]]; setBlocks(n)
   }
+  const onDragStart = (idx: number) => { dragIndex.current = idx }
+  const onDragOver  = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    const from = dragIndex.current
+    if (from === null || from === idx) return
+    const n = [...blocks]; [n[from], n[idx]] = [n[idx], n[from]]
+    dragIndex.current = idx
+    setBlocks(n)
+  }
+  const onDragEnd = () => { dragIndex.current = null }
+
   const addBlock = (type: string) => {
     const id = Math.random().toString(36).slice(2)
-    const defaults: Record<string,any> = { TEXT: { body:'', align:'left' }, BENEFITS: { heading:'Benefits', items:[] }, TESTIMONIALS: { heading:'Student Reviews', pullFromApproved:true, items:[] }, FAQ: { heading:'FAQ', items:[] }, CTA: { buttonLabel:'Enrol Now', buttonSubtext:'' }, DIVIDER: { symbol:'✦' }, IMAGE: { altText:'' } }
+    const defaults: Record<string,any> = { TEXT: { body:'', align:'left' }, BENEFITS: { heading:'Benefits', items:[] }, TESTIMONIALS: { heading:'Student Reviews', pullFromApproved:true, items:[] }, FAQ: { heading:'FAQ', items:[] }, CTA: { buttonLabel:'Enrol Now', buttonSubtext:'' }, DIVIDER: { symbol:'✦' } }
     setBlocks(bs => [...bs, { id, type, visible:true, content: defaults[type]??{}, salesPageId: product.salesPage?.id }])
     setExpandedId(id)
   }
@@ -231,7 +251,7 @@ export default function SalesPageEditor({ product, allModules = [] }: { product:
           )}
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          {error && <p style={{ fontSize:'12px', color:'#ef4444', margin:0 }}>{error}</p>}
+          {error && <div style={{ background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:'8px', padding:'10px 14px', fontSize:'13px', color:'#991b1b', fontWeight:500 }}>{error}</div>}
           <div style={{ marginLeft:'auto', display:'flex', gap:'8px', alignItems:'center' }}>
             <a href={`/courses/${product.slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize:'12px', color:'#6b7280', textDecoration:'none', display:'flex', alignItems:'center', gap:'3px' }}><ExternalLink size={11}/> Preview</a>
             <button onClick={savePrompts} disabled={savingP} {...saveBtn(savingP,savedP,'')}>
@@ -256,13 +276,14 @@ export default function SalesPageEditor({ product, allModules = [] }: { product:
             <BlockRow key={block.id} block={block} isFirst={idx===0} isLast={idx===blocks.length-1}
               expanded={expandedId===block.id} onExpand={() => setExpandedId(expandedId===block.id?null:block.id)}
               onToggle={() => toggleBlock(block.id)} onDelete={() => deleteBlock(block.id)}
-              onMove={dir => moveBlock(block.id, dir)} onUpdateContent={c => updateBlock(block.id, c)} />
+              onMove={dir => moveBlock(block.id, dir)} onUpdateContent={c => updateBlock(block.id, c)}
+              onDragStart={() => onDragStart(idx)} onDragOver={(e: React.DragEvent) => onDragOver(e, idx)} onDragEnd={onDragEnd} />
           ))}
         </div>
         <div style={{ background:'white', border:'1px solid #e5e7eb', borderRadius:'9px', padding:'12px 14px', marginBottom:'10px' }}>
           <p style={{ fontSize:'10px', fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.07em', margin:'0 0 7px' }}>Add Section</p>
           <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
-            {['TEXT','BENEFITS','TESTIMONIALS','FAQ','CTA','DIVIDER','IMAGE'].map(type => {
+            {['TEXT','BENEFITS','TESTIMONIALS','FAQ','CTA','DIVIDER'].map(type => {
               const m = BLOCK_META[type]
               return <button key={type} onClick={() => addBlock(type)} style={{ display:'flex', alignItems:'center', gap:'3px', padding:'5px 10px', background:'white', border:'1px solid #e5e7eb', borderRadius:'6px', fontSize:'11px', fontWeight:600, color:'#374151', cursor:'pointer', fontFamily:'inherit' }}>{m?.icon} {m?.label}</button>
             })}

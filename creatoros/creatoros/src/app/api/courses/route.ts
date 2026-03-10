@@ -41,14 +41,7 @@ export async function POST(req: NextRequest)  {
   })
 
   // Auto-create defaults — a Product will be created separately via /admin/products
-  await createCourseDefaults(course.id, {
-    title:       course.title,
-    slug:        course.slug,
-    status:      course.status as any,
-    instructorId: course.instructorId ?? null,
-    thumbnailUrl: course.thumbnailUrl ?? null,
-    subtitle:    course.subtitle ?? null,
-  }).catch(() => {/* non-fatal - course still created */})
+  await createCourseDefaults(course.id, course.title)
 
   return NextResponse.json(course, { status: 201 })
 }

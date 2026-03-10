@@ -16,7 +16,7 @@ export default async function EditCouponPage({ params }: { params: { couponId: s
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader title={`Edit ${coupon.code}`} backHref="/admin/coupons" backLabel="All Coupons" />
-      <CouponEditor coupon={{ ...coupon, value: Number(coupon.value), minimumOrderAmount: coupon.minimumOrderAmount ? Number(coupon.minimumOrderAmount) : null, expiresAt: coupon.expiresAt?.toISOString() ?? null, startsAt: coupon.startsAt?.toISOString() ?? null }} products={products} />
+      <CouponEditor coupon={{ ...coupon, value: Number(coupon.value), minimumOrderAmount: coupon.minimumOrderAmount ? Number(coupon.minimumOrderAmount) : null, expiresAt: coupon.expiresAt?.toISOString() ?? null, startsAt: coupon.startsAt?.toISOString() ?? null }} courses={courses} />
     </div>
   )
 }

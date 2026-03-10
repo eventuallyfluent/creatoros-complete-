@@ -2,17 +2,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Product { id: string; title: string }
+interface Course { id: string; title: string }
 interface CouponData {
   id?: string; code?: string; type?: string; value?: number
   maxUses?: number | null; expiresAt?: string | null
   startsAt?: string | null; minimumOrderAmount?: number | null
-  isActive?: boolean; applicableProductIds?: string[]
+  isActive?: boolean; applicableCourseIds?: string[]
 }
 
-interface Props { coupon?: CouponData; products: Product[] }
+interface Props { coupon?: CouponData; courses: Course[] }
 
-export default function CouponEditor({ coupon, products }: Props) {
+export default function CouponEditor({ coupon, courses }: Props) {
   const router = useRouter()
   const isNew  = !coupon?.id
 
@@ -25,7 +25,7 @@ export default function CouponEditor({ coupon, products }: Props) {
     startsAt:            coupon?.startsAt  ? coupon.startsAt.slice(0, 10) : '',
     minimumOrderAmount:  coupon?.minimumOrderAmount ?? '',
     isActive:            coupon?.isActive ?? true,
-    applicableProductIds: coupon?.applicableProductIds ?? [] as string[],
+    applicableCourseIds: coupon?.applicableCourseIds ?? [] as string[],
   })
 
   const [saving, setSaving] = useState(false)
@@ -109,14 +109,14 @@ export default function CouponEditor({ coupon, products }: Props) {
           </Field>
         </div>
 
-        {products.length > 0 && (
-          <Field label="Restrict to specific products (leave blank to apply to all products)">
+        {courses.length > 0 && (
+          <Field label="Restrict to Courses (blank = all courses)">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px' }}>
-              {products.map(p => (
-                <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
-                  <input type="checkbox" checked={form.applicableProductIds.includes(p.id)}
-                    onChange={e => setForm(f => ({ ...f, applicableProductIds: e.target.checked ? [...f.applicableProductIds, p.id] : f.applicableProductIds.filter(id => id !== p.id) }))} />
-                  {p.title}
+              {courses.map(c => (
+                <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                  <input type="checkbox" checked={form.applicableCourseIds.includes(c.id)}
+                    onChange={e => setForm(f => ({ ...f, applicableCourseIds: e.target.checked ? [...f.applicableCourseIds, c.id] : f.applicableCourseIds.filter(id => id !== c.id) }))} />
+                  {c.title}
                 </label>
               ))}
             </div>

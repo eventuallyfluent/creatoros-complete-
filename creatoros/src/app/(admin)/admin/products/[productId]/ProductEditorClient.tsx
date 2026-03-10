@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { Save, Plus, Trash2, AlertCircle, CheckCircle, BookOpen, FileText, ShoppingCart, AlertTriangle, Users } from 'lucide-react'
+import React, { useState } from 'react'
+import { Save, Trash2, AlertCircle, CheckCircle, BookOpen, FileText, ShoppingCart, AlertTriangle, Users } from 'lucide-react'
 import CourseEditor from '@/components/admin/CourseEditor'
 import CurriculumBuilder from '@/components/admin/CurriculumBuilder'
 import SalesPageEditor from './sales-page/SalesPageEditor'
@@ -162,15 +162,28 @@ function OverviewTab({ product, instructors, inp, lbl, card, row2 }: any) {
 
 function BillingTab({ product, inp, lbl, card, row2 }: any) {
   const [form, setForm] = useState({
-    price:          String(product.price),
-    compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : '',
-    currency:       product.currency,
+    price:           String(product.price ?? 0),
+    compareAtPrice:  product.compareAtPrice ? String(product.compareAtPrice) : '',
+    currency:        product.currency ?? 'USD',
+    billingType:     'ONE_TIME',   // ONE_TIME | SUBSCRIPTION | PAYMENT_PLAN
+    interval:        'MONTHLY',    // MONTHLY | QUARTERLY | YEARLY
+    planPayments:    '3',          // number of payments for PAYMENT_PLAN
+    planInterval:    'MONTHLY',    // interval between payments
   })
-  const [saving, setSaving] = useState(false)
-  const [saved,  setSaved]  = useState(false)
-  const [error,  setError]  = useState<string | null>(null)
+  const [gateways,  setGateways]  = useState<any[]>([])
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
 
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  // Load active gateways to know what's supported
+  React.useEffect(() => {
+    fetch('/api/admin/gateways').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setGateways(data.filter((g: any) => g.isActive))
+    }).catch(() => {})
+  }, [])
+
+  const supportsRecurring = gateways.length > 0
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const save = async () => {
     setSaving(true); setError(null); setSaved(false)
@@ -188,6 +201,8 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2500)
   }
 
+  const disabledStyle = { opacity: 0.4, pointerEvents: 'none' as const }
+
   return (
     <>
       <div style={card}>
@@ -198,7 +213,7 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
             <input type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} style={inp} placeholder="97.00" />
           </div>
           <div>
-            <label style={lbl}>Compare-at <span style={{ fontWeight: 400, color: '#9ca3af' }}>(strike-through, optional)</span></label>
+            <label style={lbl}>Compare-at <span style={{ fontWeight: 400, color: '#9ca3af' }}>(strike-through)</span></label>
             <input type="number" min="0" step="0.01" value={form.compareAtPrice} onChange={e => set('compareAtPrice', e.target.value)} style={inp} placeholder="Leave blank to hide" />
           </div>
         </div>
@@ -210,11 +225,83 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
         </div>
       </div>
 
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0 }}>Billing Type</h3>
+          {!supportsRecurring && gateways.length > 0 && (
+            <span style={{ fontSize: '11px', color: '#f59e0b', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '3px 8px', fontWeight: 600 }}>
+              Recurring requires a connected payment gateway
+            </span>
+          )}
+          {gateways.length === 0 && (
+            <span style={{ fontSize: '11px', color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '3px 8px' }}>
+              No gateway connected yet
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* One-time */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'ONE_TIME' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', background: form.billingType === 'ONE_TIME' ? 'rgba(123,47,190,0.04)' : 'white' }}>
+            <input type="radio" name="billingType" value="ONE_TIME" checked={form.billingType === 'ONE_TIME'} onChange={() => set('billingType', 'ONE_TIME')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }} />
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>One-time payment</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Student pays once and gets lifetime access.</p>
+            </div>
+          </label>
+
+          {/* Subscription */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'SUBSCRIPTION' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: supportsRecurring ? 'pointer' : 'not-allowed', background: form.billingType === 'SUBSCRIPTION' ? 'rgba(123,47,190,0.04)' : 'white', ...(supportsRecurring ? {} : disabledStyle) }}>
+            <input type="radio" name="billingType" value="SUBSCRIPTION" checked={form.billingType === 'SUBSCRIPTION'} onChange={() => supportsRecurring && set('billingType', 'SUBSCRIPTION')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }} disabled={!supportsRecurring} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>Ongoing subscription</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student is billed every period until they cancel.</p>
+              {form.billingType === 'SUBSCRIPTION' && (
+                <div>
+                  <label style={lbl}>Billing interval</label>
+                  <select value={form.interval} onChange={e => set('interval', e.target.value)} style={{ ...inp, width: '200px' }}>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="QUARTERLY">Quarterly (every 3 months)</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          </label>
+
+          {/* Payment plan */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'PAYMENT_PLAN' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: supportsRecurring ? 'pointer' : 'not-allowed', background: form.billingType === 'PAYMENT_PLAN' ? 'rgba(123,47,190,0.04)' : 'white', ...(supportsRecurring ? {} : disabledStyle) }}>
+            <input type="radio" name="billingType" value="PAYMENT_PLAN" checked={form.billingType === 'PAYMENT_PLAN'} onChange={() => supportsRecurring && set('billingType', 'PAYMENT_PLAN')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }} disabled={!supportsRecurring} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>Payment plan</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student pays in fixed instalments then access continues.</p>
+              {form.billingType === 'PAYMENT_PLAN' && (
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div>
+                    <label style={lbl}>Number of payments</label>
+                    <input type="number" min="2" max="24" value={form.planPayments} onChange={e => set('planPayments', e.target.value)} style={{ ...inp, width: '120px' }} placeholder="3" />
+                  </div>
+                  <div>
+                    <label style={lbl}>Interval</label>
+                    <select value={form.planInterval} onChange={e => set('planInterval', e.target.value)} style={{ ...inp, width: '160px' }}>
+                      <option value="MONTHLY">Monthly</option>
+                      <option value="WEEKLY">Weekly</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          </label>
+        </div>
+
+
+      </div>
+
       {error && <Alert type="error" message={error} />}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button onClick={save} disabled={saving}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 24px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
-          {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving\u2026' : 'Save Changes'}</>}
+          {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}</>}
         </button>
       </div>
     </>
@@ -291,135 +378,91 @@ function SalesTab({ product }: { product: Product }) {
 // ── Checkout Tab ──────────────────────────────────────────────────────────────
 
 function CheckoutTab({ product, allProducts, inp, lbl, card, row2 }: any) {
-  const [pages,   setPages]   = useState<CheckoutPageData[]>(product.checkoutPages)
-  const [active,  setActive]  = useState<string | null>(pages[0]?.id ?? null)
-  const [saving,  setSaving]  = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
-  const [saved,   setSaved]   = useState(false)
+  const defaultPage = product.checkoutPages?.find((p: any) => p.isDefault) ?? product.checkoutPages?.[0]
+  const [current, setCurrent] = useState<any>(defaultPage ?? {
+    label: 'Default', isDefault: true, showCouponField: true,
+    headline: '', subtext: '', guaranteeText: '', thankYouUrl: '', thankYouHeadline: '',
+    orderBumpProductId: null, orderBumpHeadline: '', orderBumpDescription: '', orderBumpPrice: null,
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved,  setSaved]  = useState(false)
+  const [error,  setError]  = useState<string | null>(null)
 
-  const current = pages.find(p => p.id === active)
-  const updateCurrent = (key: string, val: any) =>
-    setPages(ps => ps.map(p => p.id === active ? { ...p, [key]: val } : p))
+  const set = (key: string, val: any) => setCurrent((p: any) => ({ ...p, [key]: val }))
 
-  const addPage = async () => {
-    const res  = await fetch(`/api/admin/products/${product.id}/checkout-pages`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: 'New Checkout', isDefault: false }),
-    })
-    const data = await res.json()
-    if (res.ok) { setPages(ps => [...ps, data]); setActive(data.id) }
-  }
-
-  const savePage = async () => {
-    if (!current) return
+  const save = async () => {
     setSaving(true); setError(null); setSaved(false)
-    const res = await fetch(`/api/admin/products/${product.id}/checkout-pages/${current.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(current),
+    const method = current.id ? 'PATCH' : 'POST'
+    const url    = current.id
+      ? `/api/admin/products/${product.id}/checkout-pages/${current.id}`
+      : `/api/admin/products/${product.id}/checkout-pages`
+    const res  = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...current, isDefault: true }),
     })
     const data = await res.json()
     setSaving(false)
     if (!res.ok) { setError(data.error ?? 'Save failed'); return }
-    setPages(ps => ps.map(p => p.id === data.id ? data : p))
+    setCurrent(data)
     setSaved(true); setTimeout(() => setSaved(false), 2500)
   }
 
-  const deletePage = async (id: string) => {
-    if (!confirm('Delete this checkout page?')) return
-    await fetch(`/api/admin/products/${product.id}/checkout-pages/${id}`, { method: 'DELETE' })
-    const remaining = pages.filter(p => p.id !== id)
-    setPages(remaining); setActive(remaining[0]?.id ?? null)
-  }
-
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px', alignItems: 'start' }}>
-      <div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-          {pages.map(p => (
-            <button key={p.id} onClick={() => setActive(p.id)}
-              style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${active === p.id ? '#7B2FBE' : '#e5e7eb'}`, background: active === p.id ? 'rgba(123,47,190,0.06)' : 'white', color: '#111827', fontSize: '13px', fontWeight: active === p.id ? 700 : 500, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-ui)' }}>
-              {p.label}{p.isDefault && <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '6px' }}>default</span>}
-            </button>
-          ))}
+    <div>
+      <div style={card}>
+        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Checkout Page</h3>
+        <div style={row2}>
+          <div><label style={lbl}>Headline</label><input value={current.headline ?? ''} onChange={e => set('headline', e.target.value)} style={inp} placeholder="Complete your enrolment" /></div>
+          <div><label style={lbl}>Subtext</label><input value={current.subtext ?? ''} onChange={e => set('subtext', e.target.value)} style={inp} placeholder="You're one step away…" /></div>
         </div>
-        <button onClick={addPage}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', background: 'none', border: '1px dashed #d1d5db', borderRadius: '8px', color: '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-ui)', width: '100%' }}>
-          <Plus size={13} /> Add variant
-        </button>
-        <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '8px', lineHeight: 1.4 }}>Add variants for payment plans or early bird pricing.</p>
+        <div style={{ marginTop: '16px' }}>
+          <label style={lbl}>Guarantee text</label>
+          <input value={current.guaranteeText ?? ''} onChange={e => set('guaranteeText', e.target.value)} style={inp} placeholder="30-day money-back guarantee" />
+        </div>
+        <div style={{ marginTop: '16px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151', fontWeight: 600 }}>
+            <input type="checkbox" checked={current.showCouponField ?? true} onChange={e => set('showCouponField', e.target.checked)} style={{ accentColor: '#7B2FBE' }} />
+            Show coupon code field
+          </label>
+        </div>
       </div>
 
-      {current ? (
-        <div>
-          <div style={card}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Checkout Page</h3>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={lbl}>Label <span style={{ fontWeight: 400, color: '#9ca3af' }}>(admin only)</span></label>
-              <input value={current.label} onChange={e => updateCurrent('label', e.target.value)} style={inp} />
-            </div>
-            <div style={row2}>
-              <div><label style={lbl}>Headline</label><input value={current.headline ?? ''} onChange={e => updateCurrent('headline', e.target.value)} style={inp} placeholder="Complete your enrolment" /></div>
-              <div><label style={lbl}>Subtext</label><input value={current.subtext ?? ''} onChange={e => updateCurrent('subtext', e.target.value)} style={inp} placeholder="You're one step away…" /></div>
-            </div>
-            <div style={{ marginTop: '16px' }}>
-              <label style={lbl}>Guarantee text</label>
-              <input value={current.guaranteeText ?? ''} onChange={e => updateCurrent('guaranteeText', e.target.value)} style={inp} placeholder="30-day money-back guarantee" />
-            </div>
-            <div style={{ marginTop: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151', fontWeight: 600 }}>
-                <input type="checkbox" checked={current.showCouponField} onChange={e => updateCurrent('showCouponField', e.target.checked)} style={{ accentColor: '#7B2FBE' }} />
-                Show coupon code field
-              </label>
-            </div>
-          </div>
-
-          <div style={card}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Thank You Page</h3>
-            <div style={row2}>
-              <div><label style={lbl}>Headline</label><input value={current.thankYouHeadline ?? ''} onChange={e => updateCurrent('thankYouHeadline', e.target.value)} style={inp} placeholder="You're in! Welcome." /></div>
-              <div><label style={lbl}>Redirect URL <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label><input value={current.thankYouUrl ?? ''} onChange={e => updateCurrent('thankYouUrl', e.target.value)} style={inp} placeholder="Leave blank for default" /></div>
-            </div>
-          </div>
-
-          <div style={card}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Order Bump</h3>
-            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px' }}>A one-click add-on shown at checkout.</p>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={lbl}>Bump Product</label>
-              <select value={current.orderBumpProductId ?? ''} onChange={e => updateCurrent('orderBumpProductId', e.target.value || null)} style={inp}>
-                <option value="">— No order bump —</option>
-                {allProducts.map((p: SimpleProduct) => (
-                  <option key={p.id} value={p.id}>{p.title} ({p.currency} {Number(p.price).toFixed(2)})</option>
-                ))}
-              </select>
-            </div>
-            {current.orderBumpProductId && (
-              <>
-                <div style={{ marginBottom: '16px' }}><label style={lbl}>Bump Headline</label><input value={current.orderBumpHeadline ?? ''} onChange={e => updateCurrent('orderBumpHeadline', e.target.value)} style={inp} placeholder="Add this to your order" /></div>
-                <div style={{ marginBottom: '16px' }}><label style={lbl}>Bump Description</label><textarea value={current.orderBumpDescription ?? ''} onChange={e => updateCurrent('orderBumpDescription', e.target.value)} rows={3} style={{ ...inp, resize: 'vertical' }} /></div>
-                <div><label style={lbl}>Override Price</label><input type="number" min="0" step="0.01" value={current.orderBumpPrice ?? ''} onChange={e => updateCurrent('orderBumpPrice', e.target.value ? parseFloat(e.target.value) : null)} style={{ ...inp, width: '160px' }} /></div>
-              </>
-            )}
-          </div>
-
-          {error && <Alert type="error" message={error} />}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {!current.isDefault && (
-              <button onClick={() => deletePage(current.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: 'none', border: '1px solid #fca5a5', borderRadius: '8px', color: '#ef4444', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
-                <Trash2 size={13} /> Delete variant
-              </button>
-            )}
-            <div style={{ marginLeft: 'auto' }}>
-              <button onClick={savePage} disabled={saving}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 24px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
-                {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving…' : 'Save'}</>}
-              </button>
-            </div>
-          </div>
+      <div style={card}>
+        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Thank You Page</h3>
+        <div style={row2}>
+          <div><label style={lbl}>Headline</label><input value={current.thankYouHeadline ?? ''} onChange={e => set('thankYouHeadline', e.target.value)} style={inp} placeholder="You're in! Welcome." /></div>
+          <div><label style={lbl}>Redirect URL <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label><input value={current.thankYouUrl ?? ''} onChange={e => set('thankYouUrl', e.target.value)} style={inp} placeholder="Leave blank for default" /></div>
         </div>
-      ) : (
-        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Select or create a checkout page.</p>
-      )}
+      </div>
+
+      <div style={card}>
+        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Order Bump</h3>
+        <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px' }}>A one-click add-on shown at checkout.</p>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={lbl}>Bump Product</label>
+          <select value={current.orderBumpProductId ?? ''} onChange={e => set('orderBumpProductId', e.target.value || null)} style={inp}>
+            <option value="">— No order bump —</option>
+            {allProducts.map((p: SimpleProduct) => (
+              <option key={p.id} value={p.id}>{p.title} ({p.currency} {Number(p.price).toFixed(2)})</option>
+            ))}
+          </select>
+        </div>
+        {current.orderBumpProductId && (
+          <>
+            <div style={{ marginBottom: '16px' }}><label style={lbl}>Bump Headline</label><input value={current.orderBumpHeadline ?? ''} onChange={e => set('orderBumpHeadline', e.target.value)} style={inp} placeholder="Add this to your order" /></div>
+            <div style={{ marginBottom: '16px' }}><label style={lbl}>Bump Description</label><textarea value={current.orderBumpDescription ?? ''} onChange={e => set('orderBumpDescription', e.target.value)} rows={3} style={{ ...inp, resize: 'vertical' }} /></div>
+            <div><label style={lbl}>Override Price</label><input type="number" min="0" step="0.01" value={current.orderBumpPrice ?? ''} onChange={e => set('orderBumpPrice', e.target.value ? parseFloat(e.target.value) : null)} style={{ ...inp, width: '160px' }} /></div>
+          </>
+        )}
+      </div>
+
+      {error && <Alert type="error" message={error} />}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={save} disabled={saving}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 24px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
+          {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving…' : 'Save'}</>}
+        </button>
+      </div>
     </div>
   )
 }

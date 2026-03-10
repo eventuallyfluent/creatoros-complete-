@@ -11,13 +11,13 @@ interface ParsedRow {
   error?:  string
 }
 
-interface Props { courses: Course[]; preselectedCourseId?: string }
+interface Props { courses: Course[] }
 
-export default function CSVDownloader({ courses, preselectedCourseId }: Props) {
+export default function CSVDownloader({ courses }: Props) {
   const fileRef      = useRef<HTMLInputElement>(null)
   const [rows,       setRows]       = useState<ParsedRow[]>([])
   const [filename,   setFilename]   = useState<string | null>(null)
-  const [courseId,   setCourseId]   = useState(preselectedCourseId ?? courses[0]?.id ?? '')
+  const [courseId,   setCourseId]   = useState(courses[0]?.id ?? '')
   const [importing,  setDownloading]  = useState(false)
   const [result,     setResult]     = useState<{ imported: number; skipped: number; errors: string[] } | null>(null)
   const [step,       setStep]       = useState<'upload' | 'preview' | 'done'>('upload')

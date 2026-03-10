@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db/prisma'
-import { createProductForCourse } from '@/lib/product/product-defaults'
+import { createCourseDefaults } from '@/lib/course/course-defaults'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import SalesPageEditor from './SalesPageEditor'
 
@@ -13,17 +13,8 @@ export default async function SalesPageEditorPage({ params }: { params: { course
     where:   { id: params.courseId },
     include: {
       instructor: true,
-      products:   {
-        include: {
-          product: {
-            include: {
-              salesPage:    { include: { blocks: { orderBy: { sortOrder: 'asc' } } } },
-              salesPrompts: true,
-            },
-          },
-        },
-        take: 1,
-      },
+      salesPage:  { include: { blocks: { orderBy: { sortOrder: 'asc' } } } },
+      salesPrompts: true,
       modules: {
         where:   { isPublished: true },
         orderBy: { sortOrder: 'asc' },
@@ -37,35 +28,18 @@ export default async function SalesPageEditorPage({ params }: { params: { course
       },
     },
   }).catch(() => null)
-
   if (!course) notFound()
 
-  // Get or create the product for this course
-  let product = course.products[0]?.product ?? null
-
-  if (!product) {
-    // Create product + sales page records
-    await createProductForCourse(course.id, {
-      title: course.title,
-      slug:  course.slug ?? course.id,
-      price: 0,
-    })
+  // Auto-create missing records (idempotent)
+  if (!course.salesPage || !course.salesPrompts) {
+    await createCourseDefaults(course.id, course.title)
     // Reload
     const fresh = await prisma.course.findUnique({
       where:   { id: params.courseId },
       include: {
-        instructor: true,
-        products: {
-          include: {
-            product: {
-              include: {
-                salesPage:    { include: { blocks: { orderBy: { sortOrder: 'asc' } } } },
-                salesPrompts: true,
-              },
-            },
-          },
-          take: 1,
-        },
+        instructor:  true,
+        salesPage:   { include: { blocks: { orderBy: { sortOrder: 'asc' } } } },
+        salesPrompts: true,
         modules: {
           where:   { isPublished: true },
           orderBy: { sortOrder: 'asc' },
@@ -87,15 +61,6 @@ export default async function SalesPageEditorPage({ params }: { params: { course
 }
 
 function renderPage(course: any) {
-  const product = course.products?.[0]?.product ?? null
-  // Flatten for SalesPageEditor — pass product's salesPage/salesPrompts as top-level
-  const courseWithPage = {
-    ...course,
-    salesPage:    product?.salesPage    ?? null,
-    salesPrompts: product?.salesPrompts ?? null,
-    productId:    product?.id           ?? null,
-  }
-
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader
@@ -104,7 +69,7 @@ function renderPage(course: any) {
         backLabel="← Back to Course"
         action={{ label: 'View Live Page →', href: `/courses/${course.slug}` }}
       />
-      <SalesPageEditor course={courseWithPage} />
+      <SalesPageEditor course={course} />
     </div>
   )
 }

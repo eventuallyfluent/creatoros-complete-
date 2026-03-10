@@ -176,7 +176,11 @@ code, pre {
 .section-padding-sm { padding: var(--s7) 0; }
 
 /* Portal layout — GroupApp style */
-/* portal-layout now defined below */
+.portal-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+}
 
 .portal-sidebar {
   position: fixed;
@@ -196,17 +200,13 @@ code, pre {
   background: var(--bg-base);
   overflow-x: hidden;
   width: calc(100vw - var(--sidebar-width));
-  min-width: 0;
-  flex: 1;
-}
-
-.portal-layout {
-  display: flex !important;
+  max-width: 100%;
 }
 
 /* Admin layout */
 .admin-layout {
-  display: block;
+  display: grid;
+  grid-template-columns: var(--admin-sidebar-width) 1fr;
   min-height: 100vh;
 }
 
@@ -228,7 +228,7 @@ code, pre {
   background: var(--surface-light);
   overflow-x: hidden;
   width: calc(100vw - var(--admin-sidebar-width));
-  min-width: 0;
+  max-width: 100%;
 }
 
 /* ============================================================

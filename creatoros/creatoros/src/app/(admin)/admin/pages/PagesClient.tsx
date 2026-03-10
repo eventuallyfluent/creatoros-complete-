@@ -17,9 +17,10 @@ const SYSTEM_SLUGS = ['privacy', 'terms', 'cookies', 'gdpr', 'contact']
 export default function PagesClient({ pages }: { pages: Page[] }) {
   if (pages.length === 0) return (
     <div style={{ background: 'white', border: '2px dashed #e5e7eb', borderRadius: '12px', padding: '56px', textAlign: 'center' }}>
-      <div style={{ fontSize: '40px', marginBottom: '12px' }}>📄</div>
-      <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>No pages yet</p>
-      <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '0' }}>Use the <strong>+ New Page</strong> button above to create your first page.</p>
+      <p style={{ fontSize: '15px', color: '#6b7280', marginBottom: '20px' }}>No pages yet. Create your first page or seed the default system pages.</p>
+      <Link href="/admin/pages/new" style={{ display: 'inline-block', background: '#7B2FBE', color: 'white', padding: '10px 24px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', textDecoration: 'none' }}>
+        + Create Page
+      </Link>
     </div>
   )
 

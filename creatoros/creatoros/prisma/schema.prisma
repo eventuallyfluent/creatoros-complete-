@@ -861,31 +861,30 @@ model SalesPagePrompts {
   productId String @unique
 
   // Editable prompt questions (the labels)
-  // @map tells Prisma the DB column uses camelCase (as created by schema.sql)
-  q_headline          String @default("What is the headline for this course?")          @map("q_headline")
-  q_subheadline       String @default("What is the supporting statement?")              @map("q_subheadline")
-  q_problem           String @default("What problem does this course solve?")           @map("q_problem")
-  q_whoIsItFor        String @default("Who is this course for?")                        @map("q_whoIsItFor")
-  q_benefits          String @default("What are the main benefits? (one per line)")     @map("q_benefits")
-  q_transformation    String @default("What outcome or transformation will students experience?") @map("q_transformation")
-  q_whatsIncluded     String @default("What is included? (one per line)")               @map("q_whatsIncluded")
-  q_curriculumSummary String @default("Briefly describe the curriculum or structure")   @map("q_curriculumSummary")
-  q_instructorBio     String @default("Why are you the right person to teach this?")   @map("q_instructorBio")
-  q_ctaText           String @default("What should the call-to-action button say?")    @map("q_ctaText")
-  q_ctaSubtext        String @default("Any supporting text below the button? (e.g. guarantee)") @map("q_ctaSubtext")
+  q_headline         String @default("What is the headline for this course?")
+  q_subheadline      String @default("What is the supporting statement?")
+  q_problem          String @default("What problem does this course solve?")
+  q_whoIsItFor       String @default("Who is this course for?")
+  q_benefits         String @default("What are the main benefits? (one per line)")
+  q_transformation   String @default("What outcome or transformation will students experience?")
+  q_whatsIncluded    String @default("What is included? (one per line)")
+  q_curriculumSummary String @default("Briefly describe the curriculum or structure")
+  q_instructorBio    String @default("Why are you the right person to teach this?")
+  q_ctaText          String @default("What should the call-to-action button say?")
+  q_ctaSubtext       String @default("Any supporting text below the button? (e.g. guarantee)")
 
   // Answers
   headline          String?
   subheadline       String?
   problem           String? @db.Text
-  whoIsItFor        String? @db.Text                @map("whoIsItFor")
-  benefits          String? @db.Text
+  whoIsItFor        String? @db.Text
+  benefits          String? @db.Text // newline-separated
   transformation    String? @db.Text
-  whatsIncluded     String? @db.Text                @map("whatsIncluded")
-  curriculumSummary String? @db.Text                @map("curriculumSummary")
-  instructorBio     String? @db.Text                @map("instructorBio")
-  ctaText           String?                         @map("ctaText")
-  ctaSubtext        String?                         @map("ctaSubtext")
+  whatsIncluded     String? @db.Text // newline-separated
+  curriculumSummary String? @db.Text
+  instructorBio     String? @db.Text
+  ctaText           String?
+  ctaSubtext        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
