@@ -192,27 +192,31 @@ export default async function CourseSalesPage({ params }: Props) {
 
   function renderImage(block: any) {
     const c = block.content ?? {}
-    if (!c.src?.trim()) return null
+    // src may be stored as src or url depending on version
+    const src = c.src?.trim() || c.url?.trim()
+    if (!src) return null
     const layout = c.layout ?? 'full-width'
     const isSide = layout === 'image-left' || layout === 'image-right'
     return (
       <section key={block.id} style={S.section}>
         <div style={S.container}>
           {isSide ? (
-            <div style={{ display: 'flex', flexDirection: layout === 'image-right' ? 'row-reverse' : 'row', gap: 'clamp(20px, 4vw, 48px)', alignItems: 'center', flexWrap: 'wrap' }}>
-              <img src={c.src} alt={c.altText ?? ''} style={{ width: 'clamp(200px, 45%, 460px)', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }} />
+            <div style={{ display: 'flex', flexDirection: layout === 'image-right' ? 'row-reverse' : 'row', gap: 'clamp(24px, 5vw, 56px)', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ flexShrink: 0, width: 'clamp(200px, 44%, 440px)' }}>
+                <img src={src} alt={c.altText ?? ''} style={{ width: '100%', borderRadius: '12px', display: 'block', objectFit: 'cover' }} />
+              </div>
               {c.text && (
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{c.text}</p>
+                <div style={{ flex: 1, minWidth: '220px' }}>
+                  <p style={{ fontSize: '17px', color: 'var(--text-secondary)', lineHeight: 1.85, whiteSpace: 'pre-wrap', margin: 0 }}>{c.text}</p>
                 </div>
               )}
             </div>
           ) : (
             <div style={{ textAlign: 'center' }}>
-              <img src={c.src} alt={c.altText ?? ''} style={{ maxWidth: '100%', borderRadius: '12px' }} />
+              <img src={src} alt={c.altText ?? ''} style={{ maxWidth: '100%', borderRadius: '12px', display: 'block', margin: '0 auto' }} />
             </div>
           )}
-          {c.caption && <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '10px', fontStyle: 'italic' }}>{c.caption}</p>}
+          {c.caption && <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '12px', fontStyle: 'italic' }}>{c.caption}</p>}
         </div>
       </section>
     )
@@ -415,12 +419,13 @@ export default async function CourseSalesPage({ params }: Props) {
   function renderCta(block: any) {
     const c        = block.content ?? {}
     const ctaLabel = c.buttonLabel?.trim() || 'Enrol Now'
+    const priceStr = c.showPrice && !isFree ? ` — ${product.currency} ${price.toFixed(2)}` : ''
     if (isEnrolled) return null
     return (
       <section key={block.id} style={{ ...S.section, background: 'linear-gradient(135deg, #1A0A2E 0%, var(--bg-base) 100%)', textAlign: 'center' }}>
         <div style={{ ...S.container, maxWidth: '580px', margin: '0 auto' }}>
           {c.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: '20px' }}>{c.heading}</h2>}
-          <EnrollButton productId={product.id} productSlug={product.slug} portalSlug={portalSlug} price={price} currency={product.currency} label={ctaLabel} />
+          <EnrollButton productId={product.id} productSlug={product.slug} portalSlug={portalSlug} price={price} currency={product.currency} label={ctaLabel + priceStr} />
           {c.buttonSubtext && <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '10px' }}>{c.buttonSubtext}</p>}
         </div>
       </section>

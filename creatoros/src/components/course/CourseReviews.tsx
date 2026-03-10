@@ -85,26 +85,42 @@ export default function CourseReviews({ courseId, isEnrolled, focusForm = false,
     <section style={{ padding: '64px 0' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 32px' }}>
 
-        {/* Heading + average */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', marginBottom: '32px', flexWrap: 'wrap' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            Student Reviews
-          </h2>
-          {avg !== null && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#F59E0B' }}>{avg.toFixed(1)}</span>
-              <div>
-                <Stars rating={Math.round(avg)} size={16} />
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{total} review{total !== 1 ? 's' : ''}</p>
+        {/* Heading + average + Leave a Review CTA */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '32px', flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px' }}>
+              Student Reviews
+            </h2>
+            {avg !== null ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '32px', fontWeight: 800, color: '#F59E0B', lineHeight: 1 }}>{avg.toFixed(1)}</span>
+                <div>
+                  <Stars rating={Math.round(avg)} size={18} />
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '3px 0 0' }}>{total} review{total !== 1 ? 's' : ''}</p>
+                </div>
               </div>
+            ) : (
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>No reviews yet — be the first!</p>
+            )}
+          </div>
+          {isEnrolled && !submitted && (
+            <button
+              onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 22px', background: 'var(--brand)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-ui)', marginTop: '4px' }}>
+              ★ Leave a Review
+            </button>
+          )}
+          {!isEnrolled && (
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px 18px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0 }}>
+              Enrol to leave a review
             </div>
           )}
         </div>
 
         {/* Submit form (enrolled students only) */}
         {isEnrolled && !submitted && (
-          <div ref={formRef} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '24px', marginBottom: '32px' }}>
-            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>Leave a Review</p>
+          <div ref={formRef} style={{ background: 'var(--bg-surface)', border: '2px solid var(--brand)', borderRadius: 'var(--r-xl)', padding: '28px', marginBottom: '32px', boxShadow: '0 0 0 4px rgba(123,47,190,0.08)' }}>
+            <p style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>★ Leave a Review</p>
 
             <div style={{ marginBottom: '14px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Your rating</p>
@@ -131,7 +147,7 @@ export default function CourseReviews({ courseId, isEnrolled, focusForm = false,
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              style={{ padding: '10px 24px', background: submitting ? '#e5e7eb' : 'var(--brand)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: '14px', fontWeight: 600, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}
+              style={{ padding: '13px 32px', background: submitting ? '#e5e7eb' : 'var(--brand)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: '15px', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}
             >
               {submitting ? 'Submitting…' : 'Submit Review'}
             </button>

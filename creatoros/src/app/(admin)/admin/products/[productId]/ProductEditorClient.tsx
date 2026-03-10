@@ -185,9 +185,74 @@ function OverviewTab({ product, instructors, inp, lbl, card, row2 }: any) {
           {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}</>}
         </button>
       </div>
+      <QuickSalesPageGenerator product={product} form={form} />
     </>
   )
 }
+
+// ── Quick Sales Page Generator ────────────────────────────────────────────────
+
+function QuickSalesPageGenerator({ product, form }: { product: any; form: any }) {
+  const [generating, setGenerating] = useState(false)
+  const [done,       setDone]       = useState(false)
+  const [error,      setError]      = useState<string | null>(null)
+
+  const generate = async () => {
+    setGenerating(true); setError(null); setDone(false)
+    const prompts = {
+      headline:    form.title    || product.title,
+      subheadline: form.subtitle || product.subtitle || '',
+      problem:'', whoIsItFor:'', benefits:'', transformation:'',
+      whatsIncluded:'', curriculumSummary:'', instructorBio:'',
+      ctaText:'Enrol Now', ctaSubtext:'',
+      q_headline:'What is the headline for this course?',
+      q_subheadline:'What is the supporting statement?',
+      q_problem:'What problem does this course solve?',
+      q_whoIsItFor:'Who is this course for?',
+      q_benefits:'What are the main benefits?',
+      q_transformation:'What outcome will students experience?',
+      q_whatsIncluded:'What is included?',
+      q_curriculumSummary:'Briefly describe the curriculum',
+      q_instructorBio:'Why are you the right person to teach this?',
+      q_ctaText:'What should the CTA button say?',
+      q_ctaSubtext:'Any supporting text below the button?',
+    }
+    try {
+      const res  = await fetch(`/api/admin/products/${product.id}/sales-page/prompts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompts),
+      })
+      const data = await res.json()
+      setGenerating(false)
+      if (!res.ok) { setError(data.error ?? 'Generation failed'); return }
+      setDone(true)
+    } catch (err: any) { setGenerating(false); setError(err.message ?? 'Network error') }
+  }
+
+  return (
+    <div style={{ marginTop: '20px', background: 'linear-gradient(135deg, rgba(123,47,190,0.05), rgba(52,211,153,0.05))', border: '1px solid rgba(123,47,190,0.2)', borderRadius: '12px', padding: '18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>⚡ Quick Sales Page</p>
+          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+            Instantly generate a basic sales page using your product title &amp; subtitle.
+            You can then edit the Sales Page tab to flesh it out further.
+          </p>
+          {error && <p style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px' }}>{error}</p>}
+          {done && (
+            <p style={{ fontSize: '12px', color: '#10b981', marginTop: '6px', fontWeight: 600 }}>
+              ✓ Sales page created! Switch to the &ldquo;Sales Page&rdquo; tab to customise it.
+            </p>
+          )}
+        </div>
+        <button onClick={generate} disabled={generating || done}
+          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 20px', background: done ? '#10b981' : '#7B2FBE', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: generating || done ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)', opacity: generating ? 0.7 : 1 }}>
+          {done ? '✓ Done' : generating ? 'Generating…' : 'Generate Sales Page'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Billing Tab ───────────────────────────────────────────────────────────────
 
 function BillingTab({ product, inp, lbl, card, row2 }: any) {
@@ -386,6 +451,93 @@ function ContentTab({ product, course, instructors }: { product: Product; course
           </Link>
         </div>
       </section>
+
+      <section>
+        <SectionHeading>Re-import Course Content</SectionHeading>
+        <CourseImportPanel courseSlug={course.slug} courseTitle={course.title} />
+      </section>
+    </div>
+  )
+}
+
+// ── Course Import Panel (inline in Content tab) ────────────────────────────────
+
+function CourseImportPanel({ courseSlug, courseTitle }: { courseSlug: string; courseTitle: string }) {
+  const [open,      setOpen]      = useState(false)
+  const [file,      setFile]      = useState<File | null>(null)
+  const [overwrite, setOverwrite] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [result,    setResult]    = useState<any | null>(null)
+  const [error,     setError]     = useState<string | null>(null)
+  const fileRef = React.useRef<HTMLInputElement>(null)
+
+  const handleImport = async () => {
+    if (!file) return
+    setUploading(true); setError(null); setResult(null)
+    const form = new FormData()
+    form.append('file', file)
+    form.append('overwrite', String(overwrite))
+    const res  = await fetch('/api/admin/import', { method: 'POST', body: form })
+    const data = await res.json()
+    setUploading(false)
+    if (!res.ok) { setError(data.error ?? 'Import failed'); return }
+    setResult(data)
+  }
+
+  if (!open) {
+    return (
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div>
+          <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>Replace content from CSV</p>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Upload a course CSV to replace modules and lessons for <strong>{courseTitle}</strong>. The CSV slug must match <code style={{ background: '#f3f4f6', padding: '1px 5px', borderRadius: '4px', fontSize: '12px' }}>{courseSlug}</code>.</p>
+        </div>
+        <button onClick={() => setOpen(true)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          Upload CSV →
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
+      {result ? (
+        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '20px' }}>
+          <p style={{ fontSize: '15px', fontWeight: 700, color: '#14532d', margin: '0 0 8px' }}>✓ Import successful</p>
+          <p style={{ fontSize: '13px', color: '#166534', margin: 0 }}>{result.modules} modules · {result.lessons} lessons imported</p>
+          {result.warnings?.map((w: string, i: number) => <p key={i} style={{ fontSize: '12px', color: '#92400e', margin: '4px 0 0' }}>⚠ {w}</p>)}
+          <button onClick={() => { setResult(null); setFile(null); setOpen(false) }} style={{ marginTop: '14px', padding: '8px 18px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Done</button>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div
+              onClick={() => fileRef.current?.click()}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', border: '2px dashed #d1d5db', borderRadius: '10px', cursor: 'pointer', background: '#f9fafb' }}>
+              <span style={{ fontSize: '14px', color: file ? '#111827' : '#9ca3af', fontWeight: file ? 600 : 400 }}>
+                {file ? `✓ ${file.name}` : 'Click to select CSV file'}
+              </span>
+            </div>
+            <input ref={fileRef} type="file" accept=".csv" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }} />
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151', marginBottom: '16px' }}>
+            <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} style={{ accentColor: '#7B2FBE' }} />
+            Replace existing modules &amp; lessons (recommended)
+          </label>
+          {error && <p style={{ fontSize: '13px', color: '#ef4444', marginBottom: '12px' }}>{error}</p>}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={handleImport} disabled={!file || uploading}
+              style={{ padding: '10px 24px', background: !file || uploading ? '#e5e7eb' : '#7B2FBE', color: !file || uploading ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: !file || uploading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
+              {uploading ? 'Importing…' : 'Import'}
+            </button>
+            <button onClick={() => { setOpen(false); setFile(null); setError(null) }}
+              style={{ padding: '10px 18px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#6b7280', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

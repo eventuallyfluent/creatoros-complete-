@@ -221,7 +221,9 @@ export async function POST(req: NextRequest)  {
     : await prisma.course.create({ data: courseData })
 
   // Auto-create Product wrapper, SalesPage, CheckoutPage, EmailSequence
-  await createCourseDefaults(course.id, {
+  let productId: string | null = null
+  try {
+    const defaults = await createCourseDefaults(course.id, {
     title:          course.title,
     slug:           course.slug,
     price:          courseRow.price ? parseFloat(courseRow.price) : 0,
@@ -229,7 +231,11 @@ export async function POST(req: NextRequest)  {
     currency:       courseRow.currency?.toUpperCase() || 'USD',
     status:         courseData.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
     thumbnailUrl:   courseRow.thumbnail_url || null,
-  })
+    })
+    productId = defaults.productId
+  } catch (err: any) {
+    warnings.push(`Product/SalesPage setup warning: ${err.message ?? 'unknown error'}`)
+  }
 
   // If overwriting, delete existing modules (cascades to lessons)
   if (existing && overwrite) {
@@ -351,10 +357,11 @@ export async function POST(req: NextRequest)  {
   }
   const lessonCount = lessonData.length
 
-  const result: ImportResult = {
-    course:   { id: course.id, slug: course.slug, title: course.title },
-    modules:  moduleMap.size,
-    lessons:  lessonCount,
+  const result: any = {
+    course:    { id: course.id, slug: course.slug, title: course.title },
+    productId: productId,
+    modules:   moduleMap.size,
+    lessons:   lessonCount,
     skipped,
     warnings,
   }

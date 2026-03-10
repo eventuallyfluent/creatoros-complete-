@@ -27,9 +27,10 @@ function Stars({ rating }: { rating: number }) {
 
 export default function ReviewsModerationClient({ reviews: initial, courses }: { reviews: Review[]; courses: Course[] }) {
   const [reviews,   setReviews]   = useState<Review[]>(initial)
-  const [filter,    setFilter]    = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'FEATURED'>('PENDING')
-  const [loading,   setLoading]   = useState<string | null>(null)
-  const [showImport, setShowImport] = useState(false)
+  const [filter,       setFilter]      = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'FEATURED'>('PENDING')
+  const [courseFilter, setCourseFilter] = useState<string>('ALL')
+  const [loading,      setLoading]      = useState<string | null>(null)
+  const [showImport,   setShowImport]   = useState(false)
 
   const setStatus = async (id: string, status: string) => {
     setLoading(id + status)
@@ -59,9 +60,10 @@ export default function ReviewsModerationClient({ reviews: initial, courses }: {
     FEATURED: reviews.filter(r => r.isFeatured && r.status === 'APPROVED').length,
   }
 
-  const visible = filter === 'FEATURED'
-    ? reviews.filter(r => r.isFeatured && r.status === 'APPROVED')
-    : filter === 'ALL' ? reviews : reviews.filter(r => r.status === filter)
+  const courseFiltered = courseFilter === 'ALL' ? reviews : reviews.filter(r => r.course.id === courseFilter)
+  const visible = (filter === 'FEATURED'
+    ? courseFiltered.filter(r => r.isFeatured && r.status === 'APPROVED')
+    : filter === 'ALL' ? courseFiltered : courseFiltered.filter(r => r.status === filter))
 
   return (
     <div>
@@ -75,6 +77,11 @@ export default function ReviewsModerationClient({ reviews: initial, courses }: {
             </button>
           ))}
         </div>
+        <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)}
+          style={{ padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', color: '#374151', fontFamily: 'inherit', background: 'white', cursor: 'pointer' }}>
+          <option value="ALL">All courses</option>
+          {courses.map(course => <option key={course.id} value={course.id}>{course.title}</option>)}
+        </select>
         <button onClick={() => setShowImport(v => !v)}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: showImport ? '#7B2FBE' : 'white', color: showImport ? 'white' : '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
           <Upload size={13} /> Import from Payhip

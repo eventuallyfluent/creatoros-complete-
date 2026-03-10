@@ -77,15 +77,7 @@ export default function PortalSidebar({ session }: { session: any }) {
           )
         })}
 
-        {isAdmin && (
-          <>
-            <div style={{ height: '1px', background: 'var(--border)', margin: '12px 4px' }} />
-            <Link href="/admin" className="sidebar-nav-item" style={{ color: 'var(--accent)', marginBottom: '2px', display: 'flex' }}>
-              <Shield size={16} style={{ flexShrink: 0 }} />
-              Admin Panel
-            </Link>
-          </>
-        )}
+
       </nav>
 
       {/* Bottom */}

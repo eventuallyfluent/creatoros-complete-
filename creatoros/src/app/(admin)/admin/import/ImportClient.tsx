@@ -3,11 +3,12 @@ import { useState, useRef, useCallback } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, Download, ExternalLink, X } from 'lucide-react'
 
 interface ImportResult {
-  course:   { id: string; slug: string; title: string }
-  modules:  number
-  lessons:  number
-  skipped:  string[]
-  warnings: string[]
+  course:    { id: string; slug: string; title: string }
+  productId: string | null
+  modules:   number
+  lessons:   number
+  skipped:   string[]
+  warnings:  string[]
 }
 
 interface ParsedPreview {
@@ -162,7 +163,7 @@ export default function ImportClient() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <CheckCircle size={28} color="#16a34a" />
             <div>
-              <p style={{ fontSize: '18px', fontWeight: 700, color: '#14532d', margin: 0 }}>Download successful</p>
+              <p style={{ fontSize: '18px', fontWeight: 700, color: '#14532d', margin: 0 }}>Import successful</p>
               <p style={{ fontSize: '14px', color: '#166534', margin: 0 }}>{result.course.title}</p>
             </div>
           </div>
@@ -179,13 +180,19 @@ export default function ImportClient() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <a href={`/admin/courses/${result.course.id}/edit`} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: '#16a34a', color: 'white', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
-              Edit Course <ExternalLink size={13} />
+            {result.productId && (
+              <a href={`/admin/products/${result.productId}`} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: '#16a34a', color: 'white', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
+                Edit Product <ExternalLink size={13} />
+              </a>
+            )}
+            <a href={`/admin/products`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: 'white', color: '#166534', border: '1px solid #86efac', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
+              Go to Products
             </a>
             <a href={`/courses/${result.course.slug}`} target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: 'white', color: '#166534', border: '1px solid #86efac', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
-              View Sales Page <ExternalLink size={13} />
+              Preview Sales Page <ExternalLink size={13} />
             </a>
           </div>
         </div>
@@ -205,7 +212,7 @@ export default function ImportClient() {
         )}
 
         <button onClick={reset} style={{ padding: '9px 18px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
-          Download another course
+          Import another course
         </button>
       </div>
     )
