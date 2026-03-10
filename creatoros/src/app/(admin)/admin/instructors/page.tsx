@@ -14,7 +14,7 @@ export default async function AdminInstructorsPage() {
   }).catch(() => [])
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
       <AdminPageHeader
         title="Instructors"
         description="Manage instructor profiles, bios, and social links"

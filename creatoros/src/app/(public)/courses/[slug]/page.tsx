@@ -98,8 +98,8 @@ export default async function CourseSalesPage({ params }: Props) {
   const blocks = product.salesPage?.blocks ?? []
 
   const S = {
-    container: { maxWidth: '1080px', margin: '0 auto', padding: '0 32px' } as React.CSSProperties,
-    section:   { padding: '56px 0' } as React.CSSProperties,
+    container: { maxWidth: '1080px', margin: '0 auto', padding: '0 clamp(16px, 4vw, 48px)' } as React.CSSProperties,
+    section:   { padding: 'clamp(40px, 6vw, 72px) 0' } as React.CSSProperties,
   }
 
   // ── BUY BOX ─────────────────────────────────────────────────────────────
@@ -185,6 +185,54 @@ export default async function CourseSalesPage({ params }: Props) {
         <div style={{ ...S.container, maxWidth: '720px', textAlign: c.align === 'center' ? 'center' : 'left', margin: c.align === 'center' ? '0 auto' : undefined }}>
           {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>{c.heading}</h2>}
           {c.body && <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{c.body}</p>}
+        </div>
+      </section>
+    )
+  }
+
+  function renderImage(block: any) {
+    const c = block.content ?? {}
+    if (!c.src?.trim()) return null
+    const layout = c.layout ?? 'full-width'
+    const isSide = layout === 'image-left' || layout === 'image-right'
+    return (
+      <section key={block.id} style={S.section}>
+        <div style={S.container}>
+          {isSide ? (
+            <div style={{ display: 'flex', flexDirection: layout === 'image-right' ? 'row-reverse' : 'row', gap: 'clamp(20px, 4vw, 48px)', alignItems: 'center', flexWrap: 'wrap' }}>
+              <img src={c.src} alt={c.altText ?? ''} style={{ width: 'clamp(200px, 45%, 460px)', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }} />
+              {c.text && (
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{c.text}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <img src={c.src} alt={c.altText ?? ''} style={{ maxWidth: '100%', borderRadius: '12px' }} />
+            </div>
+          )}
+          {c.caption && <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '10px', fontStyle: 'italic' }}>{c.caption}</p>}
+        </div>
+      </section>
+    )
+  }
+
+  function renderVideo(block: any) {
+    const c = block.content ?? {}
+    if (!c.url?.trim()) return null
+    // Convert YouTube watch URL to embed URL
+    let embedUrl = c.url.trim()
+    const ytMatch = embedUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
+    if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`
+    return (
+      <section key={block.id} style={S.section}>
+        <div style={{ ...S.container, maxWidth: '800px' }}>
+          {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px', textAlign: 'center' }}>{c.heading}</h2>}
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+            <iframe src={embedUrl} title={c.caption ?? 'Video'} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} />
+          </div>
+          {c.caption && <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '10px', fontStyle: 'italic' }}>{c.caption}</p>}
         </div>
       </section>
     )
@@ -387,6 +435,7 @@ export default async function CourseSalesPage({ params }: Props) {
     switch (block.type) {
       case 'HERO':         return renderHero(block)
       case 'TEXT':         return renderText(block)
+      case 'IMAGE':        return (block.content as any)?.blockKind === 'VIDEO' ? renderVideo(block) : renderImage(block)
       case 'BENEFITS':     return renderBenefits(block)
       case 'CURRICULUM':   return renderCurriculum(block)
       case 'INSTRUCTOR':   return renderInstructor(block)

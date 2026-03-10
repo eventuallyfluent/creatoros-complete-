@@ -49,7 +49,10 @@ const TABS = [
 type TabId = typeof TABS[number]['id']
 
 export default function ProductEditorClient({ product, instructors, allProducts }: Props) {
-  const [tab, setTab] = useState<TabId>('overview')
+  const [tab,    setTab]    = useState<TabId>('overview')
+  const [status, setStatus] = useState(product.status)
+  const [savingStatus, setSavingStatus] = useState(false)
+  const [savedStatus,  setSavedStatus]  = useState(false)
   const course = product.courses[0]?.course ?? null
 
   const inp: React.CSSProperties  = { width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#111827', fontFamily: 'var(--font-ui)', outline: 'none', boxSizing: 'border-box' }
@@ -57,19 +60,46 @@ export default function ProductEditorClient({ product, instructors, allProducts 
   const card: React.CSSProperties = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', marginBottom: '16px' }
   const row2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }
 
+  const saveStatus = async (newStatus: string) => {
+    setStatus(newStatus)
+    setSavingStatus(true)
+    await fetch(`/api/admin/products/${product.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    setSavingStatus(false)
+    setSavedStatus(true); setTimeout(() => setSavedStatus(false), 2000)
+  }
+
+  const statusColour = status === 'PUBLISHED' ? '#10b981' : status === 'ARCHIVED' ? '#9ca3af' : '#f59e0b'
+
   return (
     <div>
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '10px', padding: '4px', width: 'fit-content', marginBottom: '28px', flexWrap: 'wrap' }}>
-        {TABS.map(({ id, label }) => (
-          <button key={id} onClick={() => setTab(id)}
-            style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', background: tab === id ? 'white' : 'none', color: tab === id ? (id === 'danger' ? '#ef4444' : '#111827') : '#6b7280', boxShadow: tab === id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
-            {label}
-          </button>
-        ))}
+      {/* Tab bar + global status */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '10px', padding: '4px', flexWrap: 'wrap' }}>
+          {TABS.map(({ id, label }) => (
+            <button key={id} onClick={() => setTab(id)}
+              style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', background: tab === id ? 'white' : 'none', color: tab === id ? (id === 'danger' ? '#ef4444' : '#111827') : '#6b7280', boxShadow: tab === id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {/* Global status — always visible */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '8px 14px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColour, flexShrink: 0 }} />
+          <select value={status} onChange={e => saveStatus(e.target.value)}
+            style={{ border: 'none', fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 600, color: '#111827', cursor: 'pointer', outline: 'none', background: 'transparent', paddingRight: '4px' }}>
+            <option value="DRAFT">Draft</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+          {savingStatus && <span style={{ fontSize: '11px', color: '#9ca3af' }}>saving…</span>}
+          {savedStatus  && <span style={{ fontSize: '11px', color: '#10b981' }}>✓</span>}
+        </div>
       </div>
 
-      {tab === 'overview' && <OverviewTab product={product} instructors={instructors} inp={inp} lbl={lbl} card={card} row2={row2} />}
+      {tab === 'overview' && <OverviewTab product={{...product, status}} instructors={instructors} inp={inp} lbl={lbl} card={card} row2={row2} />}
       {tab === 'billing'  && <BillingTab  product={product} inp={inp} lbl={lbl} card={card} row2={row2} />}
       {tab === 'content'  && <ContentTab  product={product} course={course} instructors={instructors} />}
       {tab === 'sales'    && <SalesTab    product={product} />}
@@ -182,7 +212,7 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
     }).catch(() => {})
   }, [])
 
-  const supportsRecurring = gateways.length > 0
+  const hasGateway = gateways.length > 0
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const save = async () => {
@@ -201,7 +231,6 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2500)
   }
 
-  const disabledStyle = { opacity: 0.4, pointerEvents: 'none' as const }
 
   return (
     <>
@@ -228,14 +257,9 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0 }}>Billing Type</h3>
-          {!supportsRecurring && gateways.length > 0 && (
+            {form.billingType !== 'ONE_TIME' && !hasGateway && (
             <span style={{ fontSize: '11px', color: '#f59e0b', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '3px 8px', fontWeight: 600 }}>
-              Recurring requires a connected payment gateway
-            </span>
-          )}
-          {gateways.length === 0 && (
-            <span style={{ fontSize: '11px', color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '3px 8px' }}>
-              No gateway connected yet
+              ⚠ No gateway connected yet
             </span>
           )}
         </div>
@@ -251,11 +275,11 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
           </label>
 
           {/* Subscription */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'SUBSCRIPTION' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: supportsRecurring ? 'pointer' : 'not-allowed', background: form.billingType === 'SUBSCRIPTION' ? 'rgba(123,47,190,0.04)' : 'white', ...(supportsRecurring ? {} : disabledStyle) }}>
-            <input type="radio" name="billingType" value="SUBSCRIPTION" checked={form.billingType === 'SUBSCRIPTION'} onChange={() => supportsRecurring && set('billingType', 'SUBSCRIPTION')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }} disabled={!supportsRecurring} />
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'SUBSCRIPTION' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', background: form.billingType === 'SUBSCRIPTION' ? 'rgba(123,47,190,0.04)' : 'white',  }}>
+            <input type="radio" name="billingType" value="SUBSCRIPTION" checked={form.billingType === 'SUBSCRIPTION'} onChange={() => set('billingType', 'SUBSCRIPTION')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }}  />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>Ongoing subscription</p>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student is billed every period until they cancel.</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student is billed every period until they cancel. Only available if your payment gateway supports recurring billing.</p>
               {form.billingType === 'SUBSCRIPTION' && (
                 <div>
                   <label style={lbl}>Billing interval</label>
@@ -270,11 +294,11 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
           </label>
 
           {/* Payment plan */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'PAYMENT_PLAN' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: supportsRecurring ? 'pointer' : 'not-allowed', background: form.billingType === 'PAYMENT_PLAN' ? 'rgba(123,47,190,0.04)' : 'white', ...(supportsRecurring ? {} : disabledStyle) }}>
-            <input type="radio" name="billingType" value="PAYMENT_PLAN" checked={form.billingType === 'PAYMENT_PLAN'} onChange={() => supportsRecurring && set('billingType', 'PAYMENT_PLAN')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }} disabled={!supportsRecurring} />
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'PAYMENT_PLAN' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', background: form.billingType === 'PAYMENT_PLAN' ? 'rgba(123,47,190,0.04)' : 'white',  }}>
+            <input type="radio" name="billingType" value="PAYMENT_PLAN" checked={form.billingType === 'PAYMENT_PLAN'} onChange={() => set('billingType', 'PAYMENT_PLAN')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }}  />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>Payment plan</p>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student pays in fixed instalments then access continues.</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student pays in fixed instalments then access continues. Only available if your payment gateway supports recurring billing.</p>
               {form.billingType === 'PAYMENT_PLAN' && (
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div>

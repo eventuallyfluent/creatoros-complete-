@@ -176,11 +176,7 @@ code, pre {
 .section-padding-sm { padding: var(--s7) 0; }
 
 /* Portal layout — GroupApp style */
-.portal-layout {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
-  min-height: 100vh;
-}
+/* portal-layout now defined below */
 
 .portal-sidebar {
   position: fixed;
@@ -199,8 +195,11 @@ code, pre {
   min-height: 100vh;
   background: var(--bg-base);
   overflow-x: hidden;
-  width: calc(100vw - var(--sidebar-width));
-  max-width: 100%;
+  flex: 1;
+}
+
+.portal-layout {
+  display: flex !important;
 }
 
 /* Admin layout */

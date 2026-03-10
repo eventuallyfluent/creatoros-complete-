@@ -14,7 +14,7 @@ export default async function AdminCollectionsPage() {
   }).catch(() => [])
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
       <AdminPageHeader
         title="Collections"
         description="Group courses into themed collections shown on the /courses page"

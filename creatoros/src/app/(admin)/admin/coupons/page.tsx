@@ -13,7 +13,7 @@ export default async function AdminCouponsPage() {
   }).catch(() => [])
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
       <AdminPageHeader title="Coupons" description={`${coupons.length} coupons`} action={{ label: '+ New Coupon', href: '/admin/coupons/new' }} />
 
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>

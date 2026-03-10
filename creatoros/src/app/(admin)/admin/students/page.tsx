@@ -40,7 +40,7 @@ export default async function AdminStudentsPage({
   const totalPages = Math.ceil(total / take)
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
       <AdminPageHeader
         title="Students"
         description={`${total} total students`}
