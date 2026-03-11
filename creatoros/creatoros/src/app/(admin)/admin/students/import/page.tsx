@@ -6,22 +6,28 @@ import CSVImporter from './CSVImporter'
 
 export const metadata: Metadata = { title: 'Import Students — Admin' }
 
-export default async function ImportStudentsPage() {
+export default async function ImportStudentsPage({
+  searchParams,
+}: {
+  searchParams: { courseId?: string }
+}) {
   const courses = await prisma.course.findMany({
     where:   { status: { not: 'ARCHIVED' } },
     select:  { id: true, title: true, slug: true },
     orderBy: { title: 'asc' },
   }).catch(() => [])
 
+  const preselectedCourse = courses.find(c => c.id === searchParams.courseId)
+
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader
-        title="Import Students"
-        description="Bulk import from Payhip or any CSV export"
-        backHref="/admin/students"
-        backLabel="Students"
+        title={preselectedCourse ? `Import Students — ${preselectedCourse.title}` : 'Import Students'}
+        description="Upload a CSV of emails. Students will be created and enrolled instantly."
+        backHref={preselectedCourse ? `/admin/courses/${preselectedCourse.id}/edit` : '/admin/students'}
+        backLabel={preselectedCourse ? 'Back to Course' : 'Students'}
       />
-      <CSVImporter courses={courses} />
+      <CSVImporter courses={courses} preselectedCourseId={searchParams.courseId} />
     </div>
   )
 }

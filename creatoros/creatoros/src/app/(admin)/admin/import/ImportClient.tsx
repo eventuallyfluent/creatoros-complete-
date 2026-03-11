@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, Download, ExternalLink, X } from 'lucide-react'
 
-interface DownloadResult {
+interface ImportResult {
   course:   { id: string; slug: string; title: string }
   modules:  number
   lessons:  number
@@ -82,12 +82,12 @@ function previewCsv(text: string): ParsedPreview | null {
   }
 }
 
-export default function DownloadClient() {
+export default function ImportClient() {
   const [file,      setFile]      = useState<File | null>(null)
   const [preview,   setPreview]   = useState<ParsedPreview | null>(null)
   const [overwrite, setOverwrite] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [result,    setResult]    = useState<DownloadResult | null>(null)
+  const [result,    setResult]    = useState<ImportResult | null>(null)
   const [error,     setError]     = useState<string | null>(null)
   const [dragging,  setDragging]  = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -111,7 +111,7 @@ export default function DownloadClient() {
     if (f) handleFile(f)
   }, [handleFile])
 
-  const handleDownload = async () => {
+  const handleImport = async () => {
     if (!file) return
     setUploading(true)
     setError(null)
@@ -125,7 +125,7 @@ export default function DownloadClient() {
     const data = await res.json()
     setUploading(false)
 
-    if (!res.ok) { setError(data.error ?? 'Download failed.'); return }
+    if (!res.ok) { setError(data.error ?? 'Import failed.'); return }
     setResult(data)
   }
 
@@ -331,7 +331,7 @@ export default function DownloadClient() {
               style={{ width: '15px', height: '15px', accentColor: '#7B2FBE' }} />
             Replace existing modules & lessons if course slug already exists
           </label>
-          <button onClick={handleDownload} disabled={uploading || !preview}
+          <button onClick={handleImport} disabled={uploading || !preview}
             style={{
               padding: '11px 28px', background: uploading ? '#e5e7eb' : '#7B2FBE',
               color: uploading ? '#9ca3af' : 'white',
@@ -339,7 +339,7 @@ export default function DownloadClient() {
               cursor: uploading || !preview ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-ui)',
             }}>
-            {uploading ? 'Downloading…' : 'Download Course'}
+            {uploading ? 'Importing…' : 'Import Course'}
           </button>
         </div>
       )}

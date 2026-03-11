@@ -21,6 +21,7 @@ const NAV_GROUPS = [
       { label: 'Reviews',      href: '/admin/reviews',      icon: MessageSquare },
       { label: 'Pages',        href: '/admin/pages',        icon: FileText },
       { label: 'Import',       href: '/admin/import',       icon: Users },
+    { label: 'Student Demo',   href: '/admin/demo',         icon: BookOpen },
     ],
   },
   {

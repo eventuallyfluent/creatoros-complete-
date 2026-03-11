@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import Link from 'next/link'
 
-export const metadata: Metadata = { title: 'Automations — Admin' }
+export const metadata: Metadata = { title: 'Email Sequences — Admin' }
 
 const TRIGGER_LABELS: Record<string, string> = {
   ENROLLMENT:      'Student enrols in course',
@@ -36,8 +36,8 @@ export default async function AdminAutomationsPage() {
   return (
     <div style={{ padding: '32px' }}>
       <AdminPageHeader
-        title="Automations"
-        description="Trigger-based email sequences and actions"
+        title="Email Sequences"
+        description="Automated emails sent when a student enrols, completes a lesson, or finishes a course. Drip content is controlled per-lesson in the course editor."
         action={{ label: '+ New Automation', href: '/admin/automations/new' }}
       />
 

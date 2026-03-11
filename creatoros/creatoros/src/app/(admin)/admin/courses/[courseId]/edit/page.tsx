@@ -6,6 +6,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import CourseEditor from '@/components/admin/CourseEditor'
 import CurriculumBuilder from '@/components/admin/CurriculumBuilder'
 import Link from 'next/link'
+import { Users } from 'lucide-react'
 
 interface Props { params: { courseId: string } }
 
@@ -56,7 +57,25 @@ export default async function EditCoursePage({ params }: Props) {
           <CurriculumBuilder courseId={course.id} modules={course.modules as any} />
         </section>
 
-        {/* Section 3: Sales page */}
+        {/* Section 3: Import students into this course */}
+        <section>
+          <SectionHeading>Import Students</SectionHeading>
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+            <div>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>Bulk enrol students from CSV</p>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                Import a list of emails (e.g. from Payhip) and enrol them directly into this course. Existing students won&apos;t be duplicated.
+              </p>
+            </div>
+            <Link
+              href={`/admin/students/import?courseId=${course.id}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 600, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <Users size={16} /> Import Students →
+            </Link>
+          </div>
+        </section>
+
+        {/* Section 4: Sales page */}
         <section>
           <SectionHeading>Sales Page</SectionHeading>
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>

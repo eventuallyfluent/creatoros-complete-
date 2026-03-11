@@ -90,6 +90,20 @@ export default function CourseEditor({ course, instructors, productId }: Props) 
   return (
     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
 
+      {/* New course — explain the 2-step flow */}
+      {isNew && (
+        <div style={{ padding: '12px 20px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <span style={{ fontSize: '18px', flexShrink: 0 }}>ℹ️</span>
+          <div>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af', margin: '0 0 2px' }}>Step 1 of 2 — Course details</p>
+            <p style={{ fontSize: '13px', color: '#1d4ed8', margin: 0, lineHeight: 1.5 }}>
+              Fill in the title, upload a thumbnail image, set status and instructor, then click <strong>Save Course</strong>.
+              You'll be taken to the curriculum editor where you can add modules and lessons.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Pricing notice — points to Product editor */}
       {!isNew && (
         <div style={{ padding: '12px 20px', background: '#f0fdf4', borderBottom: '1px solid #d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
@@ -155,8 +169,8 @@ export default function CourseEditor({ course, instructors, productId }: Props) 
           <div>
             <label style={labelStyle}>Thumbnail</label>
             <div
-              onClick={() => fileRef.current?.click()}
-              style={{ width: '100%', aspectRatio: '16/9', background: form.thumbnailUrl ? undefined : '#f9fafb', border: '2px dashed #e5e7eb', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.15s' }}
+              onClick={() => !form.thumbnailUrl && fileRef.current?.click()}
+              style={{ width: '100%', aspectRatio: '16/9', background: form.thumbnailUrl ? undefined : '#f9fafb', border: '2px dashed #e5e7eb', borderRadius: '10px', overflow: 'hidden', cursor: form.thumbnailUrl ? 'default' : 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.15s' }}
               className="thumbnail-drop-hover"
             >
               {form.thumbnailUrl
@@ -174,11 +188,23 @@ export default function CourseEditor({ course, instructors, productId }: Props) 
               )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleThumbnailUpload(e.target.files[0])} />
-            {form.thumbnailUrl && (
-              <button type="button" onClick={() => setForm(f => ({ ...f, thumbnailUrl: '' }))} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginTop: '6px', fontFamily: 'var(--font-ui)' }}>
-                Remove image
-              </button>
-            )}
+            {/* URL option — paste an external image URL to avoid storage usage */}
+            <div style={{ marginTop: '8px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input
+                type="url"
+                value={form.thumbnailUrl ?? ''}
+                onChange={e => setForm(f => ({ ...f, thumbnailUrl: e.target.value }))}
+                placeholder="Or paste an image URL (https://…)"
+                style={{ flex: 1, padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '7px', fontSize: '13px', color: '#374151', outline: 'none', fontFamily: 'var(--font-ui)' }}
+              />
+              {form.thumbnailUrl && (
+                <button type="button" onClick={() => setForm(f => ({ ...f, thumbnailUrl: '' }))}
+                  style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}>
+                  Remove
+                </button>
+              )}
+            </div>
+            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>Upload a file above or paste an external URL to avoid using storage quota.</p>
           </div>
 
           <Field label="Status">

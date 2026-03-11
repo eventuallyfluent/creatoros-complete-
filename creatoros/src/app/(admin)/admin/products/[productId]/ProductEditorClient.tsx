@@ -39,9 +39,8 @@ interface Props {
 }
 
 const TABS = [
-  { id: 'overview',  label: 'Overview',   icon: BookOpen },
-  { id: 'billing',   label: 'Billing',    icon: ShoppingCart },
   { id: 'content',   label: 'Content',    icon: FileText },
+  { id: 'billing',   label: 'Billing',    icon: ShoppingCart },
   { id: 'sales',     label: 'Sales Page', icon: FileText },
   { id: 'checkout',  label: 'Checkout',   icon: ShoppingCart },
   { id: 'danger',    label: 'Danger Zone',icon: AlertTriangle },
@@ -49,7 +48,7 @@ const TABS = [
 type TabId = typeof TABS[number]['id']
 
 export default function ProductEditorClient({ product, instructors, allProducts }: Props) {
-  const [tab,    setTab]    = useState<TabId>('overview')
+  const [tab,    setTab]    = useState<TabId>('content')
   const [status, setStatus] = useState(product.status)
   const [savingStatus, setSavingStatus] = useState(false)
   const [savedStatus,  setSavedStatus]  = useState(false)
@@ -99,94 +98,12 @@ export default function ProductEditorClient({ product, instructors, allProducts 
         </div>
       </div>
 
-      {tab === 'overview' && <OverviewTab product={{...product, status}} instructors={instructors} inp={inp} lbl={lbl} card={card} row2={row2} />}
       {tab === 'billing'  && <BillingTab  product={product} inp={inp} lbl={lbl} card={card} row2={row2} />}
-      {tab === 'content'  && <ContentTab  product={product} course={course} instructors={instructors} />}
+      {tab === 'content'  && <ContentTab  product={{...product, status}} course={course} instructors={instructors} inp={inp} lbl={lbl} card={card} row2={row2} />}
       {tab === 'sales'    && <SalesTab    product={product} />}
       {tab === 'checkout' && <CheckoutTab product={product} allProducts={allProducts} inp={inp} lbl={lbl} card={card} row2={row2} />}
       {tab === 'danger'   && <DangerTab   product={product} />}
     </div>
-  )
-}
-
-// ── Overview Tab ──────────────────────────────────────────────────────────────
-
-function OverviewTab({ product, instructors, inp, lbl, card, row2 }: any) {
-  const [form, setForm] = useState({
-    title:        product.title,
-    subtitle:     product.subtitle ?? '',
-    status:       product.status,
-    instructorId: product.instructorId ?? '',
-  })
-  const [saving, setSaving] = useState(false)
-  const [saved,  setSaved]  = useState(false)
-  const [error,  setError]  = useState<string | null>(null)
-
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
-
-  const save = async () => {
-    setSaving(true); setError(null); setSaved(false)
-    const res  = await fetch(`/api/admin/products/${product.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title:        form.title,
-        subtitle:     form.subtitle || null,
-        status:       form.status,
-        instructorId: form.instructorId || null,
-      }),
-    })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) { setError(data.error ?? 'Save failed'); return }
-    setSaved(true); setTimeout(() => setSaved(false), 2500)
-  }
-
-  return (
-    <>
-      <div style={card}>
-        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Identity</h3>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={lbl}>Product Name</label>
-          <input value={form.title} onChange={e => set('title', e.target.value)} style={inp} />
-        </div>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={lbl}>Subtitle <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
-          <input value={form.subtitle} onChange={e => set('subtitle', e.target.value)} style={inp} placeholder="A short supporting description" />
-        </div>
-        <div>
-          <label style={lbl}>Status</label>
-          <select value={form.status} onChange={e => set('status', e.target.value)} style={{ ...inp, width: '180px' }}>
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="ARCHIVED">Archived</option>
-          </select>
-        </div>
-      </div>
-
-      <div style={card}>
-        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Instructor</h3>
-        <select value={form.instructorId} onChange={e => set('instructorId', e.target.value)} style={inp}>
-          <option value="">— Brand / Academy —</option>
-          {instructors.map((i: any) => <option key={i.id} value={i.id}>{i.displayName}</option>)}
-        </select>
-      </div>
-
-      <div style={{ ...card, opacity: 0.6 }}>
-        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
-          Affiliates <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', background: '#f3f4f6', padding: '2px 8px', borderRadius: '999px', marginLeft: '6px', verticalAlign: 'middle' }}>COMING SOON</span>
-        </h3>
-        <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Affiliate tracking and commission management will be available in a future update.</p>
-      </div>
-
-      {error && <Alert type="error" message={error} />}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button onClick={save} disabled={saving}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 24px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
-          {saved ? <><CheckCircle size={15} /> Saved</> : <><Save size={15} /> {saving ? 'Saving…' : 'Save Changes'}</>}
-        </button>
-      </div>
-      <QuickSalesPageGenerator product={product} form={form} />
-    </>
   )
 }
 
@@ -399,13 +316,24 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
 
 // ── Content Tab ───────────────────────────────────────────────────────────────
 
-function ContentTab({ product, course, instructors }: { product: Product; course: CourseData | null; instructors: Instructor[] }) {
-  if (!course) {
-    return (
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '48px', textAlign: 'center' }}>
-        <p style={{ fontSize: '15px', color: '#6b7280' }}>This product has no linked course yet. Edit the product to link or create one.</p>
-      </div>
-    )
+function ContentTab({ product, course, instructors, inp, lbl, card, row2 }: any) {
+
+  // ── Identity form (merged from Overview) ─────────────────────────────────
+  const [form,   setForm]   = useState({ title: product.title, subtitle: product.subtitle ?? '', instructorId: product.instructorId ?? '' })
+  const [saving, setSaving] = useState(false)
+  const [saved,  setSaved]  = useState(false)
+  const [idError, setIdError] = useState<string | null>(null)
+  const setF = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const saveIdentity = async () => {
+    setSaving(true); setIdError(null); setSaved(false)
+    const res = await fetch(`/api/admin/products/${product.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: form.title, subtitle: form.subtitle || null, instructorId: form.instructorId || null }),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (!res.ok) { setIdError(data.error ?? 'Save failed'); return }
+    setSaved(true); setTimeout(() => setSaved(false), 2500)
   }
 
   if (product.type === 'BUNDLE') {
@@ -427,17 +355,59 @@ function ContentTab({ product, course, instructors }: { product: Product; course
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+      {/* ── Identity (was Overview) ─────────────────────────────────────── */}
+      <section>
+        <SectionHeading>Product Identity</SectionHeading>
+        <div style={card}>
+          <div style={{ ...row2, marginBottom: '16px' }}>
+            <div>
+              <label style={lbl}>Product Name</label>
+              <input value={form.title} onChange={e => setF('title', e.target.value)} style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Subtitle <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+              <input value={form.subtitle} onChange={e => setF('subtitle', e.target.value)} style={inp} placeholder="A short supporting description" />
+            </div>
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={lbl}>Instructor</label>
+            <select value={form.instructorId} onChange={e => setF('instructorId', e.target.value)} style={{ ...inp, width: '260px' }}>
+              <option value="">— Brand / Academy —</option>
+              {(instructors ?? []).map((i: any) => <option key={i.id} value={i.id}>{i.displayName}</option>)}
+            </select>
+          </div>
+          {idError && <p style={{ fontSize: '13px', color: '#ef4444', marginBottom: '10px' }}>{idError}</p>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={saveIdentity} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 22px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)' }}>
+              {saved ? <><CheckCircle size={14} /> Saved</> : <><Save size={14} /> {saving ? 'Saving…' : 'Save'}</>}
+            </button>
+          </div>
+        </div>
+        {/* Quick Sales Page — lives here now */}
+        <QuickSalesPageGenerator product={product} form={form} />
+      </section>
+
+      {!course ? (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '48px', textAlign: 'center' }}>
+          <p style={{ fontSize: '15px', color: '#6b7280' }}>No linked course yet. Save the product first or link a course.</p>
+        </div>
+      ) : (<>
+
+      {/* ── Course Details ─────────────────────────────────────────────── */}
       <section>
         <SectionHeading>Course Details</SectionHeading>
         <CourseEditor course={course as any} instructors={instructors} productId={product.id} />
       </section>
 
+      {/* ── Curriculum ────────────────────────────────────────────────── */}
       <section>
         <SectionHeading>Curriculum</SectionHeading>
         <CurriculumBuilder courseId={course.id} modules={course.modules as any} />
       </section>
 
+      {/* ── Students ──────────────────────────────────────────────────── */}
       <section>
         <SectionHeading>Import Students</SectionHeading>
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
@@ -452,10 +422,13 @@ function ContentTab({ product, course, instructors }: { product: Product; course
         </div>
       </section>
 
+      {/* ── Re-import CSV ─────────────────────────────────────────────── */}
       <section>
         <SectionHeading>Re-import Course Content</SectionHeading>
         <CourseImportPanel courseSlug={course.slug} courseTitle={course.title} />
       </section>
+
+      </>)}
     </div>
   )
 }

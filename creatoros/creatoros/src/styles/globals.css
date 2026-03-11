@@ -195,6 +195,8 @@ code, pre {
   min-height: 100vh;
   background: var(--bg-base);
   overflow-x: hidden;
+  width: calc(100vw - var(--sidebar-width));
+  min-width: 0;
   flex: 1;
 }
 
@@ -204,8 +206,7 @@ code, pre {
 
 /* Admin layout */
 .admin-layout {
-  display: grid;
-  grid-template-columns: var(--admin-sidebar-width) 1fr;
+  display: block;
   min-height: 100vh;
 }
 
@@ -227,7 +228,7 @@ code, pre {
   background: var(--surface-light);
   overflow-x: hidden;
   width: calc(100vw - var(--admin-sidebar-width));
-  max-width: 100%;
+  min-width: 0;
 }
 
 /* ============================================================

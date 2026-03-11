@@ -11,7 +11,7 @@ export async function POST(req: NextRequest)  {
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { code, type, value, maxUses, expiresAt, startsAt, minimumOrderAmount, isActive, applicableCourseIds } = body
+  const { code, type, value, maxUses, expiresAt, startsAt, minimumOrderAmount, isActive, applicableProductIds } = body
 
   if (!code?.trim()) return NextResponse.json({ error: 'Code is required' }, { status: 400 })
   if (!value)        return NextResponse.json({ error: 'Value is required' }, { status: 400 })
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest)  {
       startsAt:            startsAt  ? new Date(startsAt)  : null,
       minimumOrderAmount:  minimumOrderAmount ? Number(minimumOrderAmount) : null,
       isActive:            isActive ?? true,
-      applicableCourseIds: applicableCourseIds ?? [],
+      applicableProductIds: applicableProductIds ?? [],
     },
   })
   return NextResponse.json(coupon, { status: 201 })

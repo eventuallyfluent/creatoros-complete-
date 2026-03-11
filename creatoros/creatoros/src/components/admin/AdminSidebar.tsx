@@ -37,10 +37,10 @@ const NAV_GROUPS = [
   {
     label: 'Marketing',
     items: [
-      { label: 'Automations',  href: '/admin/automations',  icon: Zap },
-      { label: 'Subscribers',  href: '/admin/subscribers',  icon: Mail },
-      { label: 'Broadcasts',   href: '/admin/emails',       icon: Mail },
-      { label: 'Analytics',    href: '/admin/analytics',    icon: BarChart2 },
+      { label: 'Email Sequences', href: '/admin/automations',  icon: Zap },
+      { label: 'Subscribers',     href: '/admin/subscribers',  icon: Mail },
+      { label: 'Broadcasts',      href: '/admin/emails',       icon: Mail },
+      { label: 'Analytics',       href: '/admin/analytics',    icon: BarChart2 },
     ],
   },
   {

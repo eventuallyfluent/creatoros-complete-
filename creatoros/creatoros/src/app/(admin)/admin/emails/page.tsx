@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import Link from 'next/link'
 
-export const metadata: Metadata = { title: 'Emails — Admin' }
+export const metadata: Metadata = { title: 'Broadcasts — Admin' }
 
 export default async function AdminEmailsPage({
   searchParams,

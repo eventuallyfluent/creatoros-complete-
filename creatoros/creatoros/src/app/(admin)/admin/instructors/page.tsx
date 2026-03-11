@@ -35,9 +35,9 @@ export default async function AdminInstructorsPage() {
           {instructors.map(inst => {
             const social = (inst.socialLinks ?? {}) as Record<string, string>
             return (
-              <div key={inst.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div key={inst.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', minHeight: '80px' }}>
                 {/* Avatar */}
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#7B2FBE', position: 'relative', border: '2px solid #e5e7eb' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#7B2FBE', position: 'relative', border: '2px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {inst.profileImageUrl ? (
                     <Image src={inst.profileImageUrl} alt={inst.displayName} fill style={{ objectFit: 'cover' }} />
                   ) : (

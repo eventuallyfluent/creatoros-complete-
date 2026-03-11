@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
 import type { SiteSettings, HomepageSection } from '@/lib/settings/site-settings'
 
-interface Course { id: string; title: string; thumbnailUrl: string | null }
-interface Props  { settings: SiteSettings; courses: Course[] }
+interface Course       { id: string; title: string; thumbnailUrl: string | null }
+interface DBTestimonial { id: string; authorName: string; authorRole: string | null; quote: string; isFeatured: boolean }
+interface Props  { settings: SiteSettings; courses: Course[]; testimonials?: DBTestimonial[] }
 
 type Tab = 'hero' | 'courses' | 'sections' | 'optin'
 
@@ -16,7 +17,7 @@ const TAB_LABELS: { id: Tab; label: string; icon: string }[] = [
   { id: 'optin',    label: 'Email Sign-up',    icon: '✉️' },
 ]
 
-export default function HomepageEditor({ settings, courses }: Props) {
+export default function HomepageEditor({ settings, courses, testimonials = [] }: Props) {
   const router  = useRouter()
   const [tab,    setTab]    = useState<Tab>('hero')
   const [form,   setForm]   = useState({ ...settings })
@@ -226,19 +227,75 @@ export default function HomepageEditor({ settings, courses }: Props) {
                             <label style={lbl}>Section Heading</label>
                             <input value={section.heading ?? ''} onChange={e => updateSection(section.id, { heading: e.target.value })} style={inp} />
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
-                            {(section.items ?? []).map((item, i) => (
-                              <div key={i} style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                                  <input value={item.name} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, name: e.target.value }; updateSection(section.id, { items }) }} placeholder="Name" style={{ ...inp, fontSize: '13px' }} />
-                                  <input value={item.role ?? ''} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, role: e.target.value }; updateSection(section.id, { items }) }} placeholder="Role (optional)" style={{ ...inp, fontSize: '13px' }} />
-                                </div>
-                                <textarea value={item.quote} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, quote: e.target.value }; updateSection(section.id, { items }) }} placeholder="Quote…" rows={2} style={{ ...inp, fontSize: '13px', resize: 'none' }} />
+
+                          {/* Pick from existing testimonials */}
+                          {testimonials.length > 0 && (
+                            <div style={{ marginBottom: '14px' }}>
+                              <label style={{ ...lbl, marginBottom: '8px' }}>Pick from your approved testimonials</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto', padding: '2px' }}>
+                                {testimonials.map(t => {
+                                  const alreadyAdded = (section.items ?? []).some((item: any) => item.sourceId === t.id)
+                                  return (
+                                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', background: alreadyAdded ? 'rgba(123,47,190,0.05)' : '#f9fafb', border: `1px solid ${alreadyAdded ? 'rgba(123,47,190,0.25)' : '#e5e7eb'}`, borderRadius: '8px' }}>
+                                      <input type="checkbox" checked={alreadyAdded}
+                                        style={{ marginTop: '2px', accentColor: '#7B2FBE', flexShrink: 0 }}
+                                        onChange={e => {
+                                          let items = [...(section.items ?? [])]
+                                          if (e.target.checked) {
+                                            items.push({ sourceId: t.id, name: t.authorName, role: t.authorRole ?? '', quote: t.quote.slice(0, 220) })
+                                          } else {
+                                            items = items.filter((item: any) => item.sourceId !== t.id)
+                                          }
+                                          updateSection(section.id, { items })
+                                        }}
+                                      />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>
+                                          {t.authorName}{t.authorRole ? ` — ${t.authorRole}` : ''}{t.isFeatured ? ' ⭐' : ''}
+                                        </p>
+                                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          "{t.quote.slice(0, 100)}{t.quote.length > 100 ? '…' : ''}"
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
+
+                          {testimonials.length === 0 && (
+                            <div style={{ marginBottom: '12px', padding: '12px', background: '#fef9f0', border: '1px solid #fde68a', borderRadius: '8px' }}>
+                              <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
+                                No approved testimonials yet. Go to <strong>Admin → Testimonials</strong>, add some and set their status to Approved, then come back here to select them.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Selected items preview + manual overrides */}
+                          {(section.items ?? []).length > 0 && (
+                            <div style={{ marginBottom: '10px' }}>
+                              <label style={{ ...lbl, marginBottom: '6px' }}>Selected ({(section.items ?? []).length}) — click to edit text</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(section.items ?? []).map((item: any, i: number) => (
+                                  <div key={i} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                                      <input value={item.name} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, name: e.target.value }; updateSection(section.id, { items }) }} placeholder="Name" style={{ ...inp, fontSize: '12px' }} />
+                                      <input value={item.role ?? ''} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, role: e.target.value }; updateSection(section.id, { items }) }} placeholder="Role" style={{ ...inp, fontSize: '12px' }} />
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                      <textarea value={item.quote} onChange={e => { const val = e.target.value.slice(0, 220); const items = [...(section.items ?? [])]; items[i] = { ...item, quote: val }; updateSection(section.id, { items }) }} rows={2} style={{ ...inp, fontSize: '12px', resize: 'none', paddingBottom: '18px' }} maxLength={220} />
+                                      <span style={{ position: 'absolute', bottom: '5px', right: '8px', fontSize: '10px', color: (item.quote?.length ?? 0) > 200 ? '#ef4444' : '#9ca3af' }}>{item.quote?.length ?? 0}/220</span>
+                                    </div>
+                                    <button onClick={() => { const items = [...(section.items ?? [])]; items.splice(i, 1); updateSection(section.id, { items }) }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', padding: '2px 0', marginTop: '2px' }}>Remove</button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <button onClick={() => { const items = [...(section.items ?? []), { name: '', quote: '', role: '' }]; updateSection(section.id, { items }) }} style={{ fontSize: '12px', color: '#7B2FBE', background: 'none', border: '1px dashed #d1d5db', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Plus size={12} /> Add Testimonial
+                            <Plus size={12} /> Add Manually
                           </button>
                         </>
                       )}
@@ -342,23 +399,88 @@ export default function HomepageEditor({ settings, courses }: Props) {
           </div>
         </div>
 
-        {/* Current live preview mini */}
+        {/* Live preview — changes per tab */}
         <div style={{ background: '#0D0D1A', border: '1px solid #2E2E4E', borderRadius: '12px', overflow: 'hidden' }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid #2E2E4E', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: '#6B5B8A', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Live preview</span>
+            <span style={{ fontSize: '11px', color: '#6B5B8A', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Preview — {tab}</span>
             <a href="/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#C084FC', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '3px' }}>
               Open <ExternalLink size={10} />
             </a>
           </div>
-          <div style={{ padding: '18px 16px', textAlign: 'center' }}>
-            {form.heroEyebrow && <p style={{ fontSize: '9px', color: '#C084FC', letterSpacing: '0.15em', marginBottom: '6px', textTransform: 'uppercase' }}>{form.heroEyebrow}</p>}
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#F0EAF8', lineHeight: 1.3, marginBottom: '8px' }}>{form.heroHeadline || '(no headline)'}</p>
-            <p style={{ fontSize: '10px', color: '#A78BCA', lineHeight: 1.5, marginBottom: '10px' }}>{form.heroSubtext?.slice(0, 80)}{(form.heroSubtext?.length ?? 0) > 80 ? '…' : ''}</p>
-            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {form.heroPrimaryLabel && <span style={{ fontSize: '9px', padding: '4px 10px', background: '#7B2FBE', color: 'white', borderRadius: '5px', fontWeight: 700 }}>{form.heroPrimaryLabel}</span>}
-              {form.heroSecondaryLabel && <span style={{ fontSize: '9px', padding: '4px 10px', border: '1px solid #2E2E4E', color: '#A78BCA', borderRadius: '5px' }}>{form.heroSecondaryLabel}</span>}
+
+          {/* Hero preview */}
+          {tab === 'hero' && (
+            <div style={{ padding: '18px 16px', textAlign: 'center' }}>
+              {form.heroEyebrow && <p style={{ fontSize: '9px', color: '#C084FC', letterSpacing: '0.15em', marginBottom: '6px', textTransform: 'uppercase' }}>{form.heroEyebrow}</p>}
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#F0EAF8', lineHeight: 1.3, marginBottom: '6px' }}>{form.heroHeadline || '(no headline)'}</p>
+              <p style={{ fontSize: '9px', color: '#A78BCA', lineHeight: 1.5, marginBottom: '10px' }}>{form.heroSubtext?.slice(0, 80)}{(form.heroSubtext?.length ?? 0) > 80 ? '…' : ''}</p>
+              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+                {form.heroPrimaryLabel && <span style={{ fontSize: '9px', padding: '4px 10px', background: '#7B2FBE', color: 'white', borderRadius: '5px', fontWeight: 700 }}>{form.heroPrimaryLabel}</span>}
+                {form.heroSecondaryLabel && <span style={{ fontSize: '9px', padding: '4px 10px', border: '1px solid #2E2E4E', color: '#A78BCA', borderRadius: '5px' }}>{form.heroSecondaryLabel}</span>}
+              </div>
+              {(form.badge1 || form.badge2 || form.badge3) && (
+                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {[form.badge1, form.badge2, form.badge3].filter(Boolean).map((b, i) => (
+                    <span key={i} style={{ fontSize: '8px', padding: '2px 7px', background: 'rgba(123,47,190,0.2)', color: '#C084FC', borderRadius: '4px' }}>{b}</span>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {/* Courses preview */}
+          {tab === 'courses' && (
+            <div style={{ padding: '14px 16px' }}>
+              <p style={{ fontSize: '9px', color: '#6B5B8A', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 8px', fontWeight: 600 }}>Pinned courses</p>
+              {(form.featuredCourseIds ?? []).length === 0
+                ? <p style={{ fontSize: '10px', color: '#4B4570', fontStyle: 'italic' }}>No courses pinned — all published courses will show</p>
+                : (form.featuredCourseIds ?? []).map((id: string) => {
+                    const c = courses.find(c => c.id === id)
+                    return c ? (
+                      <div key={id} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <div style={{ width: '28px', height: '20px', background: '#1E1B2E', borderRadius: '3px', flexShrink: 0 }} />
+                        <span style={{ fontSize: '10px', color: '#D4CAFE', fontWeight: 600 }}>{c.title}</span>
+                      </div>
+                    ) : null
+                  })
+              }
+            </div>
+          )}
+
+          {/* Sections preview */}
+          {tab === 'sections' && (
+            <div style={{ padding: '14px 16px' }}>
+              <p style={{ fontSize: '9px', color: '#6B5B8A', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 8px', fontWeight: 600 }}>Content blocks</p>
+              {(form.sections ?? []).length === 0
+                ? <p style={{ fontSize: '10px', color: '#4B4570', fontStyle: 'italic' }}>No blocks added yet</p>
+                : (form.sections ?? []).map((s: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '10px' }}>{s.type === 'text' ? '📝' : s.type === 'testimonials' ? '💬' : '✦'}</span>
+                      <span style={{ fontSize: '10px', color: '#A78BCA' }}>{s.heading || s.type}</span>
+                    </div>
+                  ))
+              }
+            </div>
+          )}
+
+          {/* Email sign-up preview */}
+          {tab === 'optin' && (
+            <div style={{ padding: '14px 16px', textAlign: 'center' }}>
+              {form.showEmailOptin
+                ? <>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#F0EAF8', margin: '0 0 4px' }}>{form.emailOptinHeadline || '(no headline)'}</p>
+                    <p style={{ fontSize: '9px', color: '#A78BCA', margin: '0 0 10px', lineHeight: 1.5 }}>{form.emailOptinSubtext?.slice(0, 60) || ''}{(form.emailOptinSubtext?.length ?? 0) > 60 ? '…' : ''}</p>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                      <div style={{ flex: 1, height: '22px', background: '#1E1B2E', borderRadius: '4px', border: '1px solid #2E2E4E' }} />
+                      <span style={{ fontSize: '8px', padding: '4px 8px', background: '#7B2FBE', color: 'white', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        {form.emailOptinButtonLabel || 'Subscribe'}
+                      </span>
+                    </div>
+                  </>
+                : <p style={{ fontSize: '10px', color: '#4B4570', fontStyle: 'italic' }}>Sign-up section hidden</p>
+              }
+            </div>
+          )}
         </div>
       </div>
     </div>

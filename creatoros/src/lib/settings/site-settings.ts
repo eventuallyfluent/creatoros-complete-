@@ -32,6 +32,7 @@ export interface SiteSettings {
   heroSecondaryHref:    string
   heroBadges:           string[]
   featuredCourseIds:    string[]
+  coursesDisplayMode:   'all' | 'featured' | 'collections'
   showEmailOptin:       boolean
   emailOptinHeadline:   string
   emailOptinSubtext:    string
@@ -74,6 +75,7 @@ const DEFAULTS: SiteSettings = {
     { label: 'Terms of Use',   href: '/terms' },
     { label: 'Contact',        href: '/contact' },
   ],
+  coursesDisplayMode: 'all' as const,
   heroEyebrow:        '✦ Perseus Arcane Academy ✦',
   heroHeadline:       'Ancient Wisdom for the Modern Initiate',
   heroSubtext:        'Structured courses in Hermetics, esoteric traditions, and martial arts. Join 500+ students on the path.',
