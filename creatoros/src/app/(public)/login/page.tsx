@@ -76,12 +76,7 @@ export default async function LoginPage({
           />
         </div>
       </div>
-      <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-        Academy admin?{' '}
-        <a href="/admin-login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-          Sign in here →
-        </a>
-      </p>
+
     </div>
   )
 }
