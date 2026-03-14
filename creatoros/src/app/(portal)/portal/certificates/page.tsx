@@ -52,9 +52,9 @@ export default async function CertificatesPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {completed.map((e: any) => (
             <div key={e.courseId} style={{
-              background: 'var(--bg-surface)', border: '1px solid var(--border)',
-              borderRadius: 'var(--r-xl)', padding: '24px',
               background: 'linear-gradient(135deg, rgba(123,47,190,0.1), rgba(201,168,76,0.05))',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-xl)', padding: '24px',
             }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏆</div>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>

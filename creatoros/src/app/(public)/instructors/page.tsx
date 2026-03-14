@@ -107,7 +107,7 @@ export default async function InstructorsPage() {
 
                       {/* Social pills — small, inline */}
                       {Object.keys(social).length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }} onClick={e => e.preventDefault()}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {social.website  && <MiniSocialLink href={social.website}   icon="🌐" label="Website"   />}
                           {social.youtube  && <MiniSocialLink href={social.youtube}   icon="▶"  label="YouTube"   />}
                           {social.instagram && <MiniSocialLink href={social.instagram} icon="◉"  label="Instagram" />}

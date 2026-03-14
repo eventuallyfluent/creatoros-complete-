@@ -8,9 +8,9 @@ import CouponEditor from '@/components/admin/CouponEditor'
 export const metadata: Metadata = { title: 'Edit Coupon — Admin' }
 
 export default async function EditCouponPage({ params }: { params: { couponId: string } }) {
-  const [coupon, courses] = await Promise.all([
+  const [coupon, products] = await Promise.all([
     prisma.coupon.findUnique({ where: { id: params.couponId } }),
-    prisma.course.findMany({ where: { status: { not: 'ARCHIVED' } }, select: { id: true, title: true }, orderBy: { title: 'asc' } }),
+    prisma.product.findMany({ where: { status: { not: 'ARCHIVED' } }, select: { id: true, title: true }, orderBy: { title: 'asc' } }),
   ])
   if (!coupon) notFound()
   return (

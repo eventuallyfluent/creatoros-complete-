@@ -171,7 +171,7 @@ export async function POST(req: NextRequest)  {
   }
 
   const text = await file.text()
-  const rows = parseCsv(text) as CsvRow[]
+  const rows = parseCsv(text) as unknown as CsvRow[]
 
   if (rows.length === 0) {
     return NextResponse.json({ error: 'CSV is empty or has no data rows' }, { status: 400 })
@@ -204,17 +204,15 @@ export async function POST(req: NextRequest)  {
   }
 
   // ── 2. Upsert the Course ──────────────────────────────────────────────────
+  // Course is content-only. Price/currency belong on Product (created below via createCourseDefaults).
   const courseData = {
-    title:          courseTitle,
-    subtitle:       courseRow.description?.trim() || null,
-    slug:           courseSlug,
-    status:         (['DRAFT','PUBLISHED','ARCHIVED'].includes(courseRow.status?.toUpperCase())
-                      ? courseRow.status.toUpperCase()
-                      : 'DRAFT') as any,
-    price:          courseRow.price ? parseFloat(courseRow.price) : 0,
-    compareAtPrice: courseRow.compare_at_price ? parseFloat(courseRow.compare_at_price) : null,
-    currency:       courseRow.currency?.toUpperCase() || 'USD',
-    thumbnailUrl:   courseRow.thumbnail_url || null,
+    title:        courseTitle,
+    subtitle:     courseRow.description?.trim() || null,
+    slug:         courseSlug,
+    status:       (['DRAFT','PUBLISHED','ARCHIVED'].includes(courseRow.status?.toUpperCase())
+                    ? courseRow.status.toUpperCase()
+                    : 'DRAFT') as any,
+    thumbnailUrl: courseRow.thumbnail_url || null,
   }
 
   let course = existing
@@ -303,7 +301,7 @@ export async function POST(req: NextRequest)  {
       : null
 
     if (!moduleEntry) {
-      moduleEntry = moduleMap.get('__default__') ?? [...moduleMap.values()][0] ?? null
+      moduleEntry = moduleMap.get('__default__') ?? Array.from(moduleMap.values())[0] ?? null
     }
 
     if (!moduleEntry) {

@@ -60,12 +60,12 @@ export class StripeDriver implements GatewayDriver {
       const orderId = obj.metadata?.orderId ?? obj.payment_intent?.metadata?.orderId
       if (!orderId) return null
       return {
-        type:        'payment.succeeded',
-        orderId,
-        gatewayRef:  obj.id,
-        amount:      obj.amount_total ?? obj.amount_received ?? 0,
-        currency:    obj.currency?.toUpperCase() ?? 'USD',
-        rawPayload:  event,
+        gatewayOrderId:   orderId,
+        gatewayPaymentId: obj.id,
+        status:           'paid' as const,
+        amount:           obj.amount_total ?? obj.amount_received ?? 0,
+        currency:         obj.currency?.toUpperCase() ?? 'USD',
+        metadata:         obj.metadata ?? {},
       }
     }
 
@@ -73,12 +73,12 @@ export class StripeDriver implements GatewayDriver {
       const orderId = event.data.object.metadata?.orderId
       if (!orderId) return null
       return {
-        type:       'payment.refunded',
-        orderId,
-        gatewayRef: event.data.object.id,
-        amount:     event.data.object.amount_refunded ?? 0,
-        currency:   event.data.object.currency?.toUpperCase() ?? 'USD',
-        rawPayload: event,
+        gatewayOrderId:   orderId,
+        gatewayPaymentId: event.data.object.id,
+        status:           'refunded' as const,
+        amount:           event.data.object.amount_refunded ?? 0,
+        currency:         event.data.object.currency?.toUpperCase() ?? 'USD',
+        metadata:         event.data.object.metadata ?? {},
       }
     }
 
@@ -112,9 +112,9 @@ export class StripeDriver implements GatewayDriver {
     return 'unknown'
   }
 
-  async issueRefund(gatewayOrderId: string, amount?: number) {
-    const body: Record<string, string> = { payment_intent: gatewayOrderId }
-    if (amount) body.amount = String(amount)
+  async issueRefund(payload: import('../gateway-driver').RefundPayload) {
+    const body: Record<string, string> = { payment_intent: payload.gatewayPaymentId }
+    if (payload.amount) body.amount = String(payload.amount)
 
     const res = await fetch('https://api.stripe.com/v1/refunds', {
       method:  'POST',

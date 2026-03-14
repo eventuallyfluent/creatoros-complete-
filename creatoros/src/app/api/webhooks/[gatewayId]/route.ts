@@ -26,7 +26,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { gatewayId: string } }
 ) {
-  const gateway = await prisma.paymentGateway.findUnique({
+  const gateway = await prisma.paymentGateway.findFirst({
     where: { id: params.gatewayId, isActive: true },
   })
 

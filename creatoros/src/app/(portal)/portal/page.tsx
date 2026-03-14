@@ -44,7 +44,7 @@ export default async function PortalDashboard() {
     progressMap.set(p.courseId, (progressMap.get(p.courseId) ?? 0) + 1)
   }
 
-  const productIds = [...new Set(enrollments.map((e: any) => e.productId).filter(Boolean))] as string[]
+  const productIds = Array.from(new Set(enrollments.map((e: any) => e.productId).filter(Boolean))) as string[]
   const products = await prisma.product.findMany({
     where:   { id: { in: productIds } },
     include: {

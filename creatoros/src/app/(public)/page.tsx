@@ -18,13 +18,17 @@ export default async function HomePage() {
   ])
   const userId = (session?.user as any)?.id
 
-  // Featured testimonials from DB
-  const featuredTestimonials = await prisma.testimonial.findMany({
+  // Featured reviews from DB (replaces old testimonial model)
+  const featuredTestimonials = await prisma.courseReview.findMany({
     where:   { status: 'APPROVED', isFeatured: true },
     orderBy: { createdAt: 'desc' },
-    select:  { id: true, authorName: true, authorRole: true, quote: true,
+    select:  { id: true, rating: true, comment: true,
+               user:   { select: { name: true } },
                course: { select: { title: true } } },
-  })
+  }).then(rows => rows.map(r => ({
+    id: r.id, authorName: r.user.name ?? 'Student', authorRole: `Student — ${r.course.title}`,
+    quote: r.comment ?? '', course: r.course,
+  }))).catch(() => [])
 
   // Products (source of truth for pricing + slugs)
   const allProducts = await prisma.product.findMany({
@@ -199,10 +203,10 @@ export default async function HomePage() {
           </section>
         )
         if (section.type === 'testimonials') {
-          // Prefer DB featured testimonials; fall back to section.items if none exist yet
+          // Use pinned reviewIds if set, otherwise fall back to featured DB reviews
           const dbItems = featuredTestimonials.map(t => ({
             name:  t.authorName,
-            role:  t.authorRole ?? (t.course ? `Student — ${t.course.title}` : undefined),
+            role:  t.authorRole ?? '',
             quote: t.quote,
           }))
           const displayItems = dbItems.length > 0 ? dbItems : (section.items ?? []).filter((i: any) => i.quote)

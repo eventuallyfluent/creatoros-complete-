@@ -11,6 +11,7 @@ interface BumpProduct {
 interface CheckoutPageData {
   showCouponField:      boolean
   thankYouUrl:          string | null
+  guaranteeText:        string | null
   orderBumpProductId:   string | null
   orderBumpHeadline:    string | null
   orderBumpDescription: string | null

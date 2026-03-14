@@ -71,7 +71,7 @@ export async function sendReviewInviteEmail(to: string, name: string, courseTitl
 export async function sendBroadcast(recipients: string[], subject: string, html: string) {
   // Resend supports batch sends — chunk into 100s
   const chunks = chunk(recipients, 100)
-  const results = []
+  const results: unknown[] = []
   for (const batch of chunks) {
     const result = await getResend().batch.send(
       batch.map(to => ({ from: FROM, to, subject, html }))

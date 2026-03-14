@@ -20,10 +20,8 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
   const isAdmin   = (session?.user as any)?.role === 'ADMIN'
   const isPreview = isAdmin && searchParams.preview === '1'
 
-  const product = await prisma.product.findUnique({
-    where:   isPreview
-      ? { slug: params.slug }                          // admin preview: any status
-      : { slug: params.slug, status: 'PUBLISHED' },   // public: published only
+  const product = await prisma.product.findFirst({
+    where:   isPreview ? { slug: params.slug } : { slug: params.slug, status: 'PUBLISHED' },
     include: {
       instructor: true,
       courses:    {
@@ -89,7 +87,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
 
   let bumpProduct = null
   if (checkoutPage?.orderBumpProductId) {
-    bumpProduct = await prisma.product.findUnique({
+    bumpProduct = await prisma.product.findFirst({
       where:  { id: checkoutPage.orderBumpProductId, status: 'PUBLISHED' },
       select: { id: true, title: true, price: true, currency: true, thumbnailUrl: true },
     })

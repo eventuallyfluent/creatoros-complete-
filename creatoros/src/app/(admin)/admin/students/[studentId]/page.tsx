@@ -48,8 +48,8 @@ export default async function StudentDetailPage({ params }: Props) {
     }).catch(() => []),
   ])
 
-  const progressMap = new Map(progressData.map((p: any) => [p.courseId, p._count.courseId]))
-  const totalMap    = new Map(lessonTotals.map((l: any) => [l.courseId, l._count.id]))
+  const progressMap = new Map<string, number>(progressData.map((p: any) => [p.courseId as string, Number(p._count.courseId)]))
+  const totalMap    = new Map<string, number>(lessonTotals.map((l: any) => [l.courseId as string, Number(l._count.id)]))
 
   const totalRevenue = student.orders
     .filter(o => o.status === 'PAID')
@@ -95,7 +95,7 @@ export default async function StudentDetailPage({ params }: Props) {
           ].map(row => (
             <div key={row.label}>
               <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 2px' }}>{row.label}</p>
-              <p style={{ fontSize: '14px', color: '#111827', margin: 0, fontFamily: row.label === 'ID' ? 'monospace' : undefined, fontSize: row.label === 'ID' ? '12px' : '14px' as any }}>{row.value}</p>
+              <p style={{ fontSize: row.label === 'ID' ? '12px' : '14px', color: '#111827', margin: 0, fontFamily: row.label === 'ID' ? 'monospace' : undefined }}>{row.value}</p>
             </div>
           ))}
         </div>
