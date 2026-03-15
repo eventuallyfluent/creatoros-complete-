@@ -153,11 +153,15 @@ export default async function CourseSalesPage({ params }: Props) {
     const sub      = c.subheadline?.trim() || product.subtitle || null
     const ctaLabel = c.ctaLabel?.trim()    || 'Enrol Now'
     const badges   = (c.badgeLabels ?? []).filter(Boolean)
+    const heroImg  = c.heroImageUrl?.trim() || null
+    const imgRight = !heroImg || (c.heroImagePosition ?? 'right') === 'right'
+
     return (
       <section key={block.id} className="hero-bg" style={{ padding: 'var(--s9) 0 var(--s7)' }}>
         <div style={S.container}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 'var(--s8)', alignItems: 'start' }}>
-            <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: imgRight ? 'row' : 'row-reverse', gap: 'var(--s8)', alignItems: 'start', flexWrap: 'wrap' }}>
+            {/* Text + buy box */}
+            <div style={{ flex: 1, minWidth: '280px', position: 'relative', zIndex: 1 }}>
               <h1 style={{ fontSize: 'clamp(24px, 4vw, 46px)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: sub ? '14px' : '24px' }}>{headline}</h1>
               {sub && <p style={{ fontSize: '19px', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: badges.length ? '20px' : '0' }}>{sub}</p>}
               {badges.length > 0 && (
@@ -169,8 +173,15 @@ export default async function CourseSalesPage({ params }: Props) {
                   ))}
                 </div>
               )}
+              {!heroImg && <div style={{ marginTop: 'var(--s6)' }}><BuyBox ctaLabel={ctaLabel} /></div>}
             </div>
-            <div style={{ position: 'relative', zIndex: 1 }}><BuyBox ctaLabel={ctaLabel} /></div>
+            {/* Hero image (when set) */}
+            {heroImg && (
+              <div style={{ flexShrink: 0, width: 'clamp(240px, 38%, 480px)', position: 'relative', zIndex: 1 }}>
+                <img src={heroImg} alt={headline} style={{ width: '100%', borderRadius: '16px', display: 'block', objectFit: 'cover' }} />
+                <div style={{ marginTop: 'var(--s5)' }}><BuyBox ctaLabel={ctaLabel} /></div>
+              </div>
+            )}
           </div>
         </div>
       </section>

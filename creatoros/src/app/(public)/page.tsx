@@ -42,10 +42,14 @@ export default async function HomePage() {
     },
     orderBy: { createdAt: 'asc' },
   })
-  const featuredIds = settings.featuredCourseIds ?? []
-  const featured    = featuredIds.map(id => allProducts.find(p => p.id === id || p.courses.some(pc => pc.courseId === id))).filter(Boolean) as typeof allProducts
-  const rest        = allProducts.filter(p => !featured.includes(p))
-  const courses     = [...featured, ...rest]
+  const displayMode  = (settings as any).coursesDisplayMode ?? 'all'
+  const featuredIds  = settings.featuredCourseIds ?? []
+  const featuredList = featuredIds.map(id => allProducts.find(p => p.id === id || p.courses.some((pc: any) => pc.courseId === id))).filter(Boolean) as typeof allProducts
+  const rest         = allProducts.filter(p => !featuredList.includes(p))
+  // courses = what to show in the course grid section (mode-dependent)
+  const courses = displayMode === 'featured'
+    ? featuredList
+    : [...featuredList, ...rest]  // 'all' and 'collections' both use full list as fallback
 
   // Collections
   const collections = await prisma.collection.findMany({
@@ -122,8 +126,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* COLLECTIONS */}
-      {collections.map((collection: any) => (
+      {/* COLLECTIONS — only shown in 'collections' mode (or always if collections exist and mode is 'all') */}
+      {(displayMode === 'collections' || (displayMode === 'all' && collections.length > 0)) && collections.map((collection: any) => (
         <section key={collection.id} className="section-padding">
           <div className="platform-container">
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 'var(--s6)', flexWrap: 'wrap', gap: '12px' }}>
@@ -160,8 +164,8 @@ export default async function HomePage() {
         </section>
       ))}
 
-      {/* COURSE GRID (no collections) */}
-      {collections.length === 0 && courses.length > 0 && (
+      {/* COURSE GRID — shown in 'all'/'featured' mode, or collections mode with no collections */}
+      {(displayMode !== 'collections' || collections.length === 0) && courses.length > 0 && (
         <section className="section-padding">
           <div className="platform-container">
             <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>All Courses</h2>
@@ -194,14 +198,31 @@ export default async function HomePage() {
         if (section.type === 'divider') return (
           <div key={section.id} style={{ textAlign: 'center', padding: 'var(--s6) 0', color: 'var(--text-muted)', letterSpacing: '0.5em', fontSize: '14px' }}>✦ ✦ ✦</div>
         )
-        if (section.type === 'text') return (
-          <section key={section.id} className="section-padding">
-            <div className="platform-container" style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
-              {section.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: 'var(--s4)' }}>{section.heading}</h2>}
-              {section.body && <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{section.body}</p>}
-            </div>
-          </section>
-        )
+        if (section.type === 'text') {
+          const imgUrl = section.imageUrl?.trim() || null
+          const imgPos = section.imagePosition ?? 'right'
+          const isTop  = imgPos === 'top'
+          return (
+            <section key={section.id} className="section-padding">
+              <div className="platform-container" style={{ maxWidth: imgUrl && !isTop ? '960px' : '720px', margin: '0 auto' }}>
+                {imgUrl && isTop && (
+                  <img src={imgUrl} alt={section.heading ?? ''} style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '12px', marginBottom: 'var(--s5)', display: 'block' }} />
+                )}
+                <div style={{ display: imgUrl && !isTop ? 'flex' : 'block', flexDirection: imgPos === 'left' ? 'row-reverse' : 'row', gap: 'var(--s7)', alignItems: 'center', flexWrap: 'wrap', textAlign: imgUrl ? 'left' : 'center' }}>
+                  <div style={{ flex: 1, minWidth: '240px', margin: imgUrl ? undefined : '0 auto' }}>
+                    {section.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: 'var(--s4)' }}>{section.heading}</h2>}
+                    {section.body && <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{section.body}</p>}
+                  </div>
+                  {imgUrl && !isTop && (
+                    <div style={{ flexShrink: 0, width: 'clamp(200px, 40%, 420px)' }}>
+                      <img src={imgUrl} alt={section.heading ?? ''} style={{ width: '100%', borderRadius: '12px', display: 'block', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )
+        }
         if (section.type === 'testimonials') {
           // Use pinned reviewIds if set, otherwise fall back to featured DB reviews
           const dbItems = featuredTestimonials.map(t => ({

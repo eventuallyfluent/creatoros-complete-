@@ -15,6 +15,16 @@ export default async function CoursesPage() {
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
   })
 
+  // When no collections exist, fall back to showing all published products directly
+  const fallbackProducts = collections.length === 0
+    ? await prisma.product.findMany({
+        where:   { status: 'PUBLISHED' },
+        select:  { id: true, slug: true, title: true, subtitle: true, price: true, currency: true, thumbnailUrl: true,
+                   instructor: { select: { displayName: true } } },
+        orderBy: { createdAt: 'asc' },
+      })
+    : []
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
 
@@ -78,9 +88,32 @@ export default async function CoursesPage() {
 
       {/* Collection cards grid */}
       <div className="platform-container" style={{ padding: 'var(--s7) var(--s5) var(--s9)' }}>
-        {collections.length === 0 ? (
+        {collections.length === 0 && fallbackProducts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 'var(--s9)' }}>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Collections coming soon.</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>No courses available yet.</p>
+          </div>
+        ) : collections.length === 0 ? (
+          /* No collections — show products directly */
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--s5)' }}>
+            {fallbackProducts.map((p: any) => (
+              <Link key={p.id} href={`/courses/${p.slug}`} style={{ textDecoration: 'none' }}>
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', cursor: 'pointer' }}>
+                  <div style={{ height: '180px', background: 'linear-gradient(135deg,#0D0D1A,#1A0A2E)', position: 'relative', overflow: 'hidden' }}>
+                    {p.thumbnailUrl && <Image src={p.thumbnailUrl} alt={p.title} fill style={{ objectFit: 'cover' }} />}
+                  </div>
+                  <div style={{ padding: '16px 18px' }}>
+                    <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{p.title}</p>
+                    {p.subtitle && <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px' }}>{p.subtitle}</p>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {p.instructor && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{p.instructor.displayName}</span>}
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--brand)' }}>
+                        {Number(p.price) === 0 ? 'Free' : `${p.currency} ${Number(p.price).toFixed(0)}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         ) : (
           <div style={{

@@ -6,6 +6,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
 }
 import { getServerSession } from 'next-auth'
+import { getSiteSettings } from '@/lib/settings/site-settings'
 import { authOptions } from '@/lib/auth/auth-options'
 import SessionProvider from '@/components/layout/SessionProvider'
 import '@/styles/globals.css'
@@ -28,10 +29,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
+  const [session, settings] = await Promise.all([
+    getServerSession(authOptions),
+    getSiteSettings(),
+  ])
+  const theme = (settings as any).themeVariant ?? 'dark'
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-theme={theme === 'light' ? 'light' : undefined}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

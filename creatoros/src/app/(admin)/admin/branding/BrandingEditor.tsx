@@ -128,6 +128,32 @@ export default function BrandingEditor({ settings }: Props) {
         </div>
       </Section>
 
+      <Section title="Theme">
+        <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '14px' }}>
+          Choose a preset theme. Perseus Dark is the default deep space aesthetic. Perseus Light is a clean light mode with the same purple family.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
+          {([
+            { value: 'dark',  label: 'Perseus Dark',  desc: 'Deep space · dark backgrounds · light text',  bg: '#0D0D1A', text: '#F0EAF8', accent: '#C084FC' },
+            { value: 'light', label: 'Perseus Light', desc: 'Clean light · white surfaces · purple accents', bg: '#F5F3FF', text: '#1A0A2E', accent: '#7B2FBE' },
+          ] as const).map(preset => {
+            const isActive = ((form as any).themeVariant ?? 'dark') === preset.value
+            return (
+              <button key={preset.value}
+                onClick={() => set('themeVariant' as any, preset.value)}
+                style={{ padding: '14px 16px', border: isActive ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '10px', background: preset.bg, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-ui)', transition: 'all 0.15s', outline: 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: preset.text }}>{preset.label}</span>
+                  {isActive && <span style={{ fontSize: '10px', fontWeight: 700, color: preset.accent, background: `${preset.accent}22`, padding: '2px 7px', borderRadius: '4px' }}>Active</span>}
+                </div>
+                <p style={{ fontSize: '11px', color: preset.accent, margin: 0 }}>{preset.desc}</p>
+              </button>
+            )
+          })}
+        </div>
+        <p style={{ fontSize: '11px', color: '#9ca3af' }}>Theme takes effect immediately on save.</p>
+      </Section>
+
       <Section title="Colours">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           {[

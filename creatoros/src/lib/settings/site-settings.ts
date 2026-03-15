@@ -22,6 +22,8 @@ export interface SiteSettings {
   headerNav:         { label: string; href: string }[]
   footerNav:         { label: string; href: string }[]
 
+  themeVariant: 'dark' | 'light'
+
   // Homepage content
   heroEyebrow:          string
   heroHeadline:         string
@@ -75,6 +77,7 @@ const DEFAULTS: SiteSettings = {
     { label: 'Terms of Use',   href: '/terms' },
     { label: 'Contact',        href: '/contact' },
   ],
+  themeVariant:       'dark' as const,
   coursesDisplayMode: 'all' as const,
   heroEyebrow:        '✦ Perseus Arcane Academy ✦',
   heroHeadline:       'Ancient Wisdom for the Modern Initiate',

@@ -9,7 +9,7 @@ import Link from 'next/link'
 export const metadata: Metadata = { title: 'Edit Collection — Admin' }
 
 export default async function EditCollectionPage({ params }: { params: { collectionId: string } }) {
-  const [collection, allCourses] = await Promise.all([
+  const [collection, allCourses, linkedCourseIds] = await Promise.all([
     prisma.collection.findUnique({
       where:   { id: params.collectionId },
       include: {
@@ -24,6 +24,10 @@ export default async function EditCollectionPage({ params }: { params: { collect
       select:  { id: true, title: true, slug: true, thumbnailUrl: true },
       orderBy: { title: 'asc' },
     }).catch(() => []),
+    // Which courseIds have a linked product (needed to warn about missing buy button)
+    prisma.productCourse.findMany({
+      select: { courseId: true },
+    }).then(rows => new Set(rows.map(r => r.courseId))).catch(() => new Set<string>()),
   ])
 
   if (!collection) notFound()
@@ -43,6 +47,7 @@ export default async function EditCollectionPage({ params }: { params: { collect
         collection={collection as any}
         courses={allCourses}
         assignedCourseIds={assignedCourseIds}
+        linkedProductCourseIds={Array.from(linkedCourseIds)}
       />
     </div>
   )
