@@ -14,7 +14,7 @@ const NAV_LINKS = [
   { label: 'Instructors', href: '/instructors' },
 ]
 
-export default function Navbar({ session }: { session: any }) {
+export default function Navbar({ session, logoDarkUrl, logoLightUrl }: { session: any; logoDarkUrl?: string | null; logoLightUrl?: string | null }) {
   const [mobileOpen,    setMobileOpen]    = useState(false)
   const [userMenuOpen,  setUserMenuOpen]  = useState(false)
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -78,14 +78,22 @@ export default function Navbar({ session }: { session: any }) {
         >
           {/* Logo — top left */}
           <Link href="/" style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-            <Image
-              src="/logo.png"
-              alt="Perseus Arcane Academy"
-              width={120}
-              height={48}
-              style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
-              priority
-            />
+            {/* Dark logo shown by default; light logo via CSS when theme is light */}
+            {logoDarkUrl ? (
+              <>
+                <Image src={logoDarkUrl} alt="Perseus Arcane Academy" width={120} height={48}
+                  style={{ height: '40px', width: 'auto', objectFit: 'contain' }} priority
+                  className="logo-dark" />
+                {logoLightUrl && logoLightUrl !== logoDarkUrl && (
+                  <Image src={logoLightUrl} alt="Perseus Arcane Academy" width={120} height={48}
+                    style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'none' }} priority
+                    className="logo-light" />
+                )}
+              </>
+            ) : (
+              <Image src="/logo.png" alt="Perseus Arcane Academy" width={120} height={48}
+                style={{ height: '40px', width: 'auto', objectFit: 'contain' }} priority />
+            )}
           </Link>
 
           {/* Nav links — desktop centre */}

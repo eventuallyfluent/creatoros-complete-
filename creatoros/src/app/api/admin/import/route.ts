@@ -6,6 +6,54 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 import { createCourseDefaults } from '@/lib/course/course-defaults'
+import { createClient } from '@supabase/supabase-js'
+
+const BUCKET = 'creatoros'
+
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  return createClient(url, key, { auth: { persistSession: false } })
+}
+
+/**
+ * Fetch an external image URL and upload it to Supabase Storage.
+ * Returns the new permanent URL, or the original URL if upload fails.
+ */
+async function mirrorImage(externalUrl: string, folder = 'thumbnails'): Promise<string> {
+  try {
+    const supabase = getSupabase()
+    if (!supabase) return externalUrl
+
+    const res = await fetch(externalUrl, { signal: AbortSignal.timeout(10000) })
+    if (!res.ok) return externalUrl
+
+    const contentType = res.headers.get('content-type') ?? 'image/jpeg'
+    if (!contentType.startsWith('image/')) return externalUrl
+
+    const ext = contentType.split('/')[1]?.split(';')[0] ?? 'jpg'
+    const buffer = await res.arrayBuffer()
+
+    // Generate a stable filename from the URL so re-imports don't create duplicates
+    const hash = Buffer.from(externalUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)
+    const filename = `${folder}/${hash}.${ext}`
+
+    // Check if already uploaded (upsert: false would fail — use upsert: true to overwrite)
+    const { error } = await supabase.storage.from(BUCKET).upload(filename, buffer, {
+      contentType,
+      cacheControl: '31536000',
+      upsert: true,
+    })
+
+    if (error) return externalUrl
+
+    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(filename)
+    return publicUrl
+  } catch {
+    return externalUrl
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -203,7 +251,25 @@ export async function POST(req: NextRequest)  {
     )
   }
 
-  // ── 2. Upsert the Course ──────────────────────────────────────────────────
+  // ── 2. Mirror thumbnail to Supabase Storage ─────────────────────────────
+  // Download the external image and re-upload so it lives permanently with us.
+  // Falls back to the original URL if Supabase is not configured or fetch fails.
+  let thumbnailUrl: string | null = null
+  if (courseRow.thumbnail_url?.trim()) {
+    const raw = courseRow.thumbnail_url.trim()
+    // Only mirror external URLs — skip if already on our Supabase bucket
+    const supabaseBase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+    if (raw.startsWith(supabaseBase)) {
+      thumbnailUrl = raw // already on our storage
+    } else {
+      thumbnailUrl = await mirrorImage(raw, 'thumbnails')
+      if (thumbnailUrl === raw) {
+        warnings.push('Thumbnail could not be saved to storage — using original URL as fallback.')
+      }
+    }
+  }
+
+  // ── 3. Upsert the Course ──────────────────────────────────────────────────
   // Course is content-only. Price/currency belong on Product (created below via createCourseDefaults).
   const courseData = {
     title:        courseTitle,
@@ -212,7 +278,7 @@ export async function POST(req: NextRequest)  {
     status:       (['DRAFT','PUBLISHED','ARCHIVED'].includes(courseRow.status?.toUpperCase())
                     ? courseRow.status.toUpperCase()
                     : 'DRAFT') as any,
-    thumbnailUrl: courseRow.thumbnail_url || null,
+    thumbnailUrl,
   }
 
   let course = existing
@@ -229,7 +295,7 @@ export async function POST(req: NextRequest)  {
     compareAtPrice: courseRow.compare_at_price ? parseFloat(courseRow.compare_at_price) : null,
     currency:       courseRow.currency?.toUpperCase() || 'USD',
     status:         courseData.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
-    thumbnailUrl:   courseRow.thumbnail_url || null,
+    thumbnailUrl:   thumbnailUrl,
     })
     productId = defaults.productId
   } catch (err: any) {
@@ -242,7 +308,7 @@ export async function POST(req: NextRequest)  {
     warnings.push(`Existing modules and lessons for "${courseSlug}" were replaced.`)
   }
 
-  // ── 3. Group MODULE + LESSON rows ─────────────────────────────────────────
+  // ── 4. Group MODULE + LESSON rows ─────────────────────────────────────────
   const moduleRows = rows.filter(r => r.row_type?.toUpperCase() === 'MODULE')
   const lessonRows = rows.filter(r => r.row_type?.toUpperCase() === 'LESSON')
 

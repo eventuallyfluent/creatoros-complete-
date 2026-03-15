@@ -12,7 +12,7 @@ export default async function CertificatesPage() {
   const userId  = (session!.user as any).id
 
   const completed = await prisma.enrollment.findMany({
-    where:   { userId, completedAt: { not: null } },
+    where:   { userId, completedAt: { not: null }, course: { certificateEnabled: true } },
     include: { course: { select: { id: true, title: true, slug: true, thumbnailUrl: true } } },
     orderBy: { completedAt: 'desc' },
   }).catch(() => [])

@@ -18,11 +18,11 @@ export default function BrandingEditor({ settings }: Props) {
 
   const set = (key: keyof SiteSettings, val: any) => setForm(f => ({ ...f, [key]: val }))
 
-  const handleUpload = async (file: File, field: 'logoUrl' | 'faviconUrl') => {
+  const handleUpload = async (file: File, field: string) => {
     setUploading(field)
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('folder', field === 'logoUrl' ? 'logos' : 'favicons')
+    formData.append('folder', field === 'faviconUrl' ? 'favicons' : 'logos')
     const res  = await fetch('/api/upload', { method: 'POST', body: formData })
     const data = await res.json()
     setUploading(null)
@@ -105,21 +105,29 @@ export default function BrandingEditor({ settings }: Props) {
       </Section>
 
       <Section title="Logo & Favicon">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {(['logoUrl', 'faviconUrl'] as const).map(field => (
+        <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '14px' }}>
+          Upload separate logos for dark and light themes. If only one is uploaded, it is used for both.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
+          {([
+            { field: 'logoDarkUrl'  as const, label: 'Logo — Dark Theme'  },
+            { field: 'logoLightUrl' as const, label: 'Logo — Light Theme' },
+            { field: 'logoUrl'      as const, label: 'Logo — Fallback'    },
+            { field: 'faviconUrl'   as const, label: 'Favicon'            },
+          ]).map(({ field, label }) => (
             <div key={field}>
-              <label style={lbl}>{field === 'logoUrl' ? 'Logo' : 'Favicon'}</label>
-              <div style={{ border: '2px dashed #e5e7eb', borderRadius: '10px', padding: '20px', textAlign: 'center', position: 'relative' }}>
-                {form[field] ? (
+              <label style={lbl}>{label}</label>
+              <div style={{ border: '2px dashed #e5e7eb', borderRadius: '10px', padding: '16px', textAlign: 'center', position: 'relative', minHeight: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {(form as any)[field] ? (
                   <div>
-                    <Image src={form[field]!} alt={field} width={field === 'faviconUrl' ? 48 : 120} height={48} style={{ objectFit: 'contain', margin: '0 auto 10px' }} />
-                    <button onClick={() => set(field, null)} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Remove</button>
+                    <Image src={(form as any)[field]} alt={label} width={field === 'faviconUrl' ? 32 : 100} height={36} style={{ objectFit: 'contain', margin: '0 auto 8px', display: 'block' }} />
+                    <button onClick={() => set(field as any, null)} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Remove</button>
                   </div>
                 ) : (
-                  <label style={{ cursor: 'pointer' }}>
+                  <label style={{ cursor: 'pointer', display: 'block' }}>
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f, field) }} />
-                    <div style={{ fontSize: '28px', marginBottom: '6px' }}>{uploading === field ? '⏳' : '+'}</div>
-                    <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{uploading === field ? 'Uploading…' : 'Click to upload'}</p>
+                    <div style={{ fontSize: '22px', marginBottom: '4px' }}>{uploading === field ? '⏳' : '+'}</div>
+                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{uploading === field ? 'Uploading…' : 'Upload'}</p>
                   </label>
                 )}
               </div>

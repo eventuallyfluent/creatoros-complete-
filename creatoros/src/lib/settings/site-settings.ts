@@ -4,7 +4,9 @@ import { cache } from 'react'
 export interface SiteSettings {
   siteName:          string
   tagline:           string
-  logoUrl:           string | null
+  logoUrl:           string | null  // legacy fallback
+  logoDarkUrl:       string | null  // logo for dark theme
+  logoLightUrl:      string | null  // logo for light theme
   faviconUrl:        string | null
   primaryColor:      string
   accentColor:       string
@@ -53,6 +55,8 @@ const DEFAULTS: SiteSettings = {
   siteName:          'Perseus Arcane Academy',
   tagline:           'Master the Mysteries',
   logoUrl:           null,
+  logoDarkUrl:       null,
+  logoLightUrl:      null,
   faviconUrl:        null,
   primaryColor:      '#7B2FBE',
   accentColor:       '#C084FC',

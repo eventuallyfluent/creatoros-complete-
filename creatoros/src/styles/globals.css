@@ -152,6 +152,17 @@
 }
 
 /* ============================================================
+   THEME-AWARE LOGO SWAP
+   ============================================================ */
+/* Dark theme (default): show dark logo, hide light logo */
+.logo-dark  { display: block; }
+.logo-light { display: none;  }
+
+/* Light theme: hide dark logo, show light logo */
+[data-theme="light"] .logo-dark  { display: none;  }
+[data-theme="light"] .logo-light { display: block; }
+
+/* ============================================================
    BASE RESET & DEFAULTS
    ============================================================ */
 *, *::before, *::after {

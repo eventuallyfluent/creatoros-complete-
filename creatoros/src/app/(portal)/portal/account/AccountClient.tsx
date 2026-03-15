@@ -5,7 +5,7 @@ import Link from 'next/link'
 interface User    { id: string; email: string; name: string | null; image: string | null; createdAt: Date }
 interface Order   { id: string; total: number; currency: string; createdAt: Date; items: { product: { title: string; slug: string } | null }[] }
 interface Enrollment {
-  course:            { id: string; title: string; slug: string; thumbnailUrl: string | null }
+  course:            { id: string; title: string; slug: string; thumbnailUrl: string | null; certificateEnabled: boolean }
   enrolledAt:        Date
   completedAt:       Date | null
   lessonsCompleted:  number
@@ -14,7 +14,7 @@ interface Enrollment {
 
 interface Props { user: User; orders: Order[]; enrollments: Enrollment[] }
 
-type Tab = 'profile' | 'billing' | 'certificates'
+type Tab = 'profile' | 'orders' | 'certificates'
 
 export default function AccountClient({ user, orders, enrollments }: Props) {
   const [tab,      setTab]      = useState<Tab>('profile')
@@ -37,10 +37,13 @@ export default function AccountClient({ user, orders, enrollments }: Props) {
     setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
+  const hasCertificateCourses = enrollments.some(e => e.course.certificateEnabled)
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'profile',      label: 'Profile'       },
-    { id: 'billing',      label: 'Billing'        },
-    { id: 'certificates', label: `Certificates (${completedCourses.length})` },
+    { id: 'profile', label: 'Profile' },
+    { id: 'orders',  label: 'Purchase History' },
+    ...(hasCertificateCourses
+      ? [{ id: 'certificates' as const, label: `Certificates (${completedCourses.length})` }]
+      : []),
   ]
 
   const inp: React.CSSProperties = { width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: '15px', color: 'var(--text-primary)', outline: 'none', fontFamily: 'var(--font-ui)', background: 'var(--bg-elevated)' }
@@ -88,7 +91,7 @@ export default function AccountClient({ user, orders, enrollments }: Props) {
       )}
 
       {/* Billing tab */}
-      {tab === 'billing' && (
+      {tab === 'orders' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {orders.length === 0 ? (
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 'var(--s8)', textAlign: 'center' }}>
