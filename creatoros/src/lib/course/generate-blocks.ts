@@ -9,8 +9,9 @@ interface GeneratedBlock {
 
 function splitLines(text: string): string[] {
   return text
-    .split(/\n|(?:\s*-\s+)/)
-    .map(s => s.replace(/^[-•*✓✦]\s*/, '').trim())
+    // Split on newlines, or on " - " / " – " dash separators
+    .split(/\n|\r|(?:\s+[-–]\s+)/)
+    .map(s => s.replace(/^[-–•*✓✦\s]+/, '').trim())
     .filter(s => s.length > 2)
 }
 
@@ -21,6 +22,14 @@ export function generateBlocksFromPrompts(
   const blocks: GeneratedBlock[] = []
 
   // ── HERO ─────────────────────────────────────────────────────────────────
+  // Rich hero with badges from benefits list
+  const benefitItems   = prompts.benefits?.trim()      ? splitLines(prompts.benefits)      : []
+  const includedItems  = prompts.whatsIncluded?.trim()  ? splitLines(prompts.whatsIncluded)  : []
+  // Use up to 3 short benefit phrases as hero badges
+  const badgeCandidates = [...benefitItems, ...includedItems]
+    .filter(b => b.length < 50)
+    .slice(0, 3)
+
   blocks.push({
     type: 'HERO',
     content: {
@@ -28,63 +37,42 @@ export function generateBlocksFromPrompts(
       subheadline: prompts.subheadline || course.subtitle || '',
       ctaLabel:    prompts.ctaText     || 'Enrol Now',
       ctaSubtext:  prompts.ctaSubtext  || '',
-      badgeLabels: [],
+      badgeLabels: badgeCandidates,
     },
   })
 
   // ── DIVIDER ───────────────────────────────────────────────────────────────
   blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
 
-  // ── WHO IT'S FOR / PROBLEM ────────────────────────────────────────────────
-  if (prompts.problem?.trim() || prompts.whoIsItFor?.trim()) {
-    const parts: string[] = []
-    if (prompts.problem?.trim())    parts.push(prompts.problem.trim())
-    if (prompts.whoIsItFor?.trim()) parts.push(prompts.whoIsItFor.trim())
+  // ── PROBLEM + WHO IT'S FOR — split into separate blocks for better layout
+  if (prompts.problem?.trim()) {
+    blocks.push({
+      type: 'TEXT',
+      content: {
+        heading: 'Does This Sound Familiar?',
+        body:    prompts.problem.trim(),
+        align:   'center',
+      },
+    })
+  }
+
+  if (prompts.whoIsItFor?.trim()) {
     blocks.push({
       type: 'TEXT',
       content: {
         heading: 'Who Is This For?',
-        body:    parts.join('\n\n'),
+        body:    prompts.whoIsItFor.trim(),
         align:   'left',
       },
     })
   }
 
   // ── BENEFITS ─────────────────────────────────────────────────────────────
-  if (prompts.benefits?.trim()) {
-    const items = splitLines(prompts.benefits)
-    if (items.length > 0) {
-      blocks.push({
-        type: 'BENEFITS',
-        content: { heading: 'What You Will Learn', items },
-      })
-    }
-  }
-
-  // ── DIVIDER ───────────────────────────────────────────────────────────────
-  blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
-
-  // ── CURRICULUM ───────────────────────────────────────────────────────────
-  blocks.push({
-    type: 'CURRICULUM',
-    content: {
-      heading:         'Course Content',
-      showLessonCount: true,
-      showDurations:   true,
-      showFreePreview: true,
-      expandFirst:     true,
-    },
-  })
-
-  // ── WHAT'S INCLUDED ──────────────────────────────────────────────────────
-  if (prompts.whatsIncluded?.trim()) {
-    const items = splitLines(prompts.whatsIncluded)
-    if (items.length > 0) {
-      blocks.push({
-        type: 'BENEFITS',
-        content: { heading: "What's Included", items },
-      })
-    }
+  if (benefitItems.length > 0) {
+    blocks.push({
+      type: 'BENEFITS',
+      content: { heading: 'What You Will Learn', items: benefitItems },
+    })
   }
 
   // ── TRANSFORMATION ───────────────────────────────────────────────────────
@@ -102,8 +90,42 @@ export function generateBlocksFromPrompts(
   // ── DIVIDER ───────────────────────────────────────────────────────────────
   blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
 
+  // ── CURRICULUM ───────────────────────────────────────────────────────────
+  if (prompts.curriculumSummary?.trim()) {
+    blocks.push({
+      type: 'TEXT',
+      content: {
+        heading: 'Inside the Course',
+        body:    prompts.curriculumSummary.trim(),
+        align:   'left',
+      },
+    })
+  }
+
+  blocks.push({
+    type: 'CURRICULUM',
+    content: {
+      heading:         'Course Content',
+      showLessonCount: true,
+      showDurations:   true,
+      showFreePreview: true,
+      expandFirst:     true,
+    },
+  })
+
+  // ── WHAT'S INCLUDED ──────────────────────────────────────────────────────
+  if (includedItems.length > 0) {
+    blocks.push({
+      type: 'BENEFITS',
+      content: { heading: "What's Included", items: includedItems },
+    })
+  }
+
+  // ── DIVIDER ───────────────────────────────────────────────────────────────
+  blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
+
   // ── INSTRUCTOR ───────────────────────────────────────────────────────────
-  if (course.instructor) {
+  if (course.instructor || prompts.instructorBio?.trim()) {
     blocks.push({
       type: 'INSTRUCTOR',
       content: {
@@ -115,7 +137,7 @@ export function generateBlocksFromPrompts(
     })
   }
 
-  // ── TESTIMONIALS ─────────────────────────────────────────────────────────
+  // ── TESTIMONIALS — only if likely to have reviews ────────────────────────
   blocks.push({
     type: 'TESTIMONIALS',
     content: {

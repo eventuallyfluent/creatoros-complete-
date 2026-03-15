@@ -257,15 +257,23 @@ export default async function CourseSalesPage({ params }: Props) {
     const c     = block.content ?? {}
     const items = (c.items ?? []).filter(Boolean)
     if (items.length === 0) return null
+    // Use 2-col for 4+ items, 1-col for fewer
+    const cols = items.length >= 4 ? 'repeat(auto-fill, minmax(280px, 1fr))' : '1fr'
     return (
       <section key={block.id} style={S.section}>
         <div style={S.container}>
-          {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px' }}>{c.heading}</h2>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+          {c.heading && (
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 3vw, 34px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s5)' }}>
+              {c.heading}
+            </h2>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '12px' }}>
             {items.map((item: string, i: number) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
-                <span style={{ color: 'var(--accent)', fontSize: '11px', marginTop: '3px', flexShrink: 0 }}>✦</span>
-                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', transition: 'border-color 0.15s' }}>
+                <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+                  <span style={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 700 }}>✦</span>
+                </span>
+                <span style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, fontWeight: 400 }}>{item}</span>
               </div>
             ))}
           </div>
@@ -280,7 +288,7 @@ export default async function CourseSalesPage({ params }: Props) {
     // For bundles, group by course
     const isBundleView = product.type === 'BUNDLE' && product.courses.length > 1
     return (
-      <section key={block.id} style={{ ...S.section, background: 'rgba(26,26,46,0.5)' }}>
+      <section key={block.id} style={{ ...S.section, background: 'var(--bg-elevated)' }}>
         <div style={S.container}>
           {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>{c.heading}</h2>}
           {allLessons.length > 0 && (
@@ -329,7 +337,10 @@ export default async function CourseSalesPage({ params }: Props) {
                             <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                               {lesson.type === 'VIDEO' ? '▶' : lesson.type === 'TEXT' ? '📄' : '📎'}
                             </span>
-                            <span style={{ fontSize: '13px', color: lesson.isFree ? 'var(--accent)' : 'var(--text-secondary)', flex: 1 }}>{lesson.title}</span>
+                            {c.showFreePreview && lesson.isFree
+                              ? <a href={`/courses/${product.slug}/preview/${lesson.id}`} style={{ fontSize: '13px', color: 'var(--accent)', flex: 1, textDecoration: 'none', fontWeight: 500 }}>{lesson.title}</a>
+                              : <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{lesson.title}</span>
+                            }
                             {c.showFreePreview && lesson.isFree && <span style={{ fontSize: '10px', padding: '2px 7px', background: 'rgba(52,211,153,0.1)', color: 'var(--success)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 'var(--r-pill)', fontWeight: 700, flexShrink: 0 }}>FREE</span>}
                             {dur && <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>{dur}</span>}
                           </div>
@@ -387,7 +398,7 @@ export default async function CourseSalesPage({ params }: Props) {
     const visible = items.filter((i: any) => i.quote?.trim())
     if (visible.length === 0) return null
     return (
-      <section style={{ ...S.section, background: 'rgba(26,26,46,0.5)' }}>
+      <section style={{ ...S.section, background: 'var(--bg-elevated)' }}>
         <div style={S.container}>
           {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '28px', textAlign: 'center' }}>{c.heading}</h2>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>

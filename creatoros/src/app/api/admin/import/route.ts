@@ -112,9 +112,9 @@ interface CsvRow {
   // ── Course settings ───────────────────────────────────────────────────────
   meta_description:     string  // SEO description
   certificate_enabled:  string  // true/false
-  // ── Review rows (row_type=REVIEW) ─────────────────────────────────────────
-  reviewer_name:  string  // display name
-  reviewer_email: string  // used to find/create user account
+  // ── Review rows (row_type=REVIEW) — add these after all LESSON rows ─────────
+  reviewer_name:  string  // display name shown on review
+  reviewer_email: string  // used to find/create the reviewer's account
   rating:         string  // 1-5
   review_text:    string  // the review comment
   review_date:    string  // ISO date or blank
