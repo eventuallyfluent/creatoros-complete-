@@ -26,13 +26,23 @@ export default async function Footer() {
           {/* Col 1 — Brand */}
           <div>
             <Link href="/" style={{ display: 'inline-block', marginBottom: '16px' }}>
-              <Image
-                src="/logo.png"
-                alt="Perseus Arcane Academy"
-                width={140}
-                height={56}
-                style={{ height: '44px', width: 'auto', objectFit: 'contain', opacity: 0.9 }}
-              />
+              {settings.logoDarkUrl || settings.logoUrl ? (
+                <>
+                  {(settings.logoDarkUrl || settings.logoUrl) && (
+                    <Image src={settings.logoDarkUrl || settings.logoUrl!} alt={settings.siteName}
+                      width={140} height={56} style={{ height: '44px', width: 'auto', objectFit: 'contain', opacity: 0.9 }}
+                      className="logo-dark" />
+                  )}
+                  {settings.logoLightUrl && settings.logoLightUrl !== settings.logoDarkUrl && (
+                    <Image src={settings.logoLightUrl} alt={settings.siteName}
+                      width={140} height={56} style={{ height: '44px', width: 'auto', objectFit: 'contain', opacity: 0.9, display: 'none' }}
+                      className="logo-light" />
+                  )}
+                </>
+              ) : (
+                <Image src="/logo.png" alt={settings.siteName}
+                  width={140} height={56} style={{ height: '44px', width: 'auto', objectFit: 'contain', opacity: 0.9 }} />
+              )}
             </Link>
             <p style={{
               fontSize:     '13px',

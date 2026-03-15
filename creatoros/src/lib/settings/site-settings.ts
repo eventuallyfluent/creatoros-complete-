@@ -35,6 +35,7 @@ export interface SiteSettings {
   heroSecondaryLabel:   string
   heroSecondaryHref:    string
   heroBadges:           string[]
+  heroImageUrl:         string | null
   featuredCourseIds:    string[]
   coursesDisplayMode:   'all' | 'featured' | 'collections'
   showEmailOptin:       boolean
@@ -91,6 +92,7 @@ const DEFAULTS: SiteSettings = {
   heroSecondaryLabel: 'Sign In',
   heroSecondaryHref:  '/login',
   heroBadges:         ['500+ students enrolled', 'Lifetime access', 'New lessons monthly'],
+  heroImageUrl:       null,
   featuredCourseIds:  [],
   showEmailOptin:     true,
   emailOptinHeadline: 'Stay in the Current',

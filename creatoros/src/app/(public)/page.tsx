@@ -94,6 +94,11 @@ export default async function HomePage() {
               </Link>
             )}
           </div>
+          {(settings as any).heroImageUrl && (
+            <div style={{ marginTop: 'var(--s6)', maxWidth: '720px', margin: 'var(--s6) auto 0' }}>
+              <img src={(settings as any).heroImageUrl} alt="" style={{ width: '100%', borderRadius: 'var(--r-xl)', display: 'block', objectFit: 'cover', maxHeight: '400px' }} />
+            </div>
+          )}
           {(settings.heroBadges ?? []).length > 0 && (
             <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', marginTop: 'var(--s5)', flexWrap: 'wrap' }}>
               {settings.heroBadges.map((badge: string, i: number) => (

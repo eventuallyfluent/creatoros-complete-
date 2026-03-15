@@ -118,8 +118,8 @@ export default function HomepageEditor({ settings, courses, collections, reviews
 
               <Field label="Hero Image" hint="Optional. Shows beside the headline. Leave blank for text-only hero.">
                 <ImageUpload
-                  value={(form as any).heroImageUrl ?? null}
-                  onChange={url => set('heroImageUrl' as any, url ?? '')}
+                  value={form.heroImageUrl ?? null}
+                  onChange={url => set('heroImageUrl', url ?? '')}
                   aspectRatio="16/9"
                   folder="hero"
                   label=""

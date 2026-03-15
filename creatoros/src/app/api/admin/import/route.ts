@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
-import { createCourseDefaults } from '@/lib/course/course-defaults'
+import { createCourseDefaults, generateSalesPageFromPrompts } from '@/lib/course/course-defaults'
 import { createClient } from '@supabase/supabase-js'
 
 const BUCKET = 'creatoros'
@@ -25,8 +25,9 @@ async function mirrorImage(externalUrl: string, folder = 'thumbnails'): Promise<
   const supabase = getSupabase()
   if (!supabase) return externalUrl
 
-  // Try up to 3 times with increasing timeout
-  for (const timeout of [10000, 20000, 30000]) {
+  // Single attempt with 8s timeout to stay within Vercel's 10s function limit
+  // If the image server is slow, we fall back to the original URL gracefully
+  for (const timeout of [8000]) {
     try {
       const res = await fetch(externalUrl, {
         signal: AbortSignal.timeout(timeout),
@@ -111,6 +112,13 @@ interface CsvRow {
   // ── Course settings ───────────────────────────────────────────────────────
   meta_description:     string  // SEO description
   certificate_enabled:  string  // true/false
+  // ── Review rows (row_type=REVIEW) ─────────────────────────────────────────
+  reviewer_name:  string  // display name
+  reviewer_email: string  // used to find/create user account
+  rating:         string  // 1-5
+  review_text:    string  // the review comment
+  review_date:    string  // ISO date or blank
+  is_featured:    string  // true/false
 }
 
 interface ImportResult {
@@ -366,6 +374,15 @@ export async function POST(req: NextRequest)  {
         warnings.push(`Sales page prompts: ${err.message ?? 'could not save'}`)
       }
     }
+
+    // Auto-generate sales page blocks from the prompts
+    if (hasPromptData) {
+      try {
+        await generateSalesPageFromPrompts(productId)
+      } catch (err: any) {
+        warnings.push(`Sales page blocks: ${err.message ?? 'could not generate'}`)
+      }
+    }
   }
 
   // ── 5. Apply course-level settings ───────────────────────────────────────
@@ -501,11 +518,52 @@ export async function POST(req: NextRequest)  {
   }
   const lessonCount = lessonData.length
 
+  // ── 7. Process REVIEW rows ──────────────────────────────────────────────
+  const reviewRows = rows.filter(r => r.row_type?.toUpperCase() === 'REVIEW')
+  let reviewsImported = 0
+
+  for (const rr of reviewRows) {
+    const rating  = parseInt(rr.rating ?? '5')
+    const comment = rr.review_text?.trim() || null
+    const name    = rr.reviewer_name?.trim() || 'Student'
+    const email   = rr.reviewer_email?.trim()
+    if (!email || isNaN(rating) || rating < 1 || rating > 5) continue
+
+    try {
+      let reviewUser = await prisma.user.findUnique({ where: { email } })
+      if (!reviewUser) {
+        reviewUser = await prisma.user.create({
+          data: { email, name, role: 'STUDENT', emailVerified: rr.review_date ? new Date(rr.review_date) : new Date() },
+        })
+      } else if (!reviewUser.name && name) {
+        await prisma.user.update({ where: { id: reviewUser.id }, data: { name } })
+      }
+
+      await prisma.courseReview.upsert({
+        where:  { courseId_userId: { courseId: course.id, userId: reviewUser.id } },
+        create: {
+          courseId:   course.id,
+          userId:     reviewUser.id,
+          rating,
+          comment,
+          status:     'APPROVED',
+          isFeatured: rr.is_featured?.toLowerCase() === 'true',
+          createdAt:  rr.review_date ? new Date(rr.review_date) : new Date(),
+        },
+        update: { rating, comment, status: 'APPROVED', isFeatured: rr.is_featured?.toLowerCase() === 'true' },
+      })
+      reviewsImported++
+    } catch (err: any) {
+      warnings.push(`Review from ${email}: ${err.message ?? 'skipped'}`)
+    }
+  }
+
   const result: any = {
     course:    { id: course.id, slug: course.slug, title: course.title },
     productId: productId,
     modules:   moduleMap.size,
     lessons:   lessonCount,
+    reviews:   reviewsImported,
     skipped,
     warnings,
   }

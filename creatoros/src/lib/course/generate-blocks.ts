@@ -7,19 +7,20 @@ interface GeneratedBlock {
   content: Record<string, any>
 }
 
-/**
- * Converts filled-in prompt answers into a default block layout.
- * Only generates blocks for prompts that have answers.
- * Empty prompts = block not created (never shows placeholder text on live page).
- */
+function splitLines(text: string): string[] {
+  return text
+    .split(/\n|(?:\s*-\s+)/)
+    .map(s => s.replace(/^[-•*✓✦]\s*/, '').trim())
+    .filter(s => s.length > 2)
+}
+
 export function generateBlocksFromPrompts(
   prompts: SalesPagePrompts,
   course: { title: string; subtitle?: string | null; instructor?: { displayName: string } | null }
 ): GeneratedBlock[] {
   const blocks: GeneratedBlock[] = []
 
-  // ── HERO ───────────────────────────────────────────────
-  // Always created — falls back to course title if prompts empty
+  // ── HERO ─────────────────────────────────────────────────────────────────
   blocks.push({
     type: 'HERO',
     content: {
@@ -31,118 +32,107 @@ export function generateBlocksFromPrompts(
     },
   })
 
-  // ── PROBLEM / WHO IT'S FOR ────────────────────────────
+  // ── DIVIDER ───────────────────────────────────────────────────────────────
+  blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
+
+  // ── WHO IT'S FOR / PROBLEM ────────────────────────────────────────────────
   if (prompts.problem?.trim() || prompts.whoIsItFor?.trim()) {
-    const bodyParts: string[] = []
-    if (prompts.problem?.trim())    bodyParts.push(prompts.problem.trim())
-    if (prompts.whoIsItFor?.trim()) bodyParts.push(`\n${prompts.whoIsItFor.trim()}`)
+    const parts: string[] = []
+    if (prompts.problem?.trim())    parts.push(prompts.problem.trim())
+    if (prompts.whoIsItFor?.trim()) parts.push(prompts.whoIsItFor.trim())
     blocks.push({
       type: 'TEXT',
       content: {
-        heading: prompts.whoIsItFor?.trim() ? 'Who Is This For?' : 'About This Course',
-        body:    bodyParts.join('\n'),
+        heading: 'Who Is This For?',
+        body:    parts.join('\n\n'),
         align:   'left',
       },
     })
   }
 
-  // ── BENEFITS ─────────────────────────────────────────
+  // ── BENEFITS ─────────────────────────────────────────────────────────────
   if (prompts.benefits?.trim()) {
-    const items = prompts.benefits
-      .split('\n')
-      .map(s => s.replace(/^[-•*]\s*/, '').trim())
-      .filter(Boolean)
+    const items = splitLines(prompts.benefits)
     if (items.length > 0) {
       blocks.push({
         type: 'BENEFITS',
-        content: {
-          heading: 'What You Will Get',
-          items,
-        },
+        content: { heading: 'What You Will Learn', items },
       })
     }
   }
 
-  // ── TRANSFORMATION ───────────────────────────────────
+  // ── DIVIDER ───────────────────────────────────────────────────────────────
+  blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
+
+  // ── CURRICULUM ───────────────────────────────────────────────────────────
+  blocks.push({
+    type: 'CURRICULUM',
+    content: {
+      heading:         'Course Content',
+      showLessonCount: true,
+      showDurations:   true,
+      showFreePreview: true,
+      expandFirst:     true,
+    },
+  })
+
+  // ── WHAT'S INCLUDED ──────────────────────────────────────────────────────
+  if (prompts.whatsIncluded?.trim()) {
+    const items = splitLines(prompts.whatsIncluded)
+    if (items.length > 0) {
+      blocks.push({
+        type: 'BENEFITS',
+        content: { heading: "What's Included", items },
+      })
+    }
+  }
+
+  // ── TRANSFORMATION ───────────────────────────────────────────────────────
   if (prompts.transformation?.trim()) {
     blocks.push({
       type: 'TEXT',
       content: {
         heading: 'Your Outcome',
         body:    prompts.transformation.trim(),
-        align:   'left',
+        align:   'center',
       },
     })
   }
 
-  // ── CURRICULUM ───────────────────────────────────────
-  // Always added — shows actual modules/lessons from DB
-  blocks.push({
-    type: 'CURRICULUM',
-    content: {
-      heading:          prompts.curriculumSummary?.trim()
-                          ? prompts.curriculumSummary.trim()
-                          : 'Course Content',
-      showLessonCount:  true,
-      showDurations:    true,  // auto-hides if no duration data exists
-      showFreePreview:  true,
-      expandFirst:      true,
-    },
-  })
+  // ── DIVIDER ───────────────────────────────────────────────────────────────
+  blocks.push({ type: 'DIVIDER', content: { symbol: '✦' } })
 
-  // ── WHAT'S INCLUDED ──────────────────────────────────
-  if (prompts.whatsIncluded?.trim()) {
-    const items = prompts.whatsIncluded
-      .split('\n')
-      .map(s => s.replace(/^[-•*]\s*/, '').trim())
-      .filter(Boolean)
-    if (items.length > 0) {
-      blocks.push({
-        type: 'BENEFITS',
-        content: {
-          heading: "What's Included",
-          items,
-        },
-      })
-    }
-  }
-
-  // ── INSTRUCTOR ───────────────────────────────────────
-  // Only if course has an instructor assigned
+  // ── INSTRUCTOR ───────────────────────────────────────────────────────────
   if (course.instructor) {
     blocks.push({
       type: 'INSTRUCTOR',
       content: {
-        heading:          'Your Instructor',
-        showAvatar:       true,
-        showBio:          true,
-        // instructorBio from prompts can override the profile bio
-        bioOverride:      prompts.instructorBio?.trim() || null,
+        heading:     'Your Instructor',
+        showAvatar:  true,
+        showBio:     true,
+        bioOverride: prompts.instructorBio?.trim() || null,
       },
     })
   }
 
-  // ── TESTIMONIALS ─────────────────────────────────────
-  // Always add (empty until testimonials are approved and added)
+  // ── TESTIMONIALS ─────────────────────────────────────────────────────────
   blocks.push({
     type: 'TESTIMONIALS',
     content: {
-      heading: 'What Students Say',
-      items:   [],
-      // Populated from approved Testimonial records in the renderer
+      heading:          'What Students Say',
+      items:            [],
       pullFromApproved: true,
     },
   })
 
-  // ── CTA ──────────────────────────────────────────────
+  // ── CTA ──────────────────────────────────────────────────────────────────
   blocks.push({
     type: 'CTA',
     content: {
-      heading:       prompts.transformation?.trim()
-                       ? `Ready to ${prompts.ctaText?.trim() ? '' : 'get started'}?`
-                       : '',
+      heading:       'Ready to Begin?',
       buttonLabel:   prompts.ctaText    || 'Enrol Now',
       buttonSubtext: prompts.ctaSubtext || '',
+      showPrice:     true,
     },
   })
 

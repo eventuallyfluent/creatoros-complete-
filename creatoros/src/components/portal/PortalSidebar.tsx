@@ -8,14 +8,13 @@ import {
   Star, Settings, LogOut, ExternalLink, Shield,
 } from 'lucide-react'
 
-const NAV_ITEMS = [
-  { label: 'Dashboard',    href: '/portal',              icon: LayoutDashboard },
-  { label: 'My Courses',   href: '/portal/courses',      icon: BookOpen },
-  { label: 'Certificates', href: '/portal/certificates', icon: Star },
+const BASE_NAV_ITEMS = [
+  { label: 'My Library',   href: '/portal',              icon: LayoutDashboard },
   { label: 'Account',      href: '/portal/account',      icon: Settings },
 ]
+const CERT_NAV_ITEM = { label: 'Certificates', href: '/portal/certificates', icon: Star }
 
-export default function PortalSidebar({ session }: { session: any }) {
+export default function PortalSidebar({ session, hasCertificates = false }: { session: any; hasCertificates?: boolean }) {
   const pathname  = usePathname()
   const isAdmin   = session?.user?.role === 'ADMIN'
   const userName  = session?.user?.name ?? session?.user?.email ?? 'Student'
@@ -59,9 +58,9 @@ export default function PortalSidebar({ session }: { session: any }) {
 
       {/* Navigation */}
       <nav style={{ padding: '12px 8px', flex: 1 }}>
-        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+        {[...BASE_NAV_ITEMS, ...(hasCertificates ? [CERT_NAV_ITEM] : [])].map(({ label, href, icon: Icon }) => {
           const isActive = href === '/portal'
-            ? pathname === '/portal'
+            ? pathname === '/portal' || pathname.startsWith('/portal/courses')
             : pathname.startsWith(href)
 
           return (

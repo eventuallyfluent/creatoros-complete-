@@ -239,11 +239,9 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0 }}>Billing Type</h3>
-            {form.billingType !== 'ONE_TIME' && !hasGateway && (
-            <span style={{ fontSize: '11px', color: '#f59e0b', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '3px 8px', fontWeight: 600 }}>
-              ⚠ No gateway connected yet
-            </span>
-          )}
+          <span style={{ fontSize: '11px', color: '#6b7280', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '3px 8px', fontWeight: 600 }}>
+            Subscription &amp; payment plans — coming soon
+          </span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -257,8 +255,8 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
           </label>
 
           {/* Subscription */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'SUBSCRIPTION' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', background: form.billingType === 'SUBSCRIPTION' ? 'rgba(123,47,190,0.04)' : 'white',  }}>
-            <input type="radio" name="billingType" value="SUBSCRIPTION" checked={form.billingType === 'SUBSCRIPTION'} onChange={() => set('billingType', 'SUBSCRIPTION')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }}  />
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: '1px solid #e5e7eb', borderRadius: '10px', cursor: 'not-allowed', background: 'white', opacity: 0.5 }}>
+            <input type="radio" name="billingType" value="SUBSCRIPTION" checked={false} disabled onChange={() => {}} style={{ marginTop: '2px', accentColor: '#7B2FBE' }}  />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>Ongoing subscription</p>
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student is billed every period until they cancel. Only available if your payment gateway supports recurring billing.</p>
@@ -276,8 +274,8 @@ function BillingTab({ product, inp, lbl, card, row2 }: any) {
           </label>
 
           {/* Payment plan */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: `2px solid ${form.billingType === 'PAYMENT_PLAN' ? '#7B2FBE' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', background: form.billingType === 'PAYMENT_PLAN' ? 'rgba(123,47,190,0.04)' : 'white',  }}>
-            <input type="radio" name="billingType" value="PAYMENT_PLAN" checked={form.billingType === 'PAYMENT_PLAN'} onChange={() => set('billingType', 'PAYMENT_PLAN')} style={{ marginTop: '2px', accentColor: '#7B2FBE' }}  />
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', border: '1px solid #e5e7eb', borderRadius: '10px', cursor: 'not-allowed', background: 'white', opacity: 0.5 }}>
+            <input type="radio" name="billingType" value="PAYMENT_PLAN" checked={false} disabled onChange={() => {}} style={{ marginTop: '2px', accentColor: '#7B2FBE' }}  />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>Payment plan</p>
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px' }}>Student pays in fixed instalments then access continues. Only available if your payment gateway supports recurring billing.</p>
@@ -404,7 +402,7 @@ function ContentTab({ product, course, instructors, inp, lbl, card, row2 }: any)
       {/* ── Curriculum ────────────────────────────────────────────────── */}
       <section>
         <SectionHeading>Curriculum</SectionHeading>
-        <CurriculumBuilder courseId={course.id} modules={course.modules as any} />
+        <CurriculumBuilder courseId={course.id} courseSlug={course.slug} modules={course.modules as any} />
       </section>
 
       {/* ── Students ──────────────────────────────────────────────────── */}

@@ -21,13 +21,14 @@ interface ParsedPreview {
 // ── CSV template content ──────────────────────────────────────────────────────
 // All sales page fields are on the COURSE row only — MODULE and LESSON rows leave them blank
 const TEMPLATE_CSV = `row_type,title,description,slug,status,price,compare_at_price,currency,thumbnail_url,sort_order,module_title,lesson_type,video_provider,video_id,video_url,aspect_ratio,duration_seconds,is_free,is_published,drip_days,headline,subheadline,problem,who_is_it_for,benefits,transformation,whats_included,curriculum_summary,instructor_bio,cta_text,cta_subtext,meta_description,certificate_enabled
-COURSE,Introduction to Hermetics,The foundational principles of Western esoteric philosophy,introduction-to-hermetics,PUBLISHED,97,,GBP,https://example.com/thumb.jpg,,,,,,,,,,,,"Ancient Wisdom for the Modern Initiate","A structured practical course in Hermetic philosophy","Most people have no clear starting point — scattered books and no coherent system","Anyone serious about Western esotericism who wants a structured foundation","Understand the seven Hermetic principles - Apply Hermetic law to daily life - Read the Kybalion with real comprehension","Students leave with a working philosophical framework they can build on for life","12 video lessons - Downloadable workbook - Private community access","Three modules covering foundation philosophy the seven principles and practical application","I have studied and practised Hermetic philosophy for over 20 years","Enrol Now","30-day money-back guarantee","Structured courses in Hermetic philosophy for serious students",false
-MODULE,The Hermetic Foundation,,,,,,,,,0,,,,,,,,,,,,,,,,,,,,,,,
-LESSON,Welcome & Course Overview,Introduction to the course,,,,,,,,,The Hermetic Foundation,VIDEO,STREAMABLE,abc123,,480,true,true,,,,,,,,,,,,,,,,,
-LESSON,What is Hermeticism?,History and overview of the Hermetic tradition,,,,,,,,,The Hermetic Foundation,VIDEO,STREAMABLE,abc124,,1440,false,true,,,,,,,,,,,,,,,,,
-MODULE,The Seven Principles,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,
-LESSON,Mentalism — All is Mind,The first Hermetic principle,,,,,,,,,The Seven Principles,VIDEO,STREAMABLE,abc125,,1800,false,true,,,,,,,,,,,,,,,,,
-`
+COURSE,Introduction to Hermetics,The foundational principles of Western esoteric philosophy,introduction-to-hermetics,PUBLISHED,97,,GBP,https://example.com/course-thumbnail.jpg,,,,,,,,,,,,Ancient Wisdom for the Modern Initiate,A structured practical course in Hermetic philosophy,Most people have no clear starting point — scattered books and no coherent system,Anyone serious about Western esotericism who wants a structured foundation,Understand the seven principles - Apply Hermetic law to daily life - Read the Kybalion,Students leave with a working philosophical framework they can build on for life,12 video lessons - Downloadable workbook - Private community access,"Three modules: foundation philosophy, the seven principles, practical application",I have studied and practised Hermetic philosophy for over 20 years,Enrol Now,30-day money-back guarantee,Structured courses in Hermetic philosophy for serious students,false
+MODULE,The Hermetic Foundation,,,,,,,,0,,,,,,,,,,,,,,,,,,,,,,,
+LESSON,Welcome & Course Overview,Introduction to the course,,,,,,,0,The Hermetic Foundation,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,480,true,true,,,,,,,,,,,,,,
+LESSON,What is Hermeticism?,History and overview of the Hermetic tradition,,,,,,,1,The Hermetic Foundation,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,1440,false,true,,,,,,,,,,,,,,
+LESSON,The Kybalion — Text & Context,Reading and understanding the Kybalion,,,,,,,2,The Hermetic Foundation,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,2160,false,true,,,,,,,,,,,,,,
+MODULE,The Seven Principles,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,
+LESSON,Mentalism — All is Mind,The first Hermetic principle,,,,,,,0,The Seven Principles,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,1800,false,true,,,,,,,,,,,,,,
+LESSON,Correspondence — As Above So Below,The second principle and its implications,,,,,,,1,The Seven Principles,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,1620,false,true,,,,,,,,,,,,,,`
 
 // ── Simple client-side CSV preview parser ────────────────────────────────────
 function previewCsv(text: string): ParsedPreview | null {

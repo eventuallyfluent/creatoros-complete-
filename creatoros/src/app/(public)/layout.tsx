@@ -14,12 +14,13 @@ export default async function PublicLayout({
     getSiteSettings(),
   ])
 
-  const logoDark  = (settings as any).logoDarkUrl  || settings.logoUrl || null
-  const logoLight = (settings as any).logoLightUrl || settings.logoUrl || null
+  const logoDark  = settings.logoDarkUrl  || settings.logoUrl || null
+  const logoLight = settings.logoLightUrl || settings.logoUrl || null
+  const navLinks  = settings.headerNav?.length ? settings.headerNav : undefined
 
   return (
     <>
-      <Navbar session={session} logoDarkUrl={logoDark} logoLightUrl={logoLight} />
+      <Navbar session={session} logoDarkUrl={logoDark} logoLightUrl={logoLight} navLinks={navLinks} />
       <main style={{ paddingTop: 'var(--nav-height)' }}>
         {children}
       </main>

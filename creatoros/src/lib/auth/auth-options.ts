@@ -5,8 +5,11 @@ import EmailProvider from 'next-auth/providers/email'
 import { prisma } from '@/lib/db/prisma'
 import { sendMagicLinkEmail } from '@/lib/email/magic-link'
 
-const ADMIN_EMAIL    = 'perseusarcaneacademy@gmail.com'
-const ADMIN_PASSWORD = 'PerseusAdmin2025!'
+// Admin credentials from environment variables
+// Set ADMIN_EMAIL and ADMIN_PASSWORD in Vercel env vars
+// Falls back to legacy values if env vars not set (remove fallbacks before going fully public)
+const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    ?? 'perseusarcaneacademy@gmail.com'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'PerseusAdmin2025!'
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,

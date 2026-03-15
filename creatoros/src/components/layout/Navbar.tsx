@@ -10,11 +10,17 @@ import Button from '@/components/ui/Button'
 
 const NAV_LINKS = [
   { label: 'Courses',     href: '/courses' },
-  { label: 'Collections', href: '/collection' },
+  { label: 'Collections', href: '/collections' },
   { label: 'Instructors', href: '/instructors' },
 ]
 
-export default function Navbar({ session, logoDarkUrl, logoLightUrl }: { session: any; logoDarkUrl?: string | null; logoLightUrl?: string | null }) {
+export default function Navbar({ session, logoDarkUrl, logoLightUrl, navLinks }: {
+  session:      any
+  logoDarkUrl?:  string | null
+  logoLightUrl?: string | null
+  navLinks?:     { label: string; href: string }[]
+}) {
+  const links = navLinks && navLinks.length > 0 ? navLinks : NAV_LINKS
   const [mobileOpen,    setMobileOpen]    = useState(false)
   const [userMenuOpen,  setUserMenuOpen]  = useState(false)
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -106,7 +112,7 @@ export default function Navbar({ session, logoDarkUrl, logoLightUrl }: { session
             }}
             className="hide-mobile"
           >
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -253,7 +259,7 @@ export default function Navbar({ session, logoDarkUrl, logoLightUrl }: { session
           padding: '80px 24px 40px',
         }}>
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

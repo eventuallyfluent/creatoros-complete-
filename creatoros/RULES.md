@@ -203,3 +203,13 @@ Before running the zip command, verify:
 3. Build-breaking files removed
 
 Do not package until both checks pass.
+
+
+## Required Vercel Environment Variables
+
+Add these to Vercel → Project → Settings → Environment Variables:
+
+- `ADMIN_EMAIL` — admin login email (e.g. perseusarcaneacademy@gmail.com)
+- `ADMIN_PASSWORD` — admin login password (replaces hardcoded value)
+
+Until these are set, the app falls back to the hardcoded values in auth-options.ts.
