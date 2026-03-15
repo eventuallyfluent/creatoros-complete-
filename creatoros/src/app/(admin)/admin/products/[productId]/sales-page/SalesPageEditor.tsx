@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react'
+import ImageUpload from '@/components/admin/ImageUpload'
 import { Eye, EyeOff, GripVertical, Trash2, Plus, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 
 const inp: React.CSSProperties = {
@@ -81,8 +82,14 @@ function BlockContentEditor({ type, content, onChange }: { type: string; content
       <>
         <F label="Headline"><input value={content.headline ?? ''} onChange={e => set('headline', e.target.value)} style={inp} /></F>
         <F label="Subheadline"><input value={content.subheadline ?? ''} onChange={e => set('subheadline', e.target.value)} style={inp} /></F>
-        <F label="Hero Image URL" hint="Optional — shown beside the headline. Leave blank for text-only hero.">
-          <input value={content.heroImageUrl ?? ''} onChange={e => set('heroImageUrl', e.target.value || undefined)} placeholder="https://…" style={inp} />
+        <F label="Hero Image" hint="Optional — shown beside the headline. Leave blank for text-only hero.">
+          <ImageUpload
+            value={content.heroImageUrl ?? null}
+            onChange={url => set('heroImageUrl', url ?? undefined)}
+            aspectRatio="16/9"
+            folder="hero"
+            label=""
+          />
         </F>
         {content.heroImageUrl && (
           <F label="Image position">
@@ -185,7 +192,15 @@ function BlockContentEditor({ type, content, onChange }: { type: string; content
     )
     case 'IMAGE': return (
       <>
-        <F label="Image URL" hint="Paste a hosted image URL"><input value={content.src ?? ''} onChange={e => set('src', e.target.value)} placeholder="https://..." style={inp} /></F>
+        <F label="Image" hint="Upload or paste a URL">
+          <ImageUpload
+            value={content.src ?? null}
+            onChange={url => set('src', url ?? '')}
+            aspectRatio="16/9"
+            folder="blocks"
+            label=""
+          />
+        </F>
         <F label="Alt text"><input value={content.altText ?? ''} onChange={e => set('altText', e.target.value)} placeholder="Describe the image" style={inp} /></F>
         <F label="Caption (optional)"><input value={content.caption ?? ''} onChange={e => set('caption', e.target.value || undefined)} style={inp} /></F>
         <F label="Layout">

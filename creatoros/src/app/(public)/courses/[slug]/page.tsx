@@ -433,7 +433,7 @@ export default async function CourseSalesPage({ params }: Props) {
     const priceStr = c.showPrice && !isFree ? ` — ${product.currency} ${price.toFixed(2)}` : ''
     if (isEnrolled) return null
     return (
-      <section key={block.id} style={{ ...S.section, background: 'linear-gradient(135deg, #1A0A2E 0%, var(--bg-base) 100%)', textAlign: 'center' }}>
+      <section key={block.id} style={{ ...S.section, background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-base) 100%)', textAlign: 'center' }}>
         <div style={{ ...S.container, maxWidth: '580px', margin: '0 auto' }}>
           {c.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: '20px' }}>{c.heading}</h2>}
           <EnrollButton productId={product.id} productSlug={product.slug} portalSlug={portalSlug} price={price} currency={product.currency} label={ctaLabel + priceStr} />

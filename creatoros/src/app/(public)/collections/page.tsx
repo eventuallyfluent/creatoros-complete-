@@ -77,7 +77,7 @@ function CollectionRow({ collection }: { collection: any }) {
       <div style={{
         padding: 'var(--s6)',
         borderBottom: '1px solid var(--border)',
-        background: 'linear-gradient(135deg, #1A0A2E 0%, var(--bg-surface) 100%)',
+        background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--s5)',
       }}>
         <div>
@@ -120,7 +120,7 @@ function CollectionRow({ collection }: { collection: any }) {
             style={{ textDecoration: 'none', background: 'var(--bg-surface)', display: 'block' }}
             className="collection-course-hover"
           >
-            <div style={{ height: '120px', background: course.thumbnailUrl ? undefined : 'linear-gradient(135deg, #1A0A2E, #2D1045)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ height: '120px', background: course.thumbnailUrl ? undefined : 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))', position: 'relative', overflow: 'hidden' }}>
               {course.thumbnailUrl ? (
                 <Image src={course.thumbnailUrl} alt={course.title} fill style={{ objectFit: 'cover' }} />
               ) : (

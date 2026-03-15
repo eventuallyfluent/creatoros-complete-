@@ -155,7 +155,7 @@ function CollectionCard({ collection }: { collection: any }) {
           width:       '100%',
           aspectRatio: '4/3',
           overflow:    'hidden',
-          background:  'linear-gradient(135deg, #0D0D1A, #1A0A2E)',
+          background:  'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))',
         }}>
           {collection.bannerImageUrl ? (
             <Image

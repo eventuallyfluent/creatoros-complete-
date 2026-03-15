@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
+import ImageUpload from '@/components/admin/ImageUpload'
 import type { SiteSettings, HomepageSection } from '@/lib/settings/site-settings'
 
 interface Course      { id: string; title: string; thumbnailUrl: string | null }
@@ -113,6 +114,16 @@ export default function HomepageEditor({ settings, courses, collections, reviews
               </Field>
               <Field label="Subtext" hint="1–2 sentence description below the headline.">
                 <textarea value={form.heroSubtext} onChange={e => set('heroSubtext', e.target.value)} rows={3} style={{ ...inp, resize: 'vertical' }} />
+              </Field>
+
+              <Field label="Hero Image" hint="Optional. Shows beside the headline. Leave blank for text-only hero.">
+                <ImageUpload
+                  value={(form as any).heroImageUrl ?? null}
+                  onChange={url => set('heroImageUrl' as any, url ?? '')}
+                  aspectRatio="16/9"
+                  folder="hero"
+                  label=""
+                />
               </Field>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>

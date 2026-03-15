@@ -23,7 +23,7 @@ export default async function InstructorsPage() {
       {/* Header */}
       <div style={{
         padding: 'var(--s8) 0 var(--s7)',
-        background: 'linear-gradient(160deg, #1A0A2E 0%, var(--bg-base) 60%)',
+        background: 'linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg-base) 60%)',
         borderBottom: '1px solid var(--border)',
         textAlign: 'center',
       }}>

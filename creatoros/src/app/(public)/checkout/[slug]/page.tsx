@@ -144,7 +144,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
 
           {/* Right — order summary */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', position: 'sticky', top: 'calc(var(--nav-height) + 24px)' }}>
-            <div style={{ height: '160px', background: 'linear-gradient(135deg, #1A0A2E, #2D1045)', position: 'relative' }}>
+            <div style={{ height: '160px', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))', position: 'relative' }}>
               {product.thumbnailUrl ? (
                 <Image src={product.thumbnailUrl} alt={product.title} fill style={{ objectFit: 'cover' }} />
               ) : (

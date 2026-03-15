@@ -7,7 +7,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login?callbackUrl=/portal')
   return (
-    <div className="portal-layout">
+    <div className="portal-layout" data-theme="dark">
       <PortalSidebar session={session} />
       <main className="portal-main">{children}</main>
     </div>

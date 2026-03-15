@@ -51,29 +51,10 @@ export default async function HomePage() {
     ? featuredList
     : [...featuredList, ...rest]  // 'all' and 'collections' both use full list as fallback
 
-  // Collections
+  // Collections — only need basic info + count for card display
   const collections = await prisma.collection.findMany({
     where:   { isPublished: true },
-    include: {
-      courses: {
-        orderBy: { sortOrder: 'asc' },
-        include: {
-          course: {
-            include: {
-              instructor: true,
-              products: {
-                take:    1,
-                include: {
-                  product: {
-                    select: { id: true, slug: true, price: true, compareAtPrice: true, currency: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    include: { _count: { select: { courses: true } } },
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
   })
 
@@ -93,7 +74,7 @@ export default async function HomePage() {
               {settings.heroEyebrow}
             </p>
           )}
-          <h1 className="display-heading" style={{ fontSize: 'clamp(32px, 6vw, 64px)', background: 'linear-gradient(135deg, #F0EAF8 30%, var(--accent) 70%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: 'var(--s4)' }}>
+          <h1 className="display-heading" style={{ fontSize: 'clamp(32px, 6vw, 64px)', background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 70%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: 'var(--s4)' }}>
             {settings.heroHeadline}
           </h1>
           {settings.heroSubtext && (
@@ -126,46 +107,37 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* COLLECTIONS — only shown in 'collections' mode (or always if collections exist and mode is 'all') */}
-      {(displayMode === 'collections' || (displayMode === 'all' && collections.length > 0)) && collections.map((collection: any) => (
-        <section key={collection.id} className="section-padding">
+      {/* COLLECTIONS — card grid, click to browse. Shown in collections mode, or all mode when collections exist */}
+      {displayMode === 'collections' && (
+        <section className="section-padding">
           <div className="platform-container">
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 'var(--s6)', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <p style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '6px' }}>Collection</p>
-                <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>{collection.name}</h2>
-                {collection.description && <p style={{ fontSize: '15px', color: 'var(--text-secondary)', maxWidth: '480px' }}>{collection.description}</p>}
-              </div>
-              <Link href={`/collection/${collection.slug}`} style={{ fontSize: '14px', color: 'var(--accent)', textDecoration: 'none' }}>View all →</Link>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--s5)' }}>
-              {collection.courses.slice(0, 3).map(({ course }: any) => {
-                const product  = course.products?.[0]?.product
-                const price    = Number(product?.price ?? 0)
-                const cardSlug = product?.slug ?? course.slug
-                return (
-                  <CourseCard
-                    key={course.id}
-                    slug={cardSlug}
-                    title={course.title}
-                    description={course.description ?? undefined}
-                    thumbnailUrl={course.thumbnailUrl ?? undefined}
-                    price={price}
-                    compareAtPrice={product?.compareAtPrice ? Number(product.compareAtPrice) : undefined}
-                    currency={product?.currency ?? 'USD'}
-                    instructor={course.instructor ? { name: course.instructor.displayName } : undefined}
-                    isFree={price === 0}
-                    enrollment={enrolledIds.has(course.id) ? { progressPercent: 0, lessonsCompleted: 0, totalLessons: 0 } : undefined}
-                  />
-                )
-              })}
+            <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>Collections</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--s5)' }} className="collection-overview-grid">
+              {collections.map((collection: any) => (
+                <Link key={collection.id} href={`/collection/${collection.slug}`} style={{ textDecoration: 'none' }}>
+                  <div className="collection-card" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'pointer' }}>
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))' }}>
+                      {collection.bannerImageUrl
+                        ? <img src={collection.bannerImageUrl} alt={collection.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }} className="collection-card-img" />
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+                            <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 2.5vw, 24px)', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.06em', lineHeight: 1.2 }}>{collection.name}</p>
+                          </div>
+                      }
+                    </div>
+                    <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{collection.name}</p>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{collection._count?.courses ?? 0} courses →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
-      ))}
+      )}
 
       {/* COURSE GRID — shown in 'all'/'featured' mode, or collections mode with no collections */}
-      {(displayMode !== 'collections' || collections.length === 0) && courses.length > 0 && (
+      {displayMode !== 'collections' && courses.length > 0 && (
         <section className="section-padding">
           <div className="platform-container">
             <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>All Courses</h2>
@@ -262,7 +234,7 @@ export default async function HomePage() {
 
       {/* EMAIL OPTIN */}
       {settings.showEmailOptin && (
-        <section style={{ padding: 'var(--s8) 0', background: 'linear-gradient(135deg, #1A0A2E 0%, var(--bg-base) 100%)' }}>
+        <section style={{ padding: 'var(--s8) 0', background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-base) 100%)' }}>
           <div className="platform-container" style={{ textAlign: 'center', maxWidth: '560px', margin: '0 auto' }}>
             <p style={{ fontSize: '20px', color: 'var(--accent-gold)', marginBottom: 'var(--s3)' }}>✦</p>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: '12px' }}>{settings.emailOptinHeadline}</h2>
@@ -281,6 +253,12 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+    <style>{`
+      .collection-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important; transform: translateY(-2px); }
+      .collection-card:hover .collection-card-img { transform: scale(1.03); }
+      @media (max-width: 900px)  { .collection-overview-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+      @media (max-width: 560px)  { .collection-overview-grid { grid-template-columns: 1fr !important; } }
+    `}</style>
     </>
   )
 }

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: 'Admin Dashboard' }
 
 export default async function AdminDashboard() {
   // Fetch each stat independently so one failure doesn't crash the whole page
-  const courseCount   = await prisma.course.count({ where: { status: 'PUBLISHED' } }).catch(() => 0)
+  const courseCount   = await prisma.product.count({ where: { status: 'PUBLISHED' } }).catch(() => 0)
   const studentCount  = await prisma.user.count({ where: { role: 'STUDENT' } }).catch(() => 0)
   const orderCount    = await prisma.order.count({ where: { status: 'PAID' } }).catch(() => 0)
   const revenueResult = await prisma.order.aggregate({ where: { status: 'PAID' }, _sum: { total: true } }).catch(() => null)

@@ -48,6 +48,9 @@
 
   /* Borders */
   --border:         #2E2E4E;
+
+  /* Nav */
+  --nav-bg:         rgba(13, 13, 26, 0.92);
   --border-bright:  #4A3A6E;
 
   /* Status */
@@ -110,11 +113,42 @@
   --border:         #D4C8F0;
   --border-bright:  #B8A4E0;
 
+  --nav-bg:         rgba(255, 255, 255, 0.92);
+
   --success:        #059669;
   --warning:        #D97706;
   --danger:         #DC2626;
 
   --surface-light:  #FFFFFF;
+}
+
+/* ============================================================
+   PERSEUS DARK THEME (explicit — for nested overrides)
+   Portal and admin always use this regardless of public theme
+   ============================================================ */
+[data-theme="dark"] {
+  --bg-base:        #0D0D1A;
+  --bg-surface:     #1A1A2E;
+  --bg-elevated:    #252540;
+  --bg-hover:       #2E2E52;
+  --brand:          #7B2FBE;
+  --brand-hover:    #9B3FDE;
+  --brand-glow:     rgba(123, 47, 190, 0.35);
+  --accent:         #C084FC;
+  --accent-soft:    rgba(192, 132, 252, 0.15);
+  --accent-gold:    #D4A855;
+  --gold-soft:      rgba(212, 168, 85, 0.15);
+  --text-primary:   #F0EAF8;
+  --text-secondary: #A78BCA;
+  --text-muted:     #6B5B8A;
+  --text-inverse:   #0D0D1A;
+  --border:         #2E2E4E;
+  --border-bright:  #4A3A6E;
+  --success:        #34D399;
+  --warning:        #FBBF24;
+  --danger:         #F87171;
+  --surface-light:  #FAFAFA;
+  --nav-bg:         rgba(13, 13, 26, 0.92);
 }
 
 /* ============================================================
@@ -342,7 +376,7 @@ code, pre {
 
 /* Hero section background */
 .hero-bg {
-  background: linear-gradient(180deg, #0D0522 0%, var(--bg-base) 100%);
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-base) 100%);
   position: relative;
   overflow: hidden;
 }

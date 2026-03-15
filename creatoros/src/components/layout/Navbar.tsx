@@ -59,7 +59,7 @@ export default function Navbar({ session }: { session: any }) {
           left: 0,
           right: 0,
           height: 'var(--nav-height)',
-          background: 'rgba(13,13,26,0.92)',
+          background: 'var(--nav-bg, rgba(13,13,26,0.92))',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border)',
