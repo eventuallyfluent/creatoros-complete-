@@ -166,3 +166,40 @@ At the end of every session:
 ---
 
 *Last updated: Session 7 — based on real mistakes made in sessions 1-6.*
+
+
+## MANDATORY SESSION START — FILE INTEGRITY CHECK
+
+Before writing a single line of code, run this exact check:
+
+```bash
+# 1. Verify no duplicate route exists
+find src/app -name "page.tsx" | sed 's|/page.tsx||' | sed 's|(admin)/||;s|(public)/||;s|(portal)/||' | sort | uniq -d
+
+# 2. Verify the known bad folder is gone
+ls src/app/\(admin\)/admin-login 2>/dev/null && echo "STOP — DELETE THIS FOLDER BEFORE PROCEEDING" || echo "clean"
+```
+
+If the duplicate check returns ANY output, stop and fix it before doing anything else.
+If the admin-login check returns anything other than "clean", delete the folder immediately and regenerate the zip.
+
+## THE ADMIN-LOGIN RULE
+
+`src/app/(public)/admin-login/` is the ONE AND ONLY admin login location.
+`src/app/(admin)/admin-login/` must NEVER exist. Ever.
+
+If at any point you create, copy, or move files related to admin-login, verify afterward:
+```bash
+ls src/app/\(admin\)/admin-login 2>/dev/null && echo "BUG" || echo "OK"
+```
+
+If it says BUG, delete it before packaging. No exceptions.
+
+## ZIP PACKAGING CHECKLIST
+
+Before running the zip command, verify:
+1. No duplicate routes: `find src/app -name "page.tsx" | sed 's|/page.tsx||' | sed 's|(admin)/||;s|(public)/||;s|(portal)/||' | sort | uniq -d`
+2. No (admin)/admin-login: `ls src/app/\(admin\)/admin-login 2>/dev/null || echo "clean"`
+3. Build-breaking files removed
+
+Do not package until both checks pass.

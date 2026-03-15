@@ -582,3 +582,26 @@ P0 includes only issues that break one or more of these:
 ### Rule
 Claude must not report “working on collections,” “improving editor,” or similar vague claims.
 Claude must report against the checklist using exact files and exact verification steps.
+
+
+## Non-Negotiable Pre-Packaging Protocol
+
+Every session that produces a zip must run these checks before packaging. No exceptions.
+
+### Check 1 — No duplicate routes
+```bash
+find src/app -name "page.tsx" | sed 's|/page.tsx||' | sed 's|(admin)/||;s|(public)/||;s|(portal)/||' | sort | uniq -d
+```
+Output must be empty. If not, stop and resolve.
+
+### Check 2 — admin-login folder
+```bash
+ls src/app/\(admin\)/admin-login 2>/dev/null && echo "STOP DELETE THIS" || echo "clean"
+```
+Must say "clean".
+
+### Why this rule exists
+The `(admin)/admin-login` folder was deleted from GitHub three times because Claude kept recreating it in the working directory and including it in the zip without checking. The build error is obvious and was avoidable every single time. The rule exists because Claude failed to self-verify.
+
+### General principle
+If a file or folder has been a source of build errors before, it is a known landmine. Known landmines go on the checklist. The checklist runs before every packaging step. This is not optional.
