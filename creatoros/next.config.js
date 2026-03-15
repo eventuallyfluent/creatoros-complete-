@@ -1,5 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      // Preserve Payhip-style /b/[slug] URLs — redirect to /courses/[slug]
+      // All existing links, Google results, student bookmarks continue to work
+      {
+        source:      '/b/:slug',
+        destination: '/courses/:slug',
+        permanent:   true,  // 301 — tells Google to update its index
+      },
+    ]
+  },
   typescript: {
     // Type errors are caught in dev — don't block production builds
     ignoreBuildErrors: true,

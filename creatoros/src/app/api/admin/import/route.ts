@@ -22,37 +22,55 @@ function getSupabase() {
  * Returns the new permanent URL, or the original URL if upload fails.
  */
 async function mirrorImage(externalUrl: string, folder = 'thumbnails'): Promise<string> {
-  try {
-    const supabase = getSupabase()
-    if (!supabase) return externalUrl
+  const supabase = getSupabase()
+  if (!supabase) return externalUrl
 
-    const res = await fetch(externalUrl, { signal: AbortSignal.timeout(10000) })
-    if (!res.ok) return externalUrl
+  // Try up to 3 times with increasing timeout
+  for (const timeout of [10000, 20000, 30000]) {
+    try {
+      const res = await fetch(externalUrl, {
+        signal: AbortSignal.timeout(timeout),
+        headers: { 'User-Agent': 'Mozilla/5.0 CreatorOS-Importer/1.0' },
+      })
+      if (!res.ok) continue
 
-    const contentType = res.headers.get('content-type') ?? 'image/jpeg'
-    if (!contentType.startsWith('image/')) return externalUrl
+      // Accept any image content type, fall back to jpeg
+      const contentType = res.headers.get('content-type') ?? ''
+      const isImage = contentType.startsWith('image/') || externalUrl.match(/\.(jpg|jpeg|png|webp|gif|avif)(\?|$)/i)
+      if (!isImage) return externalUrl
 
-    const ext = contentType.split('/')[1]?.split(';')[0] ?? 'jpg'
-    const buffer = await res.arrayBuffer()
+      // Derive extension from URL if content-type is unhelpful
+      const urlExt = externalUrl.match(/\.(jpg|jpeg|png|webp|gif|avif)(\?|$)/i)?.[1]?.toLowerCase()
+      const ctExt  = contentType.split('/')[1]?.split(';')[0]?.replace('jpeg','jpg') ?? 'jpg'
+      const ext    = urlExt ?? ctExt
 
-    // Generate a stable filename from the URL so re-imports don't create duplicates
-    const hash = Buffer.from(externalUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)
-    const filename = `${folder}/${hash}.${ext}`
+      const buffer = await res.arrayBuffer()
+      if (buffer.byteLength === 0) continue
 
-    // Check if already uploaded (upsert: false would fail — use upsert: true to overwrite)
-    const { error } = await supabase.storage.from(BUCKET).upload(filename, buffer, {
-      contentType,
-      cacheControl: '31536000',
-      upsert: true,
-    })
+      // Stable filename = hash of URL, so re-imports reuse the same file
+      const hash     = Buffer.from(externalUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)
+      const filename = `${folder}/${hash}.${ext}`
+      const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
 
-    if (error) return externalUrl
+      const { error } = await supabase.storage.from(BUCKET).upload(filename, buffer, {
+        contentType:  mimeType,
+        cacheControl: '31536000',
+        upsert:       true,
+      })
 
-    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(filename)
-    return publicUrl
-  } catch {
-    return externalUrl
+      if (error) {
+        console.error('Supabase upload error:', error.message)
+        continue
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(filename)
+      return publicUrl
+    } catch (err: any) {
+      console.warn(`mirrorImage attempt failed (timeout ${timeout}ms):`, err?.message)
+      // continue to next retry
+    }
   }
+  return externalUrl // all retries exhausted — use original URL as fallback
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -60,14 +78,14 @@ async function mirrorImage(externalUrl: string, folder = 'thumbnails'): Promise<
 interface CsvRow {
   row_type:        string
   title:           string
-  description:     string
+  description:     string   // used as course subtitle
   sort_order:      string
   module_title:    string
   lesson_type:     string
   video_provider:  string
   video_id:        string
   video_url:       string
-  aspect_ratio:    string  // e.g. "56.25" (16:9), "150" (portrait 2:3) — or paste full embed code here
+  aspect_ratio:    string   // e.g. "56.25" (16:9), "150" (portrait 2:3)
   duration_seconds:string
   is_free:         string
   is_published:    string
@@ -78,6 +96,21 @@ interface CsvRow {
   slug:            string
   status:          string
   thumbnail_url:   string
+  // ── Sales page content ────────────────────────────────────────────────────
+  headline:           string  // main hero headline (defaults to title)
+  subheadline:        string  // supporting statement below headline
+  problem:            string  // what problem does this course solve
+  who_is_it_for:      string  // target audience
+  benefits:           string  // bullet-point benefits (one per line)
+  transformation:     string  // outcome students experience
+  whats_included:     string  // what's in the course (one per line)
+  curriculum_summary: string  // brief description of structure
+  instructor_bio:     string  // why you're the right teacher
+  cta_text:           string  // button label e.g. "Enrol Now"
+  cta_subtext:        string  // below button e.g. "30-day guarantee"
+  // ── Course settings ───────────────────────────────────────────────────────
+  meta_description:     string  // SEO description
+  certificate_enabled:  string  // true/false
 }
 
 interface ImportResult {
@@ -302,13 +335,59 @@ export async function POST(req: NextRequest)  {
     warnings.push(`Product/SalesPage setup warning: ${err.message ?? 'unknown error'}`)
   }
 
+  // ── 4. Populate sales page prompts from CSV if provided ──────────────────
+  if (productId) {
+    const hasPromptData = [
+      courseRow.headline, courseRow.subheadline, courseRow.problem,
+      courseRow.who_is_it_for, courseRow.benefits, courseRow.transformation,
+      courseRow.whats_included, courseRow.curriculum_summary,
+      courseRow.instructor_bio, courseRow.cta_text,
+    ].some(v => v?.trim())
+
+    if (hasPromptData) {
+      try {
+        await prisma.salesPagePrompts.update({
+          where: { productId },
+          data: {
+            headline:          courseRow.headline?.trim()          || course.title,
+            subheadline:       courseRow.subheadline?.trim()       || course.subtitle || null,
+            problem:           courseRow.problem?.trim()           || null,
+            whoIsItFor:        courseRow.who_is_it_for?.trim()     || null,
+            benefits:          courseRow.benefits?.trim()          || null,
+            transformation:    courseRow.transformation?.trim()    || null,
+            whatsIncluded:     courseRow.whats_included?.trim()    || null,
+            curriculumSummary: courseRow.curriculum_summary?.trim()|| null,
+            instructorBio:     courseRow.instructor_bio?.trim()    || null,
+            ctaText:           courseRow.cta_text?.trim()          || 'Enrol Now',
+            ctaSubtext:        courseRow.cta_subtext?.trim()       || null,
+          },
+        })
+      } catch (err: any) {
+        warnings.push(`Sales page prompts: ${err.message ?? 'could not save'}`)
+      }
+    }
+  }
+
+  // ── 5. Apply course-level settings ───────────────────────────────────────
+  const certEnabled = courseRow.certificate_enabled?.trim().toLowerCase()
+  const metaDesc    = courseRow.meta_description?.trim() || null
+  if (certEnabled || metaDesc) {
+    await prisma.course.update({
+      where: { id: course.id },
+      data:  {
+        ...(metaDesc    ? { metaDescription: metaDesc } : {}),
+        ...(certEnabled ? { certificateEnabled: certEnabled === 'true' || certEnabled === '1' || certEnabled === 'yes' } : {}),
+      },
+    }).catch(() => {})
+  }
+
   // If overwriting, delete existing modules (cascades to lessons)
   if (existing && overwrite) {
     await prisma.module.deleteMany({ where: { courseId: course.id } })
     warnings.push(`Existing modules and lessons for "${courseSlug}" were replaced.`)
   }
 
-  // ── 4. Group MODULE + LESSON rows ─────────────────────────────────────────
+  // ── 6. Group MODULE + LESSON rows ─────────────────────────────────────────
   const moduleRows = rows.filter(r => r.row_type?.toUpperCase() === 'MODULE')
   const lessonRows = rows.filter(r => r.row_type?.toUpperCase() === 'LESSON')
 
