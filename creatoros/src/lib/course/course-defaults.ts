@@ -54,7 +54,10 @@ export async function generateSalesPageFromPrompts(productId: string): Promise<v
     prisma.salesPage.findUnique({ where: { productId } }),
     prisma.product.findUnique({
       where:   { id: productId },
-      include: { instructor: true },
+      include: {
+        instructor: true,
+        courses: { take: 1, include: { course: { select: { thumbnailUrl: true } } } },
+      },
     }),
   ])
 
@@ -62,10 +65,15 @@ export async function generateSalesPageFromPrompts(productId: string): Promise<v
     throw new Error(`Product ${productId} missing required records`)
   }
 
+  const thumbnailUrl = product.thumbnailUrl
+    ?? (product as any).courses?.[0]?.course?.thumbnailUrl
+    ?? null
+
   const blocks = generateBlocksFromPrompts(prompts, {
-    title:      product.title,
-    subtitle:   product.subtitle,
-    instructor: product.instructor,
+    title:       product.title,
+    subtitle:    product.subtitle,
+    instructor:  product.instructor,
+    thumbnailUrl,
   })
 
   await prisma.salesPageBlock.deleteMany({ where: { salesPageId: salesPage.id } })

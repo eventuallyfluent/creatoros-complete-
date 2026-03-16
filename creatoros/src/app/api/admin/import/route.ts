@@ -518,6 +518,40 @@ export async function POST(req: NextRequest)  {
   }
   const lessonCount = lessonData.length
 
+  // ── 6a. Inject YouTube video block into sales page if a YouTube lesson exists ──
+  if (productId) {
+    const firstYt = lessonData.find(l =>
+      l.videoProvider === 'YOUTUBE' && l.videoId
+    )
+    if (firstYt) {
+      try {
+        const salesPage = await prisma.salesPage.findUnique({ where: { productId } })
+        if (salesPage) {
+          // Find the HERO block (sortOrder 0) and insert VIDEO block after it
+          await prisma.salesPageBlock.updateMany({
+            where:  { salesPageId: salesPage.id, sortOrder: { gte: 1 } },
+            data:   { sortOrder: { increment: 1 } },
+          })
+          await prisma.salesPageBlock.create({
+            data: {
+              salesPageId: salesPage.id,
+              type:        'IMAGE',
+              sortOrder:   1,
+              visible:     true,
+              content: {
+                blockKind:  'VIDEO',
+                embedUrl:   `https://www.youtube.com/embed/${firstYt.videoId}`,
+                caption:    firstYt.title || null,
+              },
+            },
+          })
+        }
+      } catch (err: any) {
+        warnings.push(`YouTube block: ${err.message ?? 'could not add video to sales page'}`)
+      }
+    }
+  }
+
   // ── 7. Process REVIEW rows ──────────────────────────────────────────────
   const reviewRows = rows.filter(r => r.row_type?.toUpperCase() === 'REVIEW')
   let reviewsImported = 0

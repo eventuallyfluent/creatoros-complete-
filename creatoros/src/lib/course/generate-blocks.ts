@@ -17,7 +17,7 @@ function splitLines(text: string): string[] {
 
 export function generateBlocksFromPrompts(
   prompts: SalesPagePrompts,
-  course: { title: string; subtitle?: string | null; instructor?: { displayName: string } | null }
+  course: { title: string; subtitle?: string | null; instructor?: { displayName: string } | null; thumbnailUrl?: string | null }
 ): GeneratedBlock[] {
   const blocks: GeneratedBlock[] = []
 
@@ -33,11 +33,13 @@ export function generateBlocksFromPrompts(
   blocks.push({
     type: 'HERO',
     content: {
-      headline:    prompts.headline    || course.title,
-      subheadline: prompts.subheadline || course.subtitle || '',
-      ctaLabel:    prompts.ctaText     || 'Enrol Now',
-      ctaSubtext:  prompts.ctaSubtext  || '',
-      badgeLabels: badgeCandidates,
+      headline:       prompts.headline    || course.title,
+      subheadline:    prompts.subheadline || course.subtitle || '',
+      ctaLabel:       prompts.ctaText     || 'Enrol Now',
+      ctaSubtext:     prompts.ctaSubtext  || '',
+      badgeLabels:    badgeCandidates,
+      heroImageUrl:   course.thumbnailUrl ?? null,
+      heroImagePosition: 'right',
     },
   })
 

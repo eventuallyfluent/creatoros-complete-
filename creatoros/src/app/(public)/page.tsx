@@ -70,10 +70,18 @@ export default async function HomePage() {
     ? featuredList
     : [...featuredList, ...rest]  // 'all' and 'collections' both use full list as fallback
 
-  // Collections — only need basic info + count for card display
+  // Collections — include first few course thumbnails for cover display
   const collections = await prisma.collection.findMany({
     where:   { isPublished: true },
-    include: { _count: { select: { courses: true } } },
+    include: {
+      _count:  { select: { courses: true } },
+      courses: {
+        where:   { course: { status: 'PUBLISHED' } },
+        orderBy: { sortOrder: 'asc' },
+        take:    4,
+        include: { course: { select: { thumbnailUrl: true } } },
+      },
+    },
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
   })
 
@@ -131,31 +139,65 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* COLLECTIONS — card grid, click to browse. Shown in collections mode, or all mode when collections exist */}
+      {/* COLLECTIONS — shown when displayMode === 'collections' */}
       {displayMode === 'collections' && (
         <section className="section-padding">
           <div className="platform-container">
-            <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>Collections</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--s5)' }} className="collection-overview-grid">
-              {collections.map((collection: any) => (
-                <Link key={collection.id} href={`/collection/${collection.slug}`} style={{ textDecoration: 'none' }}>
-                  <div className="collection-card" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'pointer' }}>
-                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))' }}>
-                      {collection.bannerImageUrl
-                        ? <img src={collection.bannerImageUrl} alt={collection.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }} className="collection-card-img" />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-                            <p style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 2.5vw, 24px)', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.06em', lineHeight: 1.2 }}>{collection.name}</p>
-                          </div>
-                      }
+            <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>
+              {(settings as any).collectionsLabel || 'Series'}
+            </h2>
+            {(settings as any).collectionsDisplayStyle === 'cards' ? (
+              /* Card grid with name + count */
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--s5)' }} className="hp-col-grid">
+                {collections.map((collection: any) => (
+                  <a key={collection.id} href={`/collection/${collection.slug}`} style={{ textDecoration: 'none' }}>
+                    <div className="hp-col-card" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'pointer' }}>
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))' }}>
+                        {collection.bannerImageUrl
+                          ? <img src={collection.bannerImageUrl} alt={collection.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }} className="hp-col-img" />
+                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                              <p style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.06em' }}>{collection.name}</p>
+                            </div>
+                        }
+                      </div>
+                      <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{collection.name}</p>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{collection._count?.courses ?? 0} →</span>
+                      </div>
                     </div>
-                    <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{collection.name}</p>
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{collection._count?.courses ?? 0} courses →</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              /* Cover-only strip: just thumbnails, collection name overlaid */
+              <div style={{ display: 'flex', gap: 'var(--s4)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '8px' }} className="hp-col-strip">
+                {collections.map((collection: any) => {
+                  const firstThumb = collection.courses?.[0]?.course?.thumbnailUrl || collection.bannerImageUrl
+                  return (
+                    <a key={collection.id} href={`/collection/${collection.slug}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                      <div className="hp-col-cover" style={{ width: '180px', cursor: 'pointer' }}>
+                        <div style={{ position: 'relative', width: '180px', height: '180px', borderRadius: 'var(--r-xl)', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))', border: '1px solid var(--border)' }}>
+                          {firstThumb
+                            ? <img src={firstThumb} alt={collection.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }} className="hp-col-img" />
+                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'rgba(240,234,248,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>SERIES</p>
+                              </div>
+                          }
+                          {/* Dark gradient overlay */}
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)' }} />
+                          <p style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', fontSize: '12px', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1.3, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                            {collection.name}
+                          </p>
+                        </div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '8px', marginBottom: 0 }}>
+                          {collection._count?.courses ?? 0} course{(collection._count?.courses ?? 0) !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -286,10 +328,14 @@ export default async function HomePage() {
         </section>
       )}
     <style>{`
-      .collection-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important; transform: translateY(-2px); }
-      .collection-card:hover .collection-card-img { transform: scale(1.03); }
-      @media (max-width: 900px)  { .collection-overview-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-      @media (max-width: 560px)  { .collection-overview-grid { grid-template-columns: 1fr !important; } }
+      .hp-col-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important; transform: translateY(-2px); }
+      .hp-col-cover:hover .hp-col-img { transform: scale(1.05); }
+      .hp-col-card:hover .hp-col-img  { transform: scale(1.03); }
+      .hp-col-strip::-webkit-scrollbar { height: 4px; }
+      .hp-col-strip::-webkit-scrollbar-track { background: transparent; }
+      .hp-col-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+      @media (max-width: 900px)  { .hp-col-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+      @media (max-width: 560px)  { .hp-col-grid { grid-template-columns: 1fr !important; } }
     `}</style>
     </>
   )

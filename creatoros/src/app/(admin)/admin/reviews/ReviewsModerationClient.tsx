@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { Star, Upload, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { Star, Upload, X, CheckCircle, AlertCircle, Plus } from 'lucide-react'
 
 interface Review {
   id:        string
@@ -31,6 +31,7 @@ export default function ReviewsModerationClient({ reviews: initial, courses }: {
   const [courseFilter, setCourseFilter] = useState<string>('ALL')
   const [loading,      setLoading]      = useState<string | null>(null)
   const [showImport,   setShowImport]   = useState(false)
+  const [showAdd,      setShowAdd]      = useState(false)
 
   const setStatus = async (id: string, status: string) => {
     setLoading(id + status)
@@ -86,10 +87,15 @@ export default function ReviewsModerationClient({ reviews: initial, courses }: {
           style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: showImport ? '#7B2FBE' : 'white', color: showImport ? 'white' : '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
           <Upload size={13} /> Import from Payhip
         </button>
+        <button onClick={() => setShowAdd(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: showAdd ? '#7B2FBE' : 'white', color: showAdd ? 'white' : '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+          <Plus size={13} /> Add Review
+        </button>
       </div>
 
       {/* Import panel */}
       {showImport && <ImportPanel courses={courses} onImported={newReviews => setReviews(rs => [...newReviews, ...rs])} />}
+      {showAdd    && <AddReviewPanel courses={courses} onAdded={r => { setReviews(rs => [r, ...rs]); setShowAdd(false) }} />}
 
       {/* Reviews list */}
       {visible.length === 0 ? (
@@ -170,7 +176,98 @@ export default function ReviewsModerationClient({ reviews: initial, courses }: {
   )
 }
 
-// ── Payhip Import Panel ───────────────────────────────────────────────────────
+// ── Add Review Panel ───────────────────────────────────────────────────────────
+
+function AddReviewPanel({ courses, onAdded }: { courses: Course[]; onAdded: (r: Review) => void }) {
+  const [courseId,  setCourseId]  = useState('')
+  const [name,      setName]      = useState('')
+  const [email,     setEmail]     = useState('')
+  const [rating,    setRating]    = useState(5)
+  const [comment,   setComment]   = useState('')
+  const [featured,  setFeatured]  = useState(false)
+  const [date,      setDate]      = useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
+
+  const handleSubmit = async () => {
+    if (!courseId || !email) { setError('Course and reviewer email are required.'); return }
+    setSaving(true); setError(null)
+    const res = await fetch('/api/admin/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId, reviewerName: name, reviewerEmail: email, rating, comment, isFeatured: featured, reviewDate: date || null }),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (!res.ok) { setError(data.error ?? 'Failed to add review'); return }
+    onAdded(data)
+  }
+
+  const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', fontFamily: 'inherit', background: 'white' }
+  const lbl: React.CSSProperties = { display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '5px', textTransform: 'uppercase' as const, letterSpacing: '0.04em' }
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '24px', marginBottom: '20px' }}>
+      <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 18px' }}>Add Review Manually</h3>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+        <div>
+          <label style={lbl}>Course *</label>
+          <select value={courseId} onChange={e => setCourseId(e.target.value)} style={inp}>
+            <option value="">— Select a course —</option>
+            {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={lbl}>Rating *</label>
+          <div style={{ display: 'flex', gap: '6px', paddingTop: '4px' }}>
+            {[1,2,3,4,5].map(n => (
+              <button key={n} onClick={() => setRating(n)} style={{ width: '36px', height: '36px', borderRadius: '6px', border: rating === n ? '2px solid #f59e0b' : '1px solid #e5e7eb', background: rating >= n ? '#fef9c3' : 'white', fontSize: '16px', cursor: 'pointer', fontFamily: 'inherit' }}>★</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label style={lbl}>Reviewer Name</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" style={inp} />
+        </div>
+        <div>
+          <label style={lbl}>Reviewer Email *</label>
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" style={inp} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '14px' }}>
+        <label style={lbl}>Review Text</label>
+        <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} placeholder="What did they say about the course?" style={{ ...inp, resize: 'vertical' as const }} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+        <div>
+          <label style={lbl}>Review Date (optional)</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '20px' }}>
+          <input type="checkbox" id="featured-check" checked={featured} onChange={e => setFeatured(e.target.checked)} style={{ width: '15px', height: '15px', accentColor: '#7B2FBE' }} />
+          <label htmlFor="featured-check" style={{ fontSize: '13px', color: '#374151', fontWeight: 600, cursor: 'pointer' }}>Feature on sales page</label>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px' }}>
+          <AlertCircle size={14} color="#ef4444" />
+          <p style={{ fontSize: '13px', color: '#991b1b', margin: 0 }}>{error}</p>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={handleSubmit} disabled={saving}
+          style={{ padding: '10px 24px', background: saving ? '#e5e7eb' : '#7B2FBE', color: saving ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+          {saving ? 'Saving…' : 'Add Review'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function ImportPanel({ courses, onImported }: { courses: Course[]; onImported: (r: Review[]) => void }) {
   const fileRef  = useRef<HTMLInputElement>(null)

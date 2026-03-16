@@ -38,6 +38,8 @@ export interface SiteSettings {
   heroImageUrl:         string | null
   featuredCourseIds:    string[]
   coursesDisplayMode:   'all' | 'featured' | 'collections'
+  collectionsLabel:     string
+  collectionsDisplayStyle: 'covers' | 'cards'
   showEmailOptin:       boolean
   emailOptinHeadline:   string
   emailOptinSubtext:    string
@@ -84,6 +86,8 @@ const DEFAULTS: SiteSettings = {
   ],
   themeVariant:       'dark' as const,
   coursesDisplayMode: 'all' as const,
+  collectionsLabel:   'Series',
+  collectionsDisplayStyle: 'covers' as const,
   heroEyebrow:        '✦ Perseus Arcane Academy ✦',
   heroHeadline:       'Ancient Wisdom for the Modern Initiate',
   heroSubtext:        'Structured courses in Hermetics, esoteric traditions, and martial arts. Join 500+ students on the path.',

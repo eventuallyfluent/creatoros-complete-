@@ -213,7 +213,7 @@ export default function HomepageEditor({ settings, courses, collections, reviews
                 </div>
               )}
 
-              {/* Collections mode info */}
+              {/* Collections mode info + options */}
               {(form as any).coursesDisplayMode === 'collections' && (
                 <div>
                   <p style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Published collections</p>
@@ -231,7 +231,41 @@ export default function HomepageEditor({ settings, courses, collections, reviews
                       ))}
                     </div>
                   )}
-                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '10px' }}>All published collections will appear. Manage them in Admin → Collections.</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '10px', marginBottom: '20px' }}>All published collections will appear. Manage them in Admin → Collections.</p>
+
+                  {/* Section label */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '6px' }}>Section heading</label>
+                    <input
+                      value={(form as any).collectionsLabel ?? 'Series'}
+                      onChange={e => set('collectionsLabel' as any, e.target.value)}
+                      placeholder="Series"
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', fontFamily: 'var(--font-ui)', background: '#f9fafb' }}
+                    />
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>What to call this section — e.g. "Series", "Programmes", "Collections"</p>
+                  </div>
+
+                  {/* Display style */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '8px' }}>Display style</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {([
+                        { value: 'covers', label: 'Cover images only', desc: 'Square thumbnails in a horizontal scroll strip' },
+                        { value: 'cards',  label: 'Cards with title & count', desc: 'Grid of cards showing banner image, name, and course count' },
+                      ] as const).map(opt => (
+                        <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 14px', border: (form as any).collectionsDisplayStyle === opt.value ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '9px', cursor: 'pointer', background: (form as any).collectionsDisplayStyle === opt.value ? 'rgba(123,47,190,0.04)' : 'white' }}>
+                          <input type="radio" value={opt.value}
+                            checked={(form as any).collectionsDisplayStyle === opt.value}
+                            onChange={() => set('collectionsDisplayStyle' as any, opt.value)}
+                            style={{ marginTop: '2px', accentColor: '#7B2FBE' }} />
+                          <div>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{opt.label}</p>
+                            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{opt.desc}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
