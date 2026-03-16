@@ -18,13 +18,36 @@ export default async function HomePage() {
   ])
   const userId = (session?.user as any)?.id
 
-  // Featured testimonials from DB
-  const featuredTestimonials = await prisma.testimonial.findMany({
-    where:   { status: 'APPROVED', isFeatured: true },
-    orderBy: { createdAt: 'desc' },
-    select:  { id: true, authorName: true, authorRole: true, quote: true,
-               course: { select: { title: true } } },
-  })
+  // Collect all reviewIds pinned in testimonial sections
+  const pinnedReviewIds = (settings.homepageSections ?? [])
+    .filter((s: any) => s.type === 'testimonials' && Array.isArray(s.reviewIds) && s.reviewIds.length > 0)
+    .flatMap((s: any) => s.reviewIds as string[])
+
+  // Fetch both featured reviews AND any pinned reviews
+  const allSectionReviews = await prisma.courseReview.findMany({
+    where: {
+      status: 'APPROVED',
+      OR: [
+        { isFeatured: true },
+        ...(pinnedReviewIds.length > 0 ? [{ id: { in: pinnedReviewIds } }] : []),
+      ],
+    },
+    select: { id: true, rating: true, comment: true,
+              user: { select: { name: true } },
+              course: { select: { title: true } } },
+    orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+  }).catch(() => [])
+
+  const reviewMap = new Map(allSectionReviews.map((r: any) => [r.id, r]))
+
+  // Legacy: featured reviews for sections with no pinned IDs
+  const featuredTestimonials = allSectionReviews
+    .filter((r: any) => r.isFeatured !== false)
+    .map((r: any) => ({
+      id: r.id, authorName: r.user.name ?? 'Student',
+      authorRole: `Student — ${r.course.title}`,
+      quote: r.comment ?? '', course: r.course, rating: r.rating,
+    }))
 
   // Products (source of truth for pricing + slugs)
   const allProducts = await prisma.product.findMany({
@@ -38,32 +61,25 @@ export default async function HomePage() {
     },
     orderBy: { createdAt: 'asc' },
   })
-  const featuredIds = settings.featuredCourseIds ?? []
-  const featured    = featuredIds.map(id => allProducts.find(p => p.id === id || p.courses.some(pc => pc.courseId === id))).filter(Boolean) as typeof allProducts
-  const rest        = allProducts.filter(p => !featured.includes(p))
-  const courses     = [...featured, ...rest]
+  const displayMode  = (settings as any).coursesDisplayMode ?? 'all'
+  const featuredIds  = settings.featuredCourseIds ?? []
+  const featuredList = featuredIds.map(id => allProducts.find(p => p.id === id || p.courses.some((pc: any) => pc.courseId === id))).filter(Boolean) as typeof allProducts
+  const rest         = allProducts.filter(p => !featuredList.includes(p))
+  // courses = what to show in the course grid section (mode-dependent)
+  const courses = displayMode === 'featured'
+    ? featuredList
+    : [...featuredList, ...rest]  // 'all' and 'collections' both use full list as fallback
 
-  // Collections
+  // Collections — include first few course thumbnails for cover display
   const collections = await prisma.collection.findMany({
     where:   { isPublished: true },
     include: {
+      _count:  { select: { courses: true } },
       courses: {
+        where:   { course: { status: 'PUBLISHED' } },
         orderBy: { sortOrder: 'asc' },
-        include: {
-          course: {
-            include: {
-              instructor: true,
-              products: {
-                take:    1,
-                include: {
-                  product: {
-                    select: { id: true, slug: true, price: true, compareAtPrice: true, currency: true },
-                  },
-                },
-              },
-            },
-          },
-        },
+        take:    4,
+        include: { course: { select: { thumbnailUrl: true } } },
       },
     },
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
@@ -85,7 +101,7 @@ export default async function HomePage() {
               {settings.heroEyebrow}
             </p>
           )}
-          <h1 className="display-heading" style={{ fontSize: 'clamp(32px, 6vw, 64px)', background: 'linear-gradient(135deg, #F0EAF8 30%, var(--accent) 70%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: 'var(--s4)' }}>
+          <h1 className="display-heading" style={{ fontSize: 'clamp(32px, 6vw, 64px)', background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 70%, var(--accent-gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: 'var(--s4)' }}>
             {settings.heroHeadline}
           </h1>
           {settings.heroSubtext && (
@@ -105,6 +121,11 @@ export default async function HomePage() {
               </Link>
             )}
           </div>
+          {(settings as any).heroImageUrl && (
+            <div style={{ marginTop: 'var(--s6)', maxWidth: '720px', margin: 'var(--s6) auto 0' }}>
+              <img src={(settings as any).heroImageUrl} alt="" style={{ width: '100%', borderRadius: 'var(--r-xl)', display: 'block', objectFit: 'cover', maxHeight: '400px' }} />
+            </div>
+          )}
           {(settings.heroBadges ?? []).length > 0 && (
             <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', marginTop: 'var(--s5)', flexWrap: 'wrap' }}>
               {settings.heroBadges.map((badge: string, i: number) => (
@@ -118,46 +139,71 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* COLLECTIONS */}
-      {collections.map((collection: any) => (
-        <section key={collection.id} className="section-padding">
+      {/* COLLECTIONS — shown when displayMode === 'collections' */}
+      {displayMode === 'collections' && (
+        <section className="section-padding">
           <div className="platform-container">
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 'var(--s6)', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <p style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '6px' }}>Collection</p>
-                <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>{collection.name}</h2>
-                {collection.description && <p style={{ fontSize: '15px', color: 'var(--text-secondary)', maxWidth: '480px' }}>{collection.description}</p>}
+            <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>
+              {(settings as any).collectionsLabel || 'Series'}
+            </h2>
+            {(settings as any).collectionsDisplayStyle === 'cards' ? (
+              /* Card grid with name + count */
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--s5)' }} className="hp-col-grid">
+                {collections.map((collection: any) => (
+                  <a key={collection.id} href={`/collection/${collection.slug}`} style={{ textDecoration: 'none' }}>
+                    <div className="hp-col-card" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'pointer' }}>
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))' }}>
+                        {collection.bannerImageUrl
+                          ? <img src={collection.bannerImageUrl} alt={collection.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }} className="hp-col-img" />
+                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                              <p style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '0.06em' }}>{collection.name}</p>
+                            </div>
+                        }
+                      </div>
+                      <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{collection.name}</p>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{collection._count?.courses ?? 0} →</span>
+                      </div>
+                    </div>
+                  </a>
+                ))}
               </div>
-              <Link href={`/collection/${collection.slug}`} style={{ fontSize: '14px', color: 'var(--accent)', textDecoration: 'none' }}>View all →</Link>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--s5)' }}>
-              {collection.courses.slice(0, 3).map(({ course }: any) => {
-                const product  = course.products?.[0]?.product
-                const price    = Number(product?.price ?? 0)
-                const cardSlug = product?.slug ?? course.slug
-                return (
-                  <CourseCard
-                    key={course.id}
-                    slug={cardSlug}
-                    title={course.title}
-                    description={course.description ?? undefined}
-                    thumbnailUrl={course.thumbnailUrl ?? undefined}
-                    price={price}
-                    compareAtPrice={product?.compareAtPrice ? Number(product.compareAtPrice) : undefined}
-                    currency={product?.currency ?? 'USD'}
-                    instructor={course.instructor ? { name: course.instructor.displayName } : undefined}
-                    isFree={price === 0}
-                    enrollment={enrolledIds.has(course.id) ? { progressPercent: 0, lessonsCompleted: 0, totalLessons: 0 } : undefined}
-                  />
-                )
-              })}
-            </div>
+            ) : (
+              /* Cover-only strip: just thumbnails, collection name overlaid */
+              <div style={{ display: 'flex', gap: 'var(--s4)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '8px' }} className="hp-col-strip">
+                {collections.map((collection: any) => {
+                  const firstThumb = collection.courses?.[0]?.course?.thumbnailUrl || collection.bannerImageUrl
+                  return (
+                    <a key={collection.id} href={`/collection/${collection.slug}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                      <div className="hp-col-cover" style={{ width: '180px', cursor: 'pointer' }}>
+                        <div style={{ position: 'relative', width: '180px', height: '180px', borderRadius: 'var(--r-xl)', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))', border: '1px solid var(--border)' }}>
+                          {firstThumb
+                            ? <img src={firstThumb} alt={collection.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }} className="hp-col-img" />
+                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <p style={{ fontFamily: 'var(--font-display)', fontSize: '11px', color: 'rgba(240,234,248,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>SERIES</p>
+                              </div>
+                          }
+                          {/* Dark gradient overlay */}
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)' }} />
+                          <p style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', fontSize: '12px', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1.3, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                            {collection.name}
+                          </p>
+                        </div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '8px', marginBottom: 0 }}>
+                          {collection._count?.courses ?? 0} course{(collection._count?.courses ?? 0) !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </section>
-      ))}
+      )}
 
-      {/* COURSE GRID (no collections) */}
-      {collections.length === 0 && courses.length > 0 && (
+      {/* COURSE GRID — shown in 'all'/'featured' mode, or collections mode with no collections */}
+      {displayMode !== 'collections' && courses.length > 0 && (
         <section className="section-padding">
           <div className="platform-container">
             <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s6)' }}>All Courses</h2>
@@ -190,22 +236,47 @@ export default async function HomePage() {
         if (section.type === 'divider') return (
           <div key={section.id} style={{ textAlign: 'center', padding: 'var(--s6) 0', color: 'var(--text-muted)', letterSpacing: '0.5em', fontSize: '14px' }}>✦ ✦ ✦</div>
         )
-        if (section.type === 'text') return (
-          <section key={section.id} className="section-padding">
-            <div className="platform-container" style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center' }}>
-              {section.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: 'var(--s4)' }}>{section.heading}</h2>}
-              {section.body && <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{section.body}</p>}
-            </div>
-          </section>
-        )
+        if (section.type === 'text') {
+          const imgUrl = section.imageUrl?.trim() || null
+          const imgPos = section.imagePosition ?? 'right'
+          const isTop  = imgPos === 'top'
+          return (
+            <section key={section.id} className="section-padding">
+              <div className="platform-container" style={{ maxWidth: imgUrl && !isTop ? '960px' : '720px', margin: '0 auto' }}>
+                {imgUrl && isTop && (
+                  <img src={imgUrl} alt={section.heading ?? ''} style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '12px', marginBottom: 'var(--s5)', display: 'block' }} />
+                )}
+                <div style={{ display: imgUrl && !isTop ? 'flex' : 'block', flexDirection: imgPos === 'left' ? 'row-reverse' : 'row', gap: 'var(--s7)', alignItems: 'center', flexWrap: 'wrap', textAlign: imgUrl ? 'left' : 'center' }}>
+                  <div style={{ flex: 1, minWidth: '240px', margin: imgUrl ? undefined : '0 auto' }}>
+                    {section.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: 'var(--s4)' }}>{section.heading}</h2>}
+                    {section.body && <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{section.body}</p>}
+                  </div>
+                  {imgUrl && !isTop && (
+                    <div style={{ flexShrink: 0, width: 'clamp(200px, 40%, 420px)' }}>
+                      <img src={imgUrl} alt={section.heading ?? ''} style={{ width: '100%', borderRadius: '12px', display: 'block', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )
+        }
         if (section.type === 'testimonials') {
-          // Prefer DB featured testimonials; fall back to section.items if none exist yet
-          const dbItems = featuredTestimonials.map(t => ({
-            name:  t.authorName,
-            role:  t.authorRole ?? (t.course ? `Student — ${t.course.title}` : undefined),
-            quote: t.quote,
-          }))
-          const displayItems = dbItems.length > 0 ? dbItems : (section.items ?? []).filter((i: any) => i.quote)
+          // Use pinned reviewIds if configured, otherwise fall back to featured reviews
+          const pinnedIds: string[] = (section as any).reviewIds ?? []
+          const displayItems = pinnedIds.length > 0
+            ? pinnedIds
+                .map((id: string) => reviewMap.get(id))
+                .filter(Boolean)
+                .map((r: any) => ({
+                  name:   r.user.name ?? 'Student',
+                  role:   `Student — ${r.course.title}`,
+                  quote:  r.comment ?? '',
+                  rating: r.rating ?? 5,
+                }))
+            : featuredTestimonials.map(t => ({
+                name: t.authorName, role: t.authorRole ?? '', quote: t.quote, rating: (t as any).rating ?? 5,
+              }))
           if (displayItems.length === 0) return null
           return (
             <section key={section.id} className="section-padding">
@@ -219,7 +290,7 @@ export default async function HomePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--s5)' }}>
                   {displayItems.map((item: any, i: number) => (
                     <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 'var(--s6)', display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
-                      <p style={{ fontSize: '11px', color: 'var(--accent-gold)', letterSpacing: '0.1em' }}>★ ★ ★ ★ ★</p>
+                      <p style={{ fontSize: '11px', color: 'var(--accent-gold)', letterSpacing: '0.1em' }}>{"★".repeat(item.rating ?? 5)}</p>
                       <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.75, fontStyle: 'italic', flex: 1 }}>"{item.quote}"</p>
                       <div>
                         <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>
@@ -237,7 +308,7 @@ export default async function HomePage() {
 
       {/* EMAIL OPTIN */}
       {settings.showEmailOptin && (
-        <section style={{ padding: 'var(--s8) 0', background: 'linear-gradient(135deg, #1A0A2E 0%, var(--bg-base) 100%)' }}>
+        <section style={{ padding: 'var(--s8) 0', background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-base) 100%)' }}>
           <div className="platform-container" style={{ textAlign: 'center', maxWidth: '560px', margin: '0 auto' }}>
             <p style={{ fontSize: '20px', color: 'var(--accent-gold)', marginBottom: 'var(--s3)' }}>✦</p>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: '12px' }}>{settings.emailOptinHeadline}</h2>
@@ -256,6 +327,16 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+    <style>{`
+      .hp-col-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important; transform: translateY(-2px); }
+      .hp-col-cover:hover .hp-col-img { transform: scale(1.05); }
+      .hp-col-card:hover .hp-col-img  { transform: scale(1.03); }
+      .hp-col-strip::-webkit-scrollbar { height: 4px; }
+      .hp-col-strip::-webkit-scrollbar-track { background: transparent; }
+      .hp-col-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+      @media (max-width: 900px)  { .hp-col-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+      @media (max-width: 560px)  { .hp-col-grid { grid-template-columns: 1fr !important; } }
+    `}</style>
     </>
   )
 }

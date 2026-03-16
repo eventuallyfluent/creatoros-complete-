@@ -4,7 +4,9 @@ import { cache } from 'react'
 export interface SiteSettings {
   siteName:          string
   tagline:           string
-  logoUrl:           string | null
+  logoUrl:           string | null  // legacy fallback
+  logoDarkUrl:       string | null  // logo for dark theme
+  logoLightUrl:      string | null  // logo for light theme
   faviconUrl:        string | null
   primaryColor:      string
   accentColor:       string
@@ -22,6 +24,8 @@ export interface SiteSettings {
   headerNav:         { label: string; href: string }[]
   footerNav:         { label: string; href: string }[]
 
+  themeVariant: 'dark' | 'light'
+
   // Homepage content
   heroEyebrow:          string
   heroHeadline:         string
@@ -31,7 +35,11 @@ export interface SiteSettings {
   heroSecondaryLabel:   string
   heroSecondaryHref:    string
   heroBadges:           string[]
+  heroImageUrl:         string | null
   featuredCourseIds:    string[]
+  coursesDisplayMode:   'all' | 'featured' | 'collections'
+  collectionsLabel:     string
+  collectionsDisplayStyle: 'covers' | 'cards'
   showEmailOptin:       boolean
   emailOptinHeadline:   string
   emailOptinSubtext:    string
@@ -50,6 +58,8 @@ const DEFAULTS: SiteSettings = {
   siteName:          'Perseus Arcane Academy',
   tagline:           'Master the Mysteries',
   logoUrl:           null,
+  logoDarkUrl:       null,
+  logoLightUrl:      null,
   faviconUrl:        null,
   primaryColor:      '#7B2FBE',
   accentColor:       '#C084FC',
@@ -74,6 +84,10 @@ const DEFAULTS: SiteSettings = {
     { label: 'Terms of Use',   href: '/terms' },
     { label: 'Contact',        href: '/contact' },
   ],
+  themeVariant:       'dark' as const,
+  coursesDisplayMode: 'all' as const,
+  collectionsLabel:   'Series',
+  collectionsDisplayStyle: 'covers' as const,
   heroEyebrow:        '✦ Perseus Arcane Academy ✦',
   heroHeadline:       'Ancient Wisdom for the Modern Initiate',
   heroSubtext:        'Structured courses in Hermetics, esoteric traditions, and martial arts. Join 500+ students on the path.',
@@ -82,6 +96,7 @@ const DEFAULTS: SiteSettings = {
   heroSecondaryLabel: 'Sign In',
   heroSecondaryHref:  '/login',
   heroBadges:         ['500+ students enrolled', 'Lifetime access', 'New lessons monthly'],
+  heroImageUrl:       null,
   featuredCourseIds:  [],
   showEmailOptin:     true,
   emailOptinHeadline: 'Stay in the Current',

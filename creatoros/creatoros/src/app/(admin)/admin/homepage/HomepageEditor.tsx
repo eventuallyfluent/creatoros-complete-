@@ -2,11 +2,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ExternalLink } from 'lucide-react'
+import ImageUpload from '@/components/admin/ImageUpload'
 import type { SiteSettings, HomepageSection } from '@/lib/settings/site-settings'
 
-interface Course       { id: string; title: string; thumbnailUrl: string | null }
-interface DBTestimonial { id: string; authorName: string; authorRole: string | null; quote: string; isFeatured: boolean }
-interface Props  { settings: SiteSettings; courses: Course[]; testimonials?: DBTestimonial[] }
+interface Course      { id: string; title: string; thumbnailUrl: string | null }
+interface Collection  { id: string; name: string; slug: string }
+interface CourseReview { id: string; rating: number; comment: string | null; isFeatured: boolean; user: { name: string | null }; course: { id: string; title: string } }
+interface Props { settings: SiteSettings; courses: Course[]; collections: Collection[]; reviews: CourseReview[] }
 
 type Tab = 'hero' | 'courses' | 'sections' | 'optin'
 
@@ -17,7 +19,7 @@ const TAB_LABELS: { id: Tab; label: string; icon: string }[] = [
   { id: 'optin',    label: 'Email Sign-up',    icon: '✉️' },
 ]
 
-export default function HomepageEditor({ settings, courses, testimonials = [] }: Props) {
+export default function HomepageEditor({ settings, courses, collections, reviews }: Props) {
   const router  = useRouter()
   const [tab,    setTab]    = useState<Tab>('hero')
   const [form,   setForm]   = useState({ ...settings })
@@ -42,11 +44,11 @@ export default function HomepageEditor({ settings, courses, testimonials = [] }:
   // Section helpers
   const addSection = (type: HomepageSection['type']) => {
     const id = Math.random().toString(36).slice(2)
-    const base: HomepageSection = type === 'testimonials'
-      ? { id, type, heading: 'What Students Say', items: [{ name: '', quote: '', role: '' }] }
+    const base: any = type === 'testimonials'
+      ? { id, type, heading: 'What Students Say', items: [] }
       : type === 'divider'
       ? { id, type }
-      : { id, type, heading: 'About This Academy', body: '' }
+      : { id, type, heading: 'About This Academy', body: '', imageUrl: '', imagePosition: 'right' }
     set('homepageSections', [...form.homepageSections, base])
   }
   const updateSection = (id: string, updates: Partial<HomepageSection>) =>
@@ -114,6 +116,16 @@ export default function HomepageEditor({ settings, courses, testimonials = [] }:
                 <textarea value={form.heroSubtext} onChange={e => set('heroSubtext', e.target.value)} rows={3} style={{ ...inp, resize: 'vertical' }} />
               </Field>
 
+              <Field label="Hero Image" hint="Optional. Shows beside the headline. Leave blank for text-only hero.">
+                <ImageUpload
+                  value={form.heroImageUrl ?? null}
+                  onChange={url => set('heroImageUrl', url ?? '')}
+                  aspectRatio="16/9"
+                  folder="hero"
+                  label=""
+                />
+              </Field>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
                 <div>
                   <label style={lbl}>Primary Button Label</label>
@@ -155,33 +167,107 @@ export default function HomepageEditor({ settings, courses, testimonials = [] }:
           {/* ── FEATURED COURSES TAB ── */}
           {tab === 'courses' && (
             <div>
-              <p style={{ fontSize: '14px', color: '#374151', marginBottom: '16px', lineHeight: 1.6 }}>
-                Select courses to pin at the top of the homepage. If none are selected, all published courses appear in default order.
-              </p>
-              {courses.length === 0 ? (
-                <p style={{ color: '#9ca3af', fontSize: '14px' }}>No published courses yet. Publish a course first.</p>
-              ) : (
+              {/* Display mode selector */}
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '10px' }}>What to show in the courses section</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {courses.map(course => {
-                    const selected = form.featuredCourseIds.includes(course.id)
-                    return (
-                      <label key={course.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', border: selected ? '1px solid rgba(123,47,190,0.4)' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', background: selected ? 'rgba(123,47,190,0.04)' : 'white', transition: 'all 0.15s' }}>
-                        <input type="checkbox" checked={selected} onChange={() => toggleCourse(course.id)} style={{ width: '16px', height: '16px', accentColor: '#7B2FBE', flexShrink: 0 }} />
-                        <div style={{ width: '40px', height: '30px', background: 'linear-gradient(135deg,#1a0a2e,#2d1045)', borderRadius: '6px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
-                          {course.thumbnailUrl ? '📷' : '☿'}
-                        </div>
-                        <span style={{ fontSize: '14px', color: '#111827', fontWeight: selected ? 600 : 400 }}>{course.title}</span>
-                        {selected && <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 700, color: '#7B2FBE', background: 'rgba(123,47,190,0.1)', padding: '2px 8px', borderRadius: '999px' }}>Featured</span>}
-                      </label>
-                    )
-                  })}
+                  {([
+                    { value: 'all',         label: 'All published courses',     desc: 'Show every published course in default order' },
+                    { value: 'featured',    label: 'Selected courses only',     desc: 'Hand-pick which courses to feature' },
+                    { value: 'collections', label: 'Collections',               desc: 'Show collection cards instead of individual courses' },
+                  ] as const).map(opt => (
+                    <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 14px', border: (form as any).coursesDisplayMode === opt.value ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', background: (form as any).coursesDisplayMode === opt.value ? 'rgba(123,47,190,0.04)' : 'white', transition: 'all 0.15s' }}>
+                      <input type="radio" name="coursesDisplayMode" value={opt.value}
+                        checked={(form as any).coursesDisplayMode === opt.value}
+                        onChange={() => set('coursesDisplayMode' as any, opt.value)}
+                        style={{ marginTop: '2px', accentColor: '#7B2FBE' }} />
+                      <div>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>{opt.label}</p>
+                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{opt.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Course picker (featured mode) */}
+              {(form as any).coursesDisplayMode === 'featured' && (
+                <div>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Select courses to feature</p>
+                  {courses.length === 0 ? (
+                    <p style={{ color: '#9ca3af', fontSize: '14px' }}>No published courses yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                      {courses.map(course => {
+                        const selected = form.featuredCourseIds.includes(course.id)
+                        return (
+                          <label key={course.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', border: selected ? '1px solid rgba(123,47,190,0.4)' : '1px solid #e5e7eb', borderRadius: '9px', cursor: 'pointer', background: selected ? 'rgba(123,47,190,0.04)' : 'white' }}>
+                            <input type="checkbox" checked={selected} onChange={() => toggleCourse(course.id)} style={{ width: '15px', height: '15px', accentColor: '#7B2FBE', flexShrink: 0 }} />
+                            <span style={{ fontSize: '14px', color: '#111827', fontWeight: selected ? 600 : 400 }}>{course.title}</span>
+                            {selected && <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 700, color: '#7B2FBE' }}>✓ Featured</span>}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '14px' }}>
-                {form.featuredCourseIds.length > 0
-                  ? `${form.featuredCourseIds.length} course${form.featuredCourseIds.length > 1 ? 's' : ''} pinned · all other published courses appear below`
-                  : 'No courses pinned — all published courses shown in default order'}
-              </p>
+
+              {/* Collections mode info + options */}
+              {(form as any).coursesDisplayMode === 'collections' && (
+                <div>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Published collections</p>
+                  {collections.length === 0 ? (
+                    <div style={{ padding: '16px', background: '#fef9f0', border: '1px solid #fde68a', borderRadius: '9px' }}>
+                      <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>No published collections yet. Go to <strong>Admin → Collections</strong> to create some.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                      {collections.map(col => (
+                        <div key={col.id} style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: '9px', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', color: '#111827', fontWeight: 600 }}>{col.name}</span>
+                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>/{col.slug}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '10px', marginBottom: '20px' }}>All published collections will appear. Manage them in Admin → Collections.</p>
+
+                  {/* Section label */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '6px' }}>Section heading</label>
+                    <input
+                      value={(form as any).collectionsLabel ?? 'Series'}
+                      onChange={e => set('collectionsLabel' as any, e.target.value)}
+                      placeholder="Series"
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', color: '#111827', fontFamily: 'var(--font-ui)', background: '#f9fafb' }}
+                    />
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>What to call this section — e.g. "Series", "Programmes", "Collections"</p>
+                  </div>
+
+                  {/* Display style */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '8px' }}>Display style</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {([
+                        { value: 'covers', label: 'Cover images only', desc: 'Square thumbnails in a horizontal scroll strip' },
+                        { value: 'cards',  label: 'Cards with title & count', desc: 'Grid of cards showing banner image, name, and course count' },
+                      ] as const).map(opt => (
+                        <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 14px', border: (form as any).collectionsDisplayStyle === opt.value ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '9px', cursor: 'pointer', background: (form as any).collectionsDisplayStyle === opt.value ? 'rgba(123,47,190,0.04)' : 'white' }}>
+                          <input type="radio" value={opt.value}
+                            checked={(form as any).collectionsDisplayStyle === opt.value}
+                            onChange={() => set('collectionsDisplayStyle' as any, opt.value)}
+                            style={{ marginTop: '2px', accentColor: '#7B2FBE' }} />
+                          <div>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{opt.label}</p>
+                            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{opt.desc}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -213,93 +299,96 @@ export default function HomepageEditor({ settings, courses, testimonials = [] }:
                         <>
                           <div style={{ marginBottom: '10px' }}>
                             <label style={lbl}>Heading</label>
-                            <input value={section.heading ?? ''} onChange={e => updateSection(section.id, { heading: e.target.value })} style={inp} />
+                            <input value={(section as any).heading ?? ''} onChange={e => updateSection(section.id, { heading: e.target.value })} style={inp} />
                           </div>
-                          <div>
+                          <div style={{ marginBottom: '10px' }}>
                             <label style={lbl}>Body Text</label>
-                            <textarea value={section.body ?? ''} onChange={e => updateSection(section.id, { body: e.target.value })} rows={4} style={{ ...inp, resize: 'vertical' }} placeholder="Write your content here…" />
+                            <textarea value={(section as any).body ?? ''} onChange={e => updateSection(section.id, { body: e.target.value })} rows={4} style={{ ...inp, resize: 'vertical' }} placeholder="Write your content here…" />
                           </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <label style={lbl}>Image URL <span style={{ fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>(optional)</span></label>
+                            <input value={(section as any).imageUrl ?? ''} onChange={e => updateSection(section.id, { imageUrl: e.target.value } as any)} style={inp} placeholder="https://…" />
+                          </div>
+                          {(section as any).imageUrl && (
+                            <div>
+                              <label style={lbl}>Image Position</label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                {(['left', 'right', 'top'] as const).map(pos => (
+                                  <label key={pos} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: (section as any).imagePosition === pos ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '13px', color: (section as any).imagePosition === pos ? '#7B2FBE' : '#374151', fontWeight: (section as any).imagePosition === pos ? 700 : 400, background: (section as any).imagePosition === pos ? 'rgba(123,47,190,0.05)' : 'white' }}>
+                                    <input type="radio" name={`imgPos-${section.id}`} value={pos} checked={(section as any).imagePosition === pos} onChange={() => updateSection(section.id, { imagePosition: pos } as any)} style={{ display: 'none' }} />
+                                    {pos === 'left' ? '← Left' : pos === 'right' ? 'Right →' : '↑ Top'}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </>
                       )}
                       {section.type === 'testimonials' && (
                         <>
                           <div style={{ marginBottom: '12px' }}>
                             <label style={lbl}>Section Heading</label>
-                            <input value={section.heading ?? ''} onChange={e => updateSection(section.id, { heading: e.target.value })} style={inp} />
+                            <input value={(section as any).heading ?? ''} onChange={e => updateSection(section.id, { heading: e.target.value })} style={inp} />
                           </div>
 
-                          {/* Pick from existing testimonials */}
-                          {testimonials.length > 0 && (
-                            <div style={{ marginBottom: '14px' }}>
-                              <label style={{ ...lbl, marginBottom: '8px' }}>Pick from your approved testimonials</label>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto', padding: '2px' }}>
-                                {testimonials.map(t => {
-                                  const alreadyAdded = (section.items ?? []).some((item: any) => item.sourceId === t.id)
-                                  return (
-                                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', background: alreadyAdded ? 'rgba(123,47,190,0.05)' : '#f9fafb', border: `1px solid ${alreadyAdded ? 'rgba(123,47,190,0.25)' : '#e5e7eb'}`, borderRadius: '8px' }}>
-                                      <input type="checkbox" checked={alreadyAdded}
-                                        style={{ marginTop: '2px', accentColor: '#7B2FBE', flexShrink: 0 }}
-                                        onChange={e => {
-                                          let items = [...(section.items ?? [])]
-                                          if (e.target.checked) {
-                                            items.push({ sourceId: t.id, name: t.authorName, role: t.authorRole ?? '', quote: t.quote.slice(0, 220) })
-                                          } else {
-                                            items = items.filter((item: any) => item.sourceId !== t.id)
-                                          }
-                                          updateSection(section.id, { items })
-                                        }}
-                                      />
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>
-                                          {t.authorName}{t.authorRole ? ` — ${t.authorRole}` : ''}{t.isFeatured ? ' ⭐' : ''}
-                                        </p>
-                                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          "{t.quote.slice(0, 100)}{t.quote.length > 100 ? '…' : ''}"
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
+                          {/* Course filter */}
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={lbl}>Filter by course <span style={{ fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>(optional)</span></label>
+                            <select
+                              value={(section as any).courseFilter ?? ''}
+                              onChange={e => updateSection(section.id, { courseFilter: e.target.value } as any)}
+                              style={{ ...inp, width: '100%' }}>
+                              <option value="">All courses</option>
+                              {courses.map(course => <option key={course.id} value={course.id}>{course.title}</option>)}
+                            </select>
+                          </div>
+
+                          {/* Review picker */}
+                          {(() => {
+                            const courseFilter = (section as any).courseFilter
+                            const filtered = courseFilter ? reviews.filter(r => r.course.id === courseFilter) : reviews
+                            const selected: string[] = (section as any).reviewIds ?? []
+                            if (filtered.length === 0) return (
+                              <div style={{ padding: '12px', background: '#fef9f0', border: '1px solid #fde68a', borderRadius: '8px', marginBottom: '10px' }}>
+                                <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>No approved reviews {courseFilter ? 'for this course' : 'yet'}. Approve reviews in <strong>Admin → Reviews</strong>.</p>
                               </div>
-                            </div>
-                          )}
-
-                          {testimonials.length === 0 && (
-                            <div style={{ marginBottom: '12px', padding: '12px', background: '#fef9f0', border: '1px solid #fde68a', borderRadius: '8px' }}>
-                              <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
-                                No approved testimonials yet. Go to <strong>Admin → Testimonials</strong>, add some and set their status to Approved, then come back here to select them.
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Selected items preview + manual overrides */}
-                          {(section.items ?? []).length > 0 && (
-                            <div style={{ marginBottom: '10px' }}>
-                              <label style={{ ...lbl, marginBottom: '6px' }}>Selected ({(section.items ?? []).length}) — click to edit text</label>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {(section.items ?? []).map((item: any, i: number) => (
-                                  <div key={i} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
-                                      <input value={item.name} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, name: e.target.value }; updateSection(section.id, { items }) }} placeholder="Name" style={{ ...inp, fontSize: '12px' }} />
-                                      <input value={item.role ?? ''} onChange={e => { const items = [...(section.items ?? [])]; items[i] = { ...item, role: e.target.value }; updateSection(section.id, { items }) }} placeholder="Role" style={{ ...inp, fontSize: '12px' }} />
-                                    </div>
-                                    <div style={{ position: 'relative' }}>
-                                      <textarea value={item.quote} onChange={e => { const val = e.target.value.slice(0, 220); const items = [...(section.items ?? [])]; items[i] = { ...item, quote: val }; updateSection(section.id, { items }) }} rows={2} style={{ ...inp, fontSize: '12px', resize: 'none', paddingBottom: '18px' }} maxLength={220} />
-                                      <span style={{ position: 'absolute', bottom: '5px', right: '8px', fontSize: '10px', color: (item.quote?.length ?? 0) > 200 ? '#ef4444' : '#9ca3af' }}>{item.quote?.length ?? 0}/220</span>
-                                    </div>
-                                    <button onClick={() => { const items = [...(section.items ?? [])]; items.splice(i, 1); updateSection(section.id, { items }) }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', padding: '2px 0', marginTop: '2px' }}>Remove</button>
-                                  </div>
-                                ))}
+                            )
+                            return (
+                              <div style={{ marginBottom: '12px' }}>
+                                <label style={{ ...lbl, marginBottom: '8px' }}>
+                                  Pick reviews to display
+                                  {selected.length > 0 && <span style={{ fontWeight: 400, color: '#7B2FBE', textTransform: 'none', marginLeft: '6px' }}>({selected.length} selected)</span>}
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '280px', overflowY: 'auto', paddingRight: '2px' }}>
+                                  {filtered.map(r => {
+                                    const isSelected = selected.includes(r.id)
+                                    return (
+                                      <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', background: isSelected ? 'rgba(123,47,190,0.05)' : '#f9fafb', border: `1px solid ${isSelected ? 'rgba(123,47,190,0.3)' : '#e5e7eb'}`, borderRadius: '8px', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={isSelected}
+                                          style={{ marginTop: '2px', accentColor: '#7B2FBE', flexShrink: 0 }}
+                                          onChange={e => {
+                                            const ids = selected.includes(r.id) ? selected.filter(x => x !== r.id) : [...selected, r.id]
+                                            updateSection(section.id, { reviewIds: ids } as any)
+                                          }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>{r.user.name ?? 'Student'}</span>
+                                            <span style={{ fontSize: '11px', color: '#F59E0B' }}>{'★'.repeat(r.rating)}</span>
+                                            <span style={{ fontSize: '11px', color: '#9ca3af' }}>{r.course.title}</span>
+                                            {r.isFeatured && <span style={{ fontSize: '10px', color: '#7B2FBE', fontWeight: 700 }}>⭐ Featured</span>}
+                                          </div>
+                                          {r.comment && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{r.comment}"</p>}
+                                        </div>
+                                      </label>
+                                    )
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-
-                          <button onClick={() => { const items = [...(section.items ?? []), { name: '', quote: '', role: '' }]; updateSection(section.id, { items }) }} style={{ fontSize: '12px', color: '#7B2FBE', background: 'none', border: '1px dashed #d1d5db', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Plus size={12} /> Add Manually
-                          </button>
+                            )
+                          })()}
                         </>
                       )}
-                      {section.type === 'divider' && (
+                                            {section.type === 'divider' && (
                         <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Ornamental divider — no configuration needed.</p>
                       )}
                     </div>

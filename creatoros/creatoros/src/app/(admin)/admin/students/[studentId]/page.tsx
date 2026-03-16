@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db/prisma'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import Link from 'next/link'
+import ManualEnrolButton, { RevokeEnrolButton } from '@/components/admin/ManualEnrolButton'
 
 export const metadata: Metadata = { title: 'Student — Admin' }
 
@@ -33,6 +34,13 @@ export default async function StudentDetailPage({ params }: Props) {
 
   if (!student) notFound()
 
+  // All courses for manual enrol dropdown
+  const allCourses = await prisma.course.findMany({
+    where:   { status: { not: 'ARCHIVED' } },
+    select:  { id: true, title: true },
+    orderBy: { title: 'asc' },
+  }).catch(() => [])
+
   // Lesson progress per course
   const courseIds = student.enrollments.map(e => e.courseId)
   const [progressData, lessonTotals] = await Promise.all([
@@ -48,8 +56,8 @@ export default async function StudentDetailPage({ params }: Props) {
     }).catch(() => []),
   ])
 
-  const progressMap = new Map(progressData.map((p: any) => [p.courseId, p._count.courseId]))
-  const totalMap    = new Map(lessonTotals.map((l: any) => [l.courseId, l._count.id]))
+  const progressMap = new Map<string, number>(progressData.map((p: any) => [p.courseId as string, Number(p._count.courseId)]))
+  const totalMap    = new Map<string, number>(lessonTotals.map((l: any) => [l.courseId as string, Number(l._count.id)]))
 
   const totalRevenue = student.orders
     .filter(o => o.status === 'PAID')
@@ -95,7 +103,7 @@ export default async function StudentDetailPage({ params }: Props) {
           ].map(row => (
             <div key={row.label}>
               <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 2px' }}>{row.label}</p>
-              <p style={{ fontSize: '14px', color: '#111827', margin: 0, fontFamily: row.label === 'ID' ? 'monospace' : undefined, fontSize: row.label === 'ID' ? '12px' : '14px' as any }}>{row.value}</p>
+              <p style={{ fontSize: row.label === 'ID' ? '12px' : '14px', color: '#111827', margin: 0, fontFamily: row.label === 'ID' ? 'monospace' : undefined }}>{row.value}</p>
             </div>
           ))}
         </div>
@@ -103,7 +111,7 @@ export default async function StudentDetailPage({ params }: Props) {
 
       {/* Courses enrolled */}
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0 }}>
             Enrolled Courses ({student.enrollments.length})
           </h2>
@@ -114,7 +122,7 @@ export default async function StudentDetailPage({ params }: Props) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Course', 'Status', 'Progress', 'Enrolled', 'Completed'].map(h => (
+                {['Course', 'Status', 'Progress', 'Enrolled', 'Completed', ''].map(h => (
                   <th key={h} style={th}>{h}</th>
                 ))}
               </tr>
@@ -147,11 +155,21 @@ export default async function StudentDetailPage({ params }: Props) {
                     </td>
                     <td style={{ ...td, color: '#6b7280' }}>{new Date(e.enrolledAt).toLocaleDateString()}</td>
                     <td style={{ ...td, color: '#6b7280' }}>{e.completedAt ? new Date(e.completedAt).toLocaleDateString() : '—'}</td>
+                    <td style={td}>
+                      {e.status === 'ACTIVE' && (
+                        <RevokeEnrolButton userId={student.id} courseId={e.courseId} courseTitle={e.course.title} />
+                      )}
+                    </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+          <ManualEnrolButton
+            userId={student.id}
+            courses={allCourses}
+            enrolledIds={student.enrollments.filter(e => e.status === 'ACTIVE').map(e => e.courseId)}
+          />
         )}
       </div>
 

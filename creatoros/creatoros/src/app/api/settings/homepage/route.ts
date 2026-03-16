@@ -9,7 +9,8 @@ const HOMEPAGE_KEYS = [
   'heroEyebrow', 'heroHeadline', 'heroSubtext',
   'heroPrimaryLabel', 'heroPrimaryHref',
   'heroSecondaryLabel', 'heroSecondaryHref',
-  'heroBadges', 'featuredCourseIds',
+  'heroBadges', 'heroImageUrl', 'featuredCourseIds',
+  'coursesDisplayMode', 'collectionsLabel', 'collectionsDisplayStyle',
   'showEmailOptin', 'emailOptinHeadline', 'emailOptinSubtext',
   'homepageSections',
 ] as const
