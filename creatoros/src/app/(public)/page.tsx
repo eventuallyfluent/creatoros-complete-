@@ -18,17 +18,36 @@ export default async function HomePage() {
   ])
   const userId = (session?.user as any)?.id
 
-  // Featured reviews from DB (replaces old testimonial model)
-  const featuredTestimonials = await prisma.courseReview.findMany({
-    where:   { status: 'APPROVED', isFeatured: true },
-    orderBy: { createdAt: 'desc' },
-    select:  { id: true, rating: true, comment: true,
-               user:   { select: { name: true } },
-               course: { select: { title: true } } },
-  }).then(rows => rows.map(r => ({
-    id: r.id, authorName: r.user.name ?? 'Student', authorRole: `Student — ${r.course.title}`,
-    quote: r.comment ?? '', course: r.course,
-  }))).catch(() => [])
+  // Collect all reviewIds pinned in testimonial sections
+  const pinnedReviewIds = (settings.homepageSections ?? [])
+    .filter((s: any) => s.type === 'testimonials' && Array.isArray(s.reviewIds) && s.reviewIds.length > 0)
+    .flatMap((s: any) => s.reviewIds as string[])
+
+  // Fetch both featured reviews AND any pinned reviews
+  const allSectionReviews = await prisma.courseReview.findMany({
+    where: {
+      status: 'APPROVED',
+      OR: [
+        { isFeatured: true },
+        ...(pinnedReviewIds.length > 0 ? [{ id: { in: pinnedReviewIds } }] : []),
+      ],
+    },
+    select: { id: true, rating: true, comment: true,
+              user: { select: { name: true } },
+              course: { select: { title: true } } },
+    orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+  }).catch(() => [])
+
+  const reviewMap = new Map(allSectionReviews.map((r: any) => [r.id, r]))
+
+  // Legacy: featured reviews for sections with no pinned IDs
+  const featuredTestimonials = allSectionReviews
+    .filter((r: any) => r.isFeatured !== false)
+    .map((r: any) => ({
+      id: r.id, authorName: r.user.name ?? 'Student',
+      authorRole: `Student — ${r.course.title}`,
+      quote: r.comment ?? '', course: r.course, rating: r.rating,
+    }))
 
   // Products (source of truth for pricing + slugs)
   const allProducts = await prisma.product.findMany({
@@ -201,13 +220,21 @@ export default async function HomePage() {
           )
         }
         if (section.type === 'testimonials') {
-          // Use pinned reviewIds if set, otherwise fall back to featured DB reviews
-          const dbItems = featuredTestimonials.map(t => ({
-            name:  t.authorName,
-            role:  t.authorRole ?? '',
-            quote: t.quote,
-          }))
-          const displayItems = dbItems.length > 0 ? dbItems : (section.items ?? []).filter((i: any) => i.quote)
+          // Use pinned reviewIds if configured, otherwise fall back to featured reviews
+          const pinnedIds: string[] = (section as any).reviewIds ?? []
+          const displayItems = pinnedIds.length > 0
+            ? pinnedIds
+                .map((id: string) => reviewMap.get(id))
+                .filter(Boolean)
+                .map((r: any) => ({
+                  name:   r.user.name ?? 'Student',
+                  role:   `Student — ${r.course.title}`,
+                  quote:  r.comment ?? '',
+                  rating: r.rating ?? 5,
+                }))
+            : featuredTestimonials.map(t => ({
+                name: t.authorName, role: t.authorRole ?? '', quote: t.quote, rating: (t as any).rating ?? 5,
+              }))
           if (displayItems.length === 0) return null
           return (
             <section key={section.id} className="section-padding">
@@ -221,7 +248,7 @@ export default async function HomePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--s5)' }}>
                   {displayItems.map((item: any, i: number) => (
                     <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 'var(--s6)', display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
-                      <p style={{ fontSize: '11px', color: 'var(--accent-gold)', letterSpacing: '0.1em' }}>★ ★ ★ ★ ★</p>
+                      <p style={{ fontSize: '11px', color: 'var(--accent-gold)', letterSpacing: '0.1em' }}>{"★".repeat(item.rating ?? 5)}</p>
                       <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.75, fontStyle: 'italic', flex: 1 }}>"{item.quote}"</p>
                       <div>
                         <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>

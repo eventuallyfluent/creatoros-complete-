@@ -388,12 +388,18 @@ export default async function CourseSalesPage({ params }: Props) {
     const c = block.content ?? {}
     let items: any[] = c.items ?? []
     if (c.pullFromApproved && allCourseIds.length > 0) {
-      const approved = await prisma.testimonial.findMany({
-        where:   { courseId: { in: allCourseIds }, status: 'APPROVED' },
+      const approved = await prisma.courseReview.findMany({
+        where:   { courseId: { in: allCourseIds }, status: 'APPROVED', comment: { not: null } },
+        include: { user: { select: { name: true } } },
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
         take:    6,
       })
-      items = approved.map(t => ({ name: t.authorName, quote: t.quote, role: t.authorRole }))
+      items = approved.map((r: any) => ({
+        name:   r.user.name ?? 'Student',
+        quote:  r.comment,
+        role:   null,
+        rating: r.rating,
+      }))
     }
     const visible = items.filter((i: any) => i.quote?.trim())
     if (visible.length === 0) return null
@@ -403,10 +409,13 @@ export default async function CourseSalesPage({ params }: Props) {
           {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '28px', textAlign: 'center' }}>{c.heading}</h2>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
             {visible.map((item: any, i: number) => (
-              <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '22px' }}>
-                <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '14px', fontStyle: 'italic' }}>"{item.quote}"</p>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>
-                {item.role && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.role}</p>}
+              <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {item.rating && <p style={{ fontSize: '11px', color: 'var(--accent-gold)', letterSpacing: '0.1em', margin: 0 }}>{'★'.repeat(item.rating)}</p>}
+                <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.7, fontStyle: 'italic', flex: 1, margin: 0 }}>"{item.quote}"</p>
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>
+                  {item.role && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>{item.role}</p>}
+                </div>
               </div>
             ))}
           </div>
@@ -493,6 +502,38 @@ export default async function CourseSalesPage({ params }: Props) {
         </section>
       )}
       {renderedBlocks}
+      {blocks.length === 0 && firstCourse && (
+        // Fallback when no sales page blocks configured — show curriculum directly
+        <section style={S.section}>
+          <div style={S.container}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s5)' }}>
+              Course Content
+            </h2>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
+              {allModules.map((mod: any, mIdx: number) => (
+                <details key={mod.id} open={mIdx === 0} style={{ borderBottom: mIdx < allModules.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <summary style={{ padding: '15px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-elevated)', listStyle: 'none', userSelect: 'none' as const }}>
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{mod.title}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{mod.lessons.length} lessons</span>
+                  </summary>
+                  <div>
+                    {mod.lessons.map((lesson: any) => (
+                      <div key={lesson.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 20px 10px 28px', borderTop: '1px solid rgba(46,46,78,0.4)' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>▶</span>
+                        {lesson.isFree
+                          ? <a href={`/courses/${product.slug}/preview/${lesson.id}`} style={{ fontSize: '13px', color: 'var(--accent)', flex: 1, textDecoration: 'none', fontWeight: 500 }}>{lesson.title}</a>
+                          : <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{lesson.title}</span>
+                        }
+                        {lesson.isFree && <span style={{ fontSize: '10px', padding: '2px 7px', background: 'rgba(52,211,153,0.1)', color: 'var(--success)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 'var(--r-pill)', fontWeight: 700 }}>FREE</span>}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       {firstCourse && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
           <CourseReviews courseId={firstCourse.id} isEnrolled={!!isEnrolled} />

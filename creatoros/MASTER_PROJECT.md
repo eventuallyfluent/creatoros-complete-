@@ -605,3 +605,32 @@ The `(admin)/admin-login` folder was deleted from GitHub three times because Cla
 
 ### General principle
 If a file or folder has been a source of build errors before, it is a known landmine. Known landmines go on the checklist. The checklist runs before every packaging step. This is not optional.
+
+
+## The admin-login Problem — Final Resolution
+
+### Why it keeps happening
+Git does not delete files on push. Every time a new zip is uploaded to GitHub, the sync only
+adds/updates files. It never removes files that were previously committed — including
+`src/app/(admin)/admin-login/` which was committed early in the project.
+
+The only way to permanently remove a file from a GitHub repo is to:
+1. Delete it via the GitHub web UI (done multiple times), OR
+2. Add it to `.gitignore` so it can never be re-committed (now done), AND
+3. Ensure the prebuild script catches it if it somehow reappears (already done)
+
+### What is now in place
+- `.gitignore` contains `src/app/(admin)/admin-login/` — git will refuse to commit this folder
+- `scripts/check-no-duplicate-routes.js` runs as `prebuild` — fails the build if the folder exists
+- The working copy at `/home/claude/creatoros` does not contain the folder
+
+### If the error appears again
+It means the file is still in the GitHub repo from before the `.gitignore` was added.
+`.gitignore` only prevents NEW commits — it does not remove files already in git history.
+
+**One-time fix required:** Go to GitHub → repo → `src/app/(admin)/admin-login/` → delete both
+`page.tsx` and `AdminLoginForm.tsx`. After this the `.gitignore` prevents it ever coming back.
+
+### Rule for Claude
+Never create, copy, restore, or reference files inside `src/app/(admin)/admin-login/`.
+The correct admin login is at `src/app/(public)/admin-login/` and must stay there.
