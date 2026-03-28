@@ -11,7 +11,13 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const userId  = (session?.user as any)?.id ?? null
 
-  const body = await req.json()
+  let body: any
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
   const { email, name, productIds, couponCode, gatewayId, gdprConsent } = body
 
   if (!email || !productIds?.length || !gatewayId) {

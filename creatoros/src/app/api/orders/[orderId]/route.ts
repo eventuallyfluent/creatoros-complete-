@@ -7,14 +7,20 @@ import { prisma } from '@/lib/db/prisma'
 import { markOrderPaid, refundOrder } from '@/lib/payments/order-service'
 import { getGatewayDriver } from '@/lib/payments/gateway-registry'
 
-export async function GET(req: NextRequest, { params }: { params: { orderId: string } })  {
-
+export async function GET(req: NextRequest, { params }: { params: { orderId: string } }) {
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const order = await prisma.order.findUnique({
     where:   { id: params.orderId },
-    include: { items: { include: { course: { select: { title: true, slug: true } } } } },
+    include: {
+      items: {
+        include: {
+          // OrderItem relates to product, not directly to course
+          product: { select: { id: true, title: true, slug: true } },
+        },
+      },
+    },
   })
   if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(order)
@@ -24,7 +30,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { orderId: s
   const session = await getServerSession(authOptions)
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { action } = await req.json()
+  let body: any
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { action } = body
 
   const order = await prisma.order.findUnique({ where: { id: params.orderId } })
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
@@ -38,7 +51,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { orderId: s
   if (action === 'refund') {
     if (order.status !== 'PAID') return NextResponse.json({ error: 'Order is not paid' }, { status: 400 })
 
-    // Attempt gateway refund if available
     if (order.gatewayId && order.gatewayPaymentId) {
       const driver = await getGatewayDriver(order.gatewayId)
       if (driver && order.gatewayOrderId) {

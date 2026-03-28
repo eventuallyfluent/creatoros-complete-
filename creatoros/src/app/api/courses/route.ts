@@ -14,7 +14,13 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!adminGuard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await req.json()
+  let body: any
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
   const { title, subtitle, slug, description, thumbnailUrl, status,
           instructorId, certificateEnabled, metaTitle, metaDescription,
           price, compareAtPrice, currency } = body
@@ -40,7 +46,6 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Create product + all defaults in one go, with pricing from request
   const { productId } = await createCourseDefaults(course.id, {
     title:          course.title,
     slug:           course.slug,
@@ -53,6 +58,5 @@ export async function POST(req: NextRequest) {
     currency:       currency || 'USD',
   })
 
-  // Return both course and productId so caller can navigate directly
   return NextResponse.json({ ...course, productId }, { status: 201 })
 }

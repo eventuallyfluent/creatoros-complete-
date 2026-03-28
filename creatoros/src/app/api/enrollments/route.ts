@@ -6,15 +6,20 @@ import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db/prisma'
 
 // Free product enrolment (no payment required)
-export async function POST(req: NextRequest)  {
-
+export async function POST(req: NextRequest) {
+  // Check session before parsing body — reject unauthenticated requests early
   const session = await getServerSession(authOptions)
-
-  const { productId } = await req.json()
-  if (!productId) return NextResponse.json({ error: 'productId required' }, { status: 400 })
-
-  // Not logged in — signal to redirect to login
   if (!session) return NextResponse.json({ requiresLogin: true }, { status: 401 })
+
+  let body: any
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { productId } = body
+  if (!productId) return NextResponse.json({ error: 'productId required' }, { status: 400 })
 
   const userId = (session.user as any).id
 
