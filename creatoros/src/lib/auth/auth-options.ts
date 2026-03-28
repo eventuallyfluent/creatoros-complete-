@@ -2,14 +2,37 @@ import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import EmailProvider from 'next-auth/providers/email'
+import crypto from 'crypto'
 import { prisma } from '@/lib/db/prisma'
 import { sendMagicLinkEmail } from '@/lib/email/magic-link'
 
-// Admin credentials from environment variables
-// Set ADMIN_EMAIL and ADMIN_PASSWORD in Vercel env vars
-// Falls back to legacy values if env vars not set (remove fallbacks before going fully public)
-const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    ?? 'perseusarcaneacademy@gmail.com'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'PerseusAdmin2025!'
+// Admin credentials — must be set via environment variables.
+// ADMIN_EMAIL and ADMIN_PASSWORD are required in production; the server will
+// refuse to start without them. Do NOT add fallback values here.
+const ADMIN_EMAIL    = process.env.ADMIN_EMAIL
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
+
+if (process.env.NODE_ENV === 'production' && (!ADMIN_EMAIL || !ADMIN_PASSWORD)) {
+  throw new Error(
+    'Missing required environment variables: ADMIN_EMAIL and ADMIN_PASSWORD must be set.'
+  )
+}
+
+/**
+ * Timing-safe string comparison — prevents timing-based credential enumeration.
+ * Always performs the HMAC even on length mismatch to avoid leaking length info.
+ */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  // Perform a dummy compare on the shorter buffer so execution time is constant
+  const maxLen = Math.max(bufA.length, bufB.length)
+  const paddedA = Buffer.concat([bufA, Buffer.alloc(maxLen - bufA.length)])
+  const paddedB = Buffer.concat([bufB, Buffer.alloc(maxLen - bufB.length)])
+  const equal = crypto.timingSafeEqual(paddedA, paddedB)
+  // Also check lengths — must both match for a true equal
+  return equal && bufA.length === bufB.length
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -24,16 +47,17 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        if (!ADMIN_EMAIL || !ADMIN_PASSWORD) return null
         if (
-          credentials?.email    === ADMIN_EMAIL &&
-          credentials?.password === ADMIN_PASSWORD
+          credentials?.email === ADMIN_EMAIL &&
+          timingSafeStringEqual(credentials?.password ?? '', ADMIN_PASSWORD)
         ) {
           const user = await prisma.user.upsert({
             where:  { email: ADMIN_EMAIL },
             update: { role: 'ADMIN' },
             create: {
               email: ADMIN_EMAIL,
-              name:  'Simon Robinson',
+              name:  'Admin',
               role:  'ADMIN',
               gdprConsent: true,
             },
