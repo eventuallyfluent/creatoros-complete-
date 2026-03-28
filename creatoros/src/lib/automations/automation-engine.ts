@@ -20,7 +20,9 @@ import { sendEmail, renderBroadcastHtml } from '@/lib/email/email-service'
 //
 // Step action types:
 //   send_email        { subject, body }
-//   delay             { hours: number }
+//   delay             { hours: number }  — delays ≤25s execute inline;
+//                                         longer delays require an external
+//                                         cron job to replay RUNNING executions
 //   add_tag           { tag: string }
 //   remove_tag        { tag: string }
 //   enroll_course     { courseId: string }
@@ -38,7 +40,6 @@ export interface AutomationContext {
   tag?:       string
 }
 
-// ISSUE 6 FIX: Proper types instead of as any
 interface TriggerFilter {
   productId?: string | null
   courseId?:  string | null
@@ -52,10 +53,12 @@ interface AutomationStep {
   sortOrder:  number
 }
 
-  // ISSUE 3 FIX: deduplicationKey prevents double-firing when called from webhook + admin
-  // Key must include triggerType AND courseId so bundle courses each get a unique execution record
-  const dedupeKey = (triggerType: string, ctx: AutomationContext) =>
-    `${triggerType}:order=${ctx.orderId ?? ''}:course=${ctx.courseId ?? ''}:user=${ctx.userId ?? ''}`
+// Deduplication key prevents double-firing when called from webhook + admin.
+// Key includes triggerType AND courseId so bundle courses (same orderId,
+// different courseId) each get a unique execution record.
+const dedupeKey = (triggerType: string, ctx: AutomationContext) =>
+  `${triggerType}:order=${ctx.orderId ?? ''}:course=${ctx.courseId ?? ''}:user=${ctx.userId ?? ''}`
+
 export async function runAutomations(
   triggerType:      string,
   ctx:              AutomationContext,
@@ -69,8 +72,6 @@ export async function runAutomations(
     const filter = automation.triggerFilter as TriggerFilter | null
     if (!matchesTriggerFilter(filter, ctx)) continue
 
-    // Dedup key includes triggerType + orderId + courseId + userId
-    // so bundle courses (same orderId, different courseId) each get their own execution
     const dedupe = dedupeKey(triggerType, ctx)
     const existing = await prisma.automationExecution.findFirst({
       where: { automationId: automation.id, deduplicationKey: dedupe },
@@ -255,8 +256,20 @@ async function executeStep(
   }
 
   if (action === 'delay') {
-    if (process.env.NODE_ENV === 'development' && Number(data.hours) <= 0.01) {
-      await new Promise(r => setTimeout(r, Number(data.hours) * 3600000))
+    const hours = Number(data.hours) || 0
+    const ms    = hours * 3_600_000
+    if (ms <= 0) return
+    // Delays up to 25 seconds execute inline (safe in serverless).
+    // Longer delays require an external scheduler: configure a cron job that
+    // queries AutomationExecution WHERE status='RUNNING' AND scheduledAt <= NOW
+    // and replays the remaining steps.
+    if (ms <= 25_000) {
+      await new Promise(r => setTimeout(r, ms))
+    } else {
+      logger.warn('delay action: long delay skipped in serverless context', {
+        hours,
+        hint: 'Use a cron job to replay RUNNING AutomationExecutions with pending delay steps.',
+      })
     }
     return
   }

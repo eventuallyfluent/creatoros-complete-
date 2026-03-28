@@ -29,7 +29,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
       to:      Array.isArray(opts.to) ? opts.to : [opts.to],
       subject: opts.subject,
       html:    opts.html,
-      reply_to: opts.replyTo,
+      replyTo: opts.replyTo,
       tags:    opts.tags,
     })
     return { id: result.data?.id ?? null, success: !result.error, error: result.error?.message }
@@ -39,11 +39,11 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
   }
 }
 
-// ── Transactional wrappers ────────────────────────────────
+// ── Transactional wrappers ────────────────────────────
 export async function sendWelcomeEmail(to: string, name: string, productTitle: string, courseSlug: string) {
-  const courseTitle = productTitle // product title is the commercial label shown to students
+  const courseTitle = productTitle
   return sendEmail({
-    to, subject: `Welcome to ${productTitle} ✦`,
+    to, subject: `Welcome to ${productTitle} ✶`,
     html: welcomeTemplate({ name, courseTitle, courseSlug }),
     tags: [{ name: 'type', value: 'welcome' }],
   })
@@ -87,8 +87,9 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
-// ── Email templates ───────────────────────────────────────
+// ── Email templates ─────────────────────────────────
 function baseTemplate(content: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -113,11 +114,12 @@ function baseTemplate(content: string) {
   <div class="wrapper">
     <div class="card">
       <div class="header">
-        <div class="logo">✦ Perseus Arcane Academy</div>
+        <div class="logo">✶ Perseus Arcane Academy</div>
       </div>
       <div class="body">${content}</div>
       <div class="footer">
-        <p>Perseus Arcane Academy · <a href="{{unsubscribe_url}}">Unsubscribe</a></p>
+        <p>Perseus Arcane Academy &middot; <a href="${appUrl}">perseusarcaneacademy.com</a><br>
+        To stop receiving these emails, reply with &ldquo;unsubscribe&rdquo;.</p>
       </div>
     </div>
   </div>
@@ -128,7 +130,7 @@ function baseTemplate(content: string) {
 function welcomeTemplate({ name, courseTitle, courseSlug }: { name: string; courseTitle: string; courseSlug: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   return baseTemplate(`
-    <h1>Welcome, ${name} ✦</h1>
+    <h1>Welcome, ${name} ✶</h1>
     <p>Your enrolment in <strong style="color:#F0EAF8">${courseTitle}</strong> is confirmed. Your journey into the arcane begins now.</p>
     <p style="text-align:center">
       <a href="${appUrl}/portal/courses/${courseSlug}" class="btn">Begin Your Course →</a>
