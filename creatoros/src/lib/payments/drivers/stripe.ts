@@ -47,7 +47,6 @@ export class StripeDriver implements GatewayDriver {
     const sig    = headers['stripe-signature'] ?? ''
     const secret = this.config.webhookSecret
 
-    // Verify signature
     if (secret && !this.verifySignature(payload, headers, secret)) {
       return null
     }
@@ -90,12 +89,22 @@ export class StripeDriver implements GatewayDriver {
     if (!sig || !secret) return !secret // if no secret configured, skip check
 
     try {
-      const parts    = Object.fromEntries(sig.split(',').map(p => p.split('=')))
-      const ts       = parts['t']
-      const sigV1    = parts['v1']
+      const parts  = Object.fromEntries(sig.split(',').map(p => p.split('=')))
+      const ts     = parts['t']
+      const sigV1  = parts['v1']
+      if (!ts || !sigV1) return false
+
       const signed   = `${ts}.${payload}`
       const expected = crypto.createHmac('sha256', secret).update(signed).digest('hex')
-      return crypto.timingSafeEqual(Buffer.from(sigV1 ?? '', 'hex'), Buffer.from(expected, 'hex'))
+
+      // timingSafeEqual throws if buffers have different byte lengths.
+      // Check lengths explicitly first so a malformed incoming signature
+      // returns false instead of crashing with a TypeError (500).
+      const sigBuf = Buffer.from(sigV1,    'hex')
+      const expBuf = Buffer.from(expected, 'hex')
+      if (sigBuf.length !== expBuf.length) return false
+
+      return crypto.timingSafeEqual(sigBuf, expBuf)
     } catch {
       return false
     }
@@ -107,7 +116,7 @@ export class StripeDriver implements GatewayDriver {
     })
     if (!res.ok) return 'unknown'
     const session = await res.json()
-    if (session.payment_status === 'paid') return 'paid'
+    if (session.payment_status === 'paid')   return 'paid'
     if (session.payment_status === 'unpaid') return 'pending'
     return 'unknown'
   }

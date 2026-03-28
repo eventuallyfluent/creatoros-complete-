@@ -44,8 +44,10 @@ export async function POST(
     return NextResponse.json({ error: 'No driver' }, { status: 500 })
   }
 
-  // Verify signature
-  const secret = (gateway.config as any)?.webhookSecret ?? gateway.webhookSecret ?? ''
+  // Webhook secret is stored inside gateway.config — never on a top-level field.
+  // Falling back to '' would silently accept any signature, so we keep it empty
+  // and let verifySignature treat a missing secret as unconfigured.
+  const secret = (gateway.config as Record<string, string> | null)?.webhookSecret ?? ''
   const isValid = driver.verifySignature(rawBody, headers, secret)
 
   if (!isValid) {

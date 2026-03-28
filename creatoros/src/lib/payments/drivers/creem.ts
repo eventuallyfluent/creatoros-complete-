@@ -37,10 +37,8 @@ export class CreemDriver implements GatewayDriver {
         'x-api-key':     this.config.apiKey,
       },
       body: JSON.stringify({
-        // Creem requires a product_id — we use a passthrough product or a dynamic one
-        // For CreatorOS, we pass the orderId as the request_id so we can match the webhook back
         request_id:   order.orderId,
-        product_id:   order.metadata?.creemProductId,   // set per-course in course settings, or fallback
+        product_id:   order.metadata?.creemProductId,
         success_url:  order.successUrl,
         cancel_url:   order.cancelUrl,
         customer: {
@@ -60,7 +58,6 @@ export class CreemDriver implements GatewayDriver {
     }
 
     const data = await res.json()
-    // Creem returns { checkout_url, id }
     return {
       redirectUrl: data.checkout_url,
       sessionId:   data.id,
@@ -87,11 +84,9 @@ export class CreemDriver implements GatewayDriver {
     const eventType: string = body.eventType ?? ''
     const obj = body.object ?? {}
 
-    // Map Creem events to our PaymentEvent shape
     if (eventType === 'checkout.completed') {
       const order    = obj.order   ?? {}
       const txn      = obj.transaction ?? {}
-      // orderId is what we passed as metadata.orderId when creating the session
       const orderId  = obj.metadata?.orderId ?? order.id
       return Promise.resolve({
         gatewayOrderId:   orderId,
@@ -116,7 +111,6 @@ export class CreemDriver implements GatewayDriver {
       })
     }
 
-    // Other events (subscription.*, etc.) — not handled for one-time course payments
     return Promise.resolve(null)
   }
 
@@ -132,15 +126,18 @@ export class CreemDriver implements GatewayDriver {
         .createHmac('sha256', secret)
         .update(payload.toString())
         .digest('hex')
-      return computed === signature
+      // Use timing-safe comparison to prevent secret enumeration via timing attacks.
+      // Must check lengths first — timingSafeEqual throws if buffers differ in length.
+      const sigBuf  = Buffer.from(signature, 'hex')
+      const compBuf = Buffer.from(computed,  'hex')
+      if (sigBuf.length !== compBuf.length) return false
+      return crypto.timingSafeEqual(sigBuf, compBuf)
     } catch {
       return false
     }
   }
 
   async issueRefund(payload: RefundPayload): Promise<{ success: boolean; refundId?: string }> {
-    // Creem handles refunds via their dashboard or API
-    // For now, log — full refund API can be added when needed
     console.warn('Creem refund requested for', payload.gatewayOrderId, '— use Creem dashboard')
     return { success: false }
   }
