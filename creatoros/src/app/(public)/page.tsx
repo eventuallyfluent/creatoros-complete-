@@ -60,7 +60,7 @@ export default async function HomePage() {
       },
     },
     orderBy: { createdAt: 'asc' },
-  })
+  }).catch(() => [] as any[])
   const displayMode  = (settings as any).coursesDisplayMode ?? 'all'
   const featuredIds  = settings.featuredCourseIds ?? []
   const featuredList = featuredIds.map(id => allProducts.find(p => p.id === id || p.courses.some((pc: any) => pc.courseId === id))).filter(Boolean) as typeof allProducts
@@ -83,11 +83,11 @@ export default async function HomePage() {
       },
     },
     orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
-  })
+  }).catch(() => [] as any[])
 
   let enrollments: { courseId: string }[] = []
   if (userId) {
-    enrollments = await prisma.enrollment.findMany({ where: { userId, status: 'ACTIVE' } })
+    enrollments = await prisma.enrollment.findMany({ where: { userId, status: 'ACTIVE' } }).catch(() => [])
   }
   const enrolledIds = new Set(enrollments.map((e: any) => e.courseId))
 
