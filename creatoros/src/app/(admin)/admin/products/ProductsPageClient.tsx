@@ -39,7 +39,7 @@ export default function ProductsPageClient({ products, courses, instructors }: P
   const router = useRouter()
 
   return (
-    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '32px' }}>
       <AdminPageHeader
         title="Products"
         description={`${products.length} product${products.length !== 1 ? 's' : ''} — courses and bundles for sale`}

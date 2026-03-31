@@ -15,13 +15,14 @@ const NAV_GROUPS = [
     items: [
       { label: 'Dashboard',    href: '/admin',              icon: LayoutDashboard },
       { label: 'Products',     href: '/admin/products',     icon: Package },
+      { label: 'Courses',      href: '/admin/courses',      icon: BookOpen },
       { label: 'Collections',  href: '/admin/collections',  icon: FolderOpen },
       { label: 'Instructors',  href: '/admin/instructors',  icon: User },
       { label: 'Homepage',     href: '/admin/homepage',     icon: ExternalLink },
       { label: 'Reviews',      href: '/admin/reviews',      icon: MessageSquare },
+      { label: 'Testimonials', href: '/admin/testimonials', icon: Tag },
       { label: 'Pages',        href: '/admin/pages',        icon: FileText },
       { label: 'Import',       href: '/admin/import',       icon: Users },
-    { label: 'Student Demo',   href: '/admin/demo',         icon: BookOpen },
     ],
   },
   {
@@ -36,8 +37,7 @@ const NAV_GROUPS = [
   {
     label: 'Marketing',
     items: [
-      { label: 'Automations',      href: '/admin/automations',  icon: Zap },
-      { label: 'Email Sequences',   href: '/admin/sequences',    icon: BookOpen },
+      { label: 'Email Sequences', href: '/admin/automations',  icon: Zap },
       { label: 'Subscribers',     href: '/admin/subscribers',  icon: Mail },
       { label: 'Broadcasts',      href: '/admin/emails',       icon: Mail },
       { label: 'Analytics',       href: '/admin/analytics',    icon: BarChart2 },

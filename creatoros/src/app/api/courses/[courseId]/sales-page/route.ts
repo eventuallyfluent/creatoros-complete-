@@ -42,19 +42,8 @@ export async function GET(
   if (!course) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!ok)     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  let product = await getProductForCourse(params.courseId)
-
-  if (!product) {
-    const { createProductForCourse } = await import('@/lib/product/product-defaults')
-    await createProductForCourse(params.courseId, {
-      title: course.title,
-      slug:  (course as any).slug ?? params.courseId,
-      price: 0,
-    })
-    product = await getProductForCourse(params.courseId)
-  }
-
-  if (!product) return NextResponse.json({ error: 'Could not initialise product' }, { status: 500 })
+  const product = await getProductForCourse(params.courseId)
+  if (!product) return NextResponse.json({ error: 'Product not found for this course' }, { status: 404 })
 
   return NextResponse.json({
     salesPage:    product.salesPage,

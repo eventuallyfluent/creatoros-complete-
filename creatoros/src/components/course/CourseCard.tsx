@@ -38,7 +38,7 @@ export default function CourseCard({
           height: '180px',
           background: thumbnailUrl
             ? undefined
-            : 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))',
+            : 'linear-gradient(135deg, #1A0A2E, #2D1045)',
           position: 'relative',
           overflow: 'hidden',
         }}>

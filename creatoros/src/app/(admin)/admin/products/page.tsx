@@ -13,16 +13,16 @@ export default async function AdminProductsPage() {
         _count:     { select: { enrollments: true, orderItems: true } },
       },
       orderBy: { createdAt: 'desc' },
-    }).catch(() => []),
+    }),
     prisma.course.findMany({
       select:  { id: true, title: true, slug: true },
       orderBy: { title: 'asc' },
-    }).catch(() => []),
+    }),
     prisma.instructorProfile.findMany({
       select:  { id: true, displayName: true },
       orderBy: { displayName: 'asc' },
-    }).catch(() => []),
-  ])
+    }),
+  ]).catch(() => [])
 
   return (
     <ProductsPageClient

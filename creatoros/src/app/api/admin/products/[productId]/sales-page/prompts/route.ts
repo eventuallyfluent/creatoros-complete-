@@ -47,12 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
   })
 
   const prompts = await prisma.salesPagePrompts.findUnique({ where: { productId: params.productId } })
-  if (!prompts) return NextResponse.json({ ok: true, blocks: [] })
-
-  // Create salesPage if it doesn't exist yet (older products may not have one)
-  const salesPage = product.salesPage ?? await prisma.salesPage.create({
-    data: { productId: params.productId, status: 'DRAFT' },
-  })
+  if (!prompts || !product.salesPage) return NextResponse.json({ ok: true, blocks: [] })
 
   // generateBlocksFromPrompts expects a course-like shape — adapt product
   const courseShape = {
@@ -64,16 +59,16 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
   }
   const generatedBlocks = generateBlocksFromPrompts(prompts, courseShape as any)
 
-  await prisma.salesPageBlock.deleteMany({ where: { salesPageId: salesPage.id } })
+  await prisma.salesPageBlock.deleteMany({ where: { salesPageId: product.salesPage.id } })
   const created = await Promise.all(
     generatedBlocks.map((b, i) =>
       prisma.salesPageBlock.create({
-        data: { salesPageId: salesPage.id, type: b.type as any, sortOrder: i, visible: true, content: b.content },
+        data: { salesPageId: product.salesPage!.id, type: b.type as any, sortOrder: i, visible: true, content: b.content },
       })
     )
   )
   await prisma.salesPage.update({
-    where: { id: salesPage.id },
+    where: { id: product.salesPage.id },
     data:  { generatedFromPrompts: true, lastGeneratedAt: new Date() },
   })
 

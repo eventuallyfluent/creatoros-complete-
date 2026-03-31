@@ -33,14 +33,14 @@ export default async function AdminStudentsPage({
       orderBy: { createdAt: 'desc' },
       take,
       skip,
-    }).catch(() => []),
-    prisma.user.count({ where }).catch(() => 0),
-  ])
+    }),
+    prisma.user.count({ where }),
+  ]).catch(() => [])
 
   const totalPages = Math.ceil(total / take)
 
   return (
-    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '32px' }}>
       <AdminPageHeader
         title="Students"
         description={`${total} total students`}

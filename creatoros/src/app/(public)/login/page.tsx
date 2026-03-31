@@ -76,7 +76,6 @@ export default async function LoginPage({
           />
         </div>
       </div>
-
     </div>
   )
 }

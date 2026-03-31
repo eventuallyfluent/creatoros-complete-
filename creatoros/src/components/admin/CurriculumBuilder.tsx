@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Plus, Trash2, Eye, ChevronDown, ChevronUp, GripVertical, Edit2, Check, X } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, Edit2, Check, X } from 'lucide-react'
 
 interface Lesson {
   id:           string
@@ -25,15 +25,14 @@ interface Module {
 }
 
 interface Props {
-  courseId:   string
-  courseSlug?: string  // used for student preview link
+  courseId: string
   modules:  Module[]
 }
 
 const LESSON_TYPES   = ['VIDEO', 'TEXT', 'QUIZ', 'EMBED', 'DOWNLOAD']
 const VIDEO_PROVIDERS = ['STREAMABLE', 'VIMEO', 'YOUTUBE', 'LOOM', 'WISTIA', 'CUSTOM']
 
-export default function CurriculumBuilder({ courseId, courseSlug, modules: initialModules }: Props) {
+export default function CurriculumBuilder({ courseId, modules: initialModules }: Props) {
   const [modules,  setModules]  = useState<Module[]>(initialModules)
   const [expanded, setExpanded] = useState<Set<string>>(new Set(initialModules.map(m => m.id)))
   const [saving,   setSaving]   = useState<string | null>(null)
@@ -184,17 +183,6 @@ export default function CurriculumBuilder({ courseId, courseSlug, modules: initi
                         </p>
                       </div>
                       <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                        {courseSlug && (
-                          <a
-                            href={`/portal/courses/${courseSlug}/${lesson.id}?preview=1`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Preview as student"
-                            style={{ ...iconBtn('#10b981'), display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
-                          >
-                            <Eye size={13} />
-                          </a>
-                        )}
                         <button onClick={() => setEditingLesson(lesson.id)} style={iconBtn('#7B2FBE')}>
                           <Edit2 size={13} />
                         </button>

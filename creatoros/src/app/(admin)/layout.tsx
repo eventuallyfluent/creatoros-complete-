@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="admin-layout" data-theme="dark">
+    <div className="admin-layout">
       <AdminSidebar />
       <main className="admin-main">
         {children}

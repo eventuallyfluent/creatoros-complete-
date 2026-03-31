@@ -48,7 +48,7 @@ export default async function AdminOrdersPage({
   const totalPages   = Math.ceil(total / take)
 
   return (
-    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '32px' }}>
       <AdminPageHeader title="Orders" description={`${total} orders · $${totalRevenue.toFixed(2)} total revenue`} />
 
       {/* Filters */}

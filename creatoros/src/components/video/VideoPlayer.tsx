@@ -227,7 +227,7 @@ export default function VideoPlayer({
         if (data.event === 'play')     setPlaying(true)
         if (data.event === 'pause')    setPlaying(false)
         if (data.event === 'ended')    { setPlaying(false); onEnded?.() }
-        if (data.event === 'durationchange') setDuration(Number((data.data as any)?.duration) || 0)
+        if (data.event === 'durationchange') setDuration(Number(data.data?.duration) || 0)
         if (data.event === 'timeupdate') {
           const t = Number((data.data as any)?.seconds) || 0
           setCurrent(t)

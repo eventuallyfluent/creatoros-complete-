@@ -23,13 +23,12 @@ interface CollectionData {
 }
 
 interface Props {
-  collection?:            CollectionData
-  courses:                Course[]
-  assignedCourseIds?:     string[]
-  linkedProductCourseIds?: string[]  // courseIds that have a linked product — missing ones can't be purchased
+  collection?:       CollectionData
+  courses:           Course[]
+  assignedCourseIds?: string[]
 }
 
-export default function CollectionEditor({ collection, courses, assignedCourseIds = [], linkedProductCourseIds = [] }: Props) {
+export default function CollectionEditor({ collection, courses, assignedCourseIds = [] }: Props) {
   const router  = useRouter()
   const isNew   = !collection?.id
   const fileRef = useRef<HTMLInputElement>(null)
@@ -207,11 +206,6 @@ export default function CollectionEditor({ collection, courses, assignedCourseId
                     {course.thumbnailUrl && <Image src={course.thumbnailUrl} alt="" fill style={{ objectFit: 'cover' }} />}
                   </div>
                   <span style={{ fontSize: '13px', color: '#111827', fontWeight: 500, flex: 1 }}>{course.title}</span>
-                  {!linkedProductCourseIds.includes(course.id) && (
-                    <span title="No linked product — this course has no buy button" style={{ fontSize: '10px', fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '4px', padding: '2px 6px', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                      ⚠ No product
-                    </span>
-                  )}
                   <button onClick={() => removeCourse(course.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', border: '1px solid #fecaca', borderRadius: '4px', background: 'white', cursor: 'pointer', color: '#ef4444', flexShrink: 0 }}>
                     <X size={12} />
                   </button>

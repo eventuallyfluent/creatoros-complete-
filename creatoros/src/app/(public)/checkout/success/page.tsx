@@ -30,7 +30,6 @@ export default async function CheckoutSuccessPage({
       })
     : null
 
-  const isPaid       = order?.status === 'PAID'
   const firstProduct = order?.items[0]?.product
   const firstCourse  = firstProduct?.courses[0]?.course
   const displayTitle = firstProduct?.title ?? firstCourse?.title ?? null
@@ -75,22 +74,17 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
-          {isPaid ? 'You\u2019re enrolled!' : 'Payment received!'}
+          You&apos;re enrolled!
         </h1>
 
         {displayTitle ? (
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)', marginBottom: 'var(--s6)', lineHeight: 1.6 }}>
-            {isPaid
-              ? <>You&apos;re enrolled in <strong style={{ color: 'var(--text-primary)' }}>{displayTitle}</strong>. We&apos;ve sent a link to your email — click it and you&apos;ll land straight in your course.</>
-              : <>Your payment for <strong style={{ color: 'var(--text-primary)' }}>{displayTitle}</strong> is being processed. You&apos;ll receive an email with your access link shortly.</>
-            }
+            You're enrolled in <strong style={{ color: 'var(--text-primary)' }}>{displayTitle}</strong>.
+            We've sent a link to your email — click it and you'll land straight in your course.
           </p>
         ) : (
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)', marginBottom: 'var(--s6)', lineHeight: 1.6 }}>
-            {isPaid
-              ? 'Your enrolment is confirmed. We\u2019ve sent a link to your email to access your course.'
-              : 'Your payment is being processed. You\u2019ll receive an email with your access link once confirmed.'
-            }
+            Your enrolment is confirmed. We've sent a link to your email to access your course.
           </p>
         )}
 

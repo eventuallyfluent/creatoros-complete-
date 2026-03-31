@@ -48,9 +48,6 @@
 
   /* Borders */
   --border:         #2E2E4E;
-
-  /* Nav */
-  --nav-bg:         rgba(13, 13, 26, 0.92);
   --border-bright:  #4A3A6E;
 
   /* Status */
@@ -84,83 +81,6 @@
   --nav-height: 64px;
   --max-width: 1280px;
 }
-
-/* ============================================================
-   PERSEUS LIGHT THEME
-   Applied via <html data-theme="light"> or body.theme-light
-   ============================================================ */
-[data-theme="light"] {
-  --bg-base:        #F5F3FF;
-  --bg-surface:     #FFFFFF;
-  --bg-elevated:    #EDE9F8;
-  --bg-hover:       #DDD6F3;
-
-  --brand:          #7B2FBE;
-  --brand-hover:    #6320A0;
-  --brand-glow:     rgba(123, 47, 190, 0.2);
-
-  --accent:         #7B2FBE;
-  --accent-soft:    rgba(123, 47, 190, 0.1);
-
-  --accent-gold:    #B8860B;
-  --gold-soft:      rgba(184, 134, 11, 0.12);
-
-  --text-primary:   #1A0A2E;
-  --text-secondary: #4A2980;
-  --text-muted:     #7B5EA7;
-  --text-inverse:   #F5F3FF;
-
-  --border:         #D4C8F0;
-  --border-bright:  #B8A4E0;
-
-  --nav-bg:         rgba(255, 255, 255, 0.92);
-
-  --success:        #059669;
-  --warning:        #D97706;
-  --danger:         #DC2626;
-
-  --surface-light:  #FFFFFF;
-}
-
-/* ============================================================
-   PERSEUS DARK THEME (explicit — for nested overrides)
-   Portal and admin always use this regardless of public theme
-   ============================================================ */
-[data-theme="dark"] {
-  --bg-base:        #0D0D1A;
-  --bg-surface:     #1A1A2E;
-  --bg-elevated:    #252540;
-  --bg-hover:       #2E2E52;
-  --brand:          #7B2FBE;
-  --brand-hover:    #9B3FDE;
-  --brand-glow:     rgba(123, 47, 190, 0.35);
-  --accent:         #C084FC;
-  --accent-soft:    rgba(192, 132, 252, 0.15);
-  --accent-gold:    #D4A855;
-  --gold-soft:      rgba(212, 168, 85, 0.15);
-  --text-primary:   #F0EAF8;
-  --text-secondary: #A78BCA;
-  --text-muted:     #6B5B8A;
-  --text-inverse:   #0D0D1A;
-  --border:         #2E2E4E;
-  --border-bright:  #4A3A6E;
-  --success:        #34D399;
-  --warning:        #FBBF24;
-  --danger:         #F87171;
-  --surface-light:  #FAFAFA;
-  --nav-bg:         rgba(13, 13, 26, 0.92);
-}
-
-/* ============================================================
-   THEME-AWARE LOGO SWAP
-   ============================================================ */
-/* Dark theme (default): show dark logo, hide light logo */
-.logo-dark  { display: block; }
-.logo-light { display: none;  }
-
-/* Light theme: hide dark logo, show light logo */
-[data-theme="light"] .logo-dark  { display: none;  }
-[data-theme="light"] .logo-light { display: block; }
 
 /* ============================================================
    BASE RESET & DEFAULTS
@@ -387,7 +307,7 @@ code, pre {
 
 /* Hero section background */
 .hero-bg {
-  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-base) 100%);
+  background: linear-gradient(180deg, #0D0522 0%, var(--bg-base) 100%);
   position: relative;
   overflow: hidden;
 }
@@ -512,28 +432,3 @@ code, pre {
   color: #ffffff;
 }
 .btn-danger:hover { opacity: 0.9; }
-
-/* ── Mobile Responsive ─────────────────────────────────────────────────────── */
-* { box-sizing: border-box; }
-
-img, video, iframe { max-width: 100%; }
-
-@media (max-width: 768px) {
-  /* Admin sidebar collapses to top nav on mobile */
-  .admin-layout-sidebar { display: none; }
-  .admin-layout-main    { margin-left: 0 !important; padding: 16px !important; }
-
-  /* Sales page hero: stack on mobile */
-  .hero-grid-2col { grid-template-columns: 1fr !important; }
-
-  /* Checkout: full width */
-  .checkout-grid  { grid-template-columns: 1fr !important; }
-
-  /* Table scroll on small screens */
-  .table-scroll   { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-}
-
-@media (max-width: 480px) {
-  h1 { font-size: clamp(22px, 7vw, 36px) !important; }
-  h2 { font-size: clamp(18px, 5vw, 26px) !important; }
-}

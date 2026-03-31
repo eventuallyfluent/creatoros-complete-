@@ -46,9 +46,6 @@ export async function calculateOrderTotals(
 
   const currency     = products[0].currency
   const subtotal     = products.reduce((sum, p) => sum + Number(p.price), 0)
-  // Coupon applies only to the primary product (first in list), not order bumps
-  const primaryProduct = products.find(p => p.id === productIds[0]) ?? products[0]
-  const primaryPrice   = Number(primaryProduct.price)
   let discountAmount = 0
   let couponId: string | undefined
 
@@ -74,9 +71,9 @@ export async function calculateOrderTotals(
         const applicable = productIds.some(id => coupon.applicableProductIds.includes(id))
         if (!applicable) throw new Error('Coupon not valid for these products')
       }
-      if (coupon.type === 'PERCENTAGE')       discountAmount = primaryPrice * (Number(coupon.value) / 100)
-      else if (coupon.type === 'FIXED_AMOUNT') discountAmount = Math.min(Number(coupon.value), primaryPrice)
-      else if (coupon.type === 'FREE')         discountAmount = primaryPrice
+      if (coupon.type === 'PERCENTAGE')       discountAmount = subtotal * (Number(coupon.value) / 100)
+      else if (coupon.type === 'FIXED_AMOUNT') discountAmount = Math.min(Number(coupon.value), subtotal)
+      else if (coupon.type === 'FREE')         discountAmount = subtotal
       couponId = coupon.id
     }
   }
@@ -164,7 +161,7 @@ export async function fulfilOrder(orderId: string) {
   for (const item of order.items) {
     // ISSUE 2 FIX: Guard against deleted products
     if (!item.product) {
-      logger.warn('fulfilOrder: product not found — skipping item', { orderId, productId: item.productId })
+      console.error(`fulfilOrder: product ${item.productId} not found for order ${orderId} — skipping item`)
       continue
     }
 
@@ -208,11 +205,12 @@ export async function fulfilOrder(orderId: string) {
       })
     } catch (emailErr) {
       // Email failure should NOT roll back enrollments — log and continue
-      logger.error('fulfilOrder: failed to send magic link', emailErr, { orderId })
+      console.error(`fulfilOrder: failed to send magic link for order ${orderId}:`, emailErr)
     }
   }
 
-  // Automations — dedup key is computed internally from triggerType + context
+  // ISSUE 3 FIX: Pass deduplication key to prevent double-firing automations
+  const dedupeKey = `order:${order.id}`
   const { runAutomations } = await import('@/lib/automations/automation-engine')
 
   for (const item of order.items) {
@@ -220,7 +218,7 @@ export async function fulfilOrder(orderId: string) {
     await runAutomations('PURCHASE', {
       userId: user.id, email: user.email,
       productId: item.productId, orderId: order.id,
-    }).catch(err => logger.error('PURCHASE automation failed', err, { orderId: order.id }))
+    }, dedupeKey).catch(err => console.error('PURCHASE automation failed:', err))
   }
 
   for (const item of order.items) {
@@ -230,8 +228,8 @@ export async function fulfilOrder(orderId: string) {
         userId: user.id, email: user.email,
         productId: item.productId, courseId: pc.courseId, orderId: order.id,
       }
-      await runAutomations('ENROLLMENT',     ctx).catch(err => logger.error('ENROLLMENT automation failed', err, { orderId: order.id }))
-      await runAutomations('ACCESS_GRANTED', ctx).catch(err => logger.error('ACCESS_GRANTED automation failed', err, { orderId: order.id }))
+      await runAutomations('ENROLLMENT',     ctx, dedupeKey).catch(err => console.error('ENROLLMENT automation failed:', err))
+      await runAutomations('ACCESS_GRANTED', ctx, dedupeKey).catch(err => console.error('ACCESS_GRANTED automation failed:', err))
     }
   }
 

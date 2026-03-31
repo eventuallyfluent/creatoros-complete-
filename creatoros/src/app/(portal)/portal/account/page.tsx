@@ -40,7 +40,7 @@ export default async function AccountPage() {
     }).catch(() => []) : [],
     uid ? prisma.enrollment.findMany({
       where:   { userId: uid, status: 'ACTIVE' },
-      include: { course: { select: { id: true, title: true, slug: true, thumbnailUrl: true, certificateEnabled: true } } },
+      include: { course: { select: { id: true, title: true, slug: true, thumbnailUrl: true } } },
       orderBy: { enrolledAt: 'desc' },
     }).catch(() => []) : [],
   ])

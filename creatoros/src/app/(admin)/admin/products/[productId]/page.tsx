@@ -9,53 +9,30 @@ import ProductEditorClient from './ProductEditorClient'
 export const metadata: Metadata = { title: 'Edit Product — Admin' }
 
 export default async function ProductEditorPage({ params }: { params: { productId: string } }) {
-  let product: any, instructors: any[], allProducts: any[]
-
-  try {
-    ;[product, instructors, allProducts] = await Promise.all([
+  const [product, instructors, allProducts] = await Promise.all([
     prisma.product.findUnique({
       where:   { id: params.productId },
       include: {
-        instructor:    true,
+        instructor:   true,
         courses: {
-          include: {
-            course: {
-              include: {
-                modules: {
-                  include: { lessons: { orderBy: { sortOrder: 'asc' } } },
-                  orderBy: { sortOrder: 'asc' },
-                },
-                instructor: true,
-              },
-            },
-          },
+          include: { course: { select: { id: true, title: true, slug: true } } },
           orderBy: { sortOrder: 'asc' },
         },
         checkoutPages: { orderBy: { isDefault: 'desc' } },
-        salesPage:     { include: { blocks: { orderBy: { sortOrder: 'asc' } } } },
-        salesPrompts:  true,
+        salesPage:     true,
         _count:        { select: { enrollments: true, orderItems: true } },
       },
     }),
     prisma.instructorProfile.findMany({
       select: { id: true, displayName: true }, orderBy: { displayName: 'asc' },
     }),
+    // For order bump selector — all published products except self
     prisma.product.findMany({
       where:   { status: 'PUBLISHED' },
       select:  { id: true, title: true, price: true, currency: true },
       orderBy: { title: 'asc' },
     }),
-    ])
-  } catch (err: any) {
-    return (
-      <div style={{ padding: '32px', fontFamily: 'monospace' }}>
-        <h2 style={{ color: '#dc2626', marginBottom: '12px' }}>DB Query Error — productId: {params.productId}</h2>
-        <pre style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '16px', fontSize: '13px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-          {err?.message ?? String(err)}
-        </pre>
-      </div>
-    )
-  }
+  ]).catch(() => [])
 
   if (!product) notFound()
 
@@ -65,44 +42,47 @@ export default async function ProductEditorPage({ params }: { params: { productI
 
   return (
     <div style={{ padding: '32px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <AdminPageHeader
-          title={product.title}
-          description={`/courses/${product.slug} · ${product.type === 'BUNDLE' ? `Bundle · ${product.courses.length} courses` : 'Single Course'}`}
-          backHref="/admin/products"
-          backLabel="All Products"
-        />
-        <div style={{ display: 'flex', gap: '10px', flexShrink: 0, alignItems: 'center' }}>
-          <Link href={`/checkout/${product.slug}?preview=1`} target="_blank"
-            style={{ padding: '9px 18px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-            Preview Checkout →
-          </Link>
-          <Link href={`/courses/${product.slug}`} target="_blank"
-            style={{ padding: '9px 18px', background: '#7B2FBE', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: 'white', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-            View Live Page →
-          </Link>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={product.title}
+        description={`/courses/${product.slug} · ${product.type === 'BUNDLE' ? `Bundle · ${product.courses.length} courses` : 'Single Course'}`}
+        backHref="/admin/products"
+        backLabel="All Products"
+        action={{ label: 'View Sales Page →', href: `/courses/${product.slug}` }}
+      />
 
       {/* Stats bar */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap' }}>
         {[
-          { label: 'Students', value: product._count.enrollments },
-          { label: 'Sales',    value: product._count.orderItems },
-          { label: 'Status',   value: product.status, color: statusColor[product.status] },
-          { label: 'Price',    value: Number(product.price) === 0 ? 'Free' : `${product.currency} ${Number(product.price).toFixed(2)}` },
+          { label: 'Students',   value: product._count.enrollments },
+          { label: 'Sales',      value: product._count.orderItems },
+          { label: 'Status',     value: product.status, color: statusColor[product.status] },
+          { label: 'Price',      value: Number(product.price) === 0 ? 'Free' : `${product.currency} ${Number(product.price).toFixed(2)}` },
         ].map(s => (
           <div key={s.label} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 20px', minWidth: '120px' }}>
             <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>{s.label}</p>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: (s as any).color ?? '#111827', margin: 0 }}>{s.value}</p>
+            <p style={{ fontSize: '20px', fontWeight: 800, color: s.color ?? '#111827', margin: 0 }}>{s.value}</p>
           </div>
+        ))}
+      </div>
+
+      {/* Quick links */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '28px', flexWrap: 'wrap' }}>
+        <Link href={`/admin/products/${product.id}/sales-page`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: '#7B2FBE', color: 'white', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
+          Edit Sales Page →
+        </Link>
+        {product.courses.map(pc => (
+          <Link key={pc.courseId} href={`/admin/courses/${pc.courseId}/edit`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: 'white', border: '1px solid #e5e7eb', color: '#374151', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
+            {product.type === 'BUNDLE' ? `Edit: ${pc.course.title}` : 'Edit Course Content →'}
+          </Link>
         ))}
       </div>
 
       <ProductEditorClient
         product={product as any}
         instructors={instructors}
-        allProducts={allProducts.filter((p: any) => p.id !== product.id) as any}
+        allProducts={allProducts.filter(p => p.id !== product.id) as any}
       />
     </div>
   )

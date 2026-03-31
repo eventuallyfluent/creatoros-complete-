@@ -10,14 +10,14 @@ function adminGuard(session: any) {
   return !!(session && session.user?.role === 'ADMIN')
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest)  {
+
   const session = await getServerSession(authOptions)
   if (!adminGuard(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
   const { title, subtitle, slug, description, thumbnailUrl, status,
-          instructorId, certificateEnabled, metaTitle, metaDescription,
-          price, compareAtPrice, currency } = body
+          instructorId, certificateEnabled, metaTitle, metaDescription } = body
 
   if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   if (!slug?.trim())  return NextResponse.json({ error: 'Slug is required' },  { status: 400 })
@@ -28,31 +28,27 @@ export async function POST(req: NextRequest) {
   const course = await prisma.course.create({
     data: {
       title,
-      subtitle:           subtitle           || null,
+      subtitle:           subtitle        || null,
       slug,
-      description:        description        || null,
-      thumbnailUrl:       thumbnailUrl       || null,
-      status:             status             || 'DRAFT',
-      instructorId:       instructorId       || null,
+      description:        description     || null,
+      thumbnailUrl:       thumbnailUrl    || null,
+      status:             status          || 'DRAFT',
+      instructorId:       instructorId    || null,
       certificateEnabled: certificateEnabled ?? false,
-      metaTitle:          metaTitle          || null,
-      metaDescription:    metaDescription    || null,
+      metaTitle:          metaTitle       || null,
+      metaDescription:    metaDescription || null,
     },
   })
 
-  // Create product + all defaults in one go, with pricing from request
-  const { productId } = await createCourseDefaults(course.id, {
-    title:          course.title,
-    slug:           course.slug,
-    status:         course.status as any,
-    instructorId:   course.instructorId ?? null,
-    thumbnailUrl:   course.thumbnailUrl ?? null,
-    subtitle:       course.subtitle ?? null,
-    price:          typeof price === 'number' ? price : (parseFloat(price) || 0),
-    compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null,
-    currency:       currency || 'USD',
-  })
+  // Auto-create defaults — a Product will be created separately via /admin/products
+  await createCourseDefaults(course.id, {
+    title:       course.title,
+    slug:        course.slug,
+    status:      course.status as any,
+    instructorId: course.instructorId ?? null,
+    thumbnailUrl: course.thumbnailUrl ?? null,
+    subtitle:    course.subtitle ?? null,
+  }).catch(() => {/* non-fatal - course still created */})
 
-  // Return both course and productId so caller can navigate directly
-  return NextResponse.json({ ...course, productId }, { status: 201 })
+  return NextResponse.json(course, { status: 201 })
 }

@@ -33,7 +33,7 @@ const registry = new Map<string, DriverFactory>([
 ])
 
 export async function getGatewayDriver(gatewayId: string): Promise<GatewayDriver | null> {
-  const gateway = await prisma.paymentGateway.findFirst({
+  const gateway = await prisma.paymentGateway.findUnique({
     where: { id: gatewayId, isActive: true },
   })
 
@@ -50,7 +50,7 @@ export async function getGatewayDriver(gatewayId: string): Promise<GatewayDriver
 
 export async function getDefaultGateway() {
   const gateway = await prisma.paymentGateway.findFirst({
-    where:   { isDefault: true, isActive: true }, // findFirst — valid
+    where:   { isDefault: true, isActive: true },
     orderBy: { createdAt: 'asc' },
   })
   return gateway

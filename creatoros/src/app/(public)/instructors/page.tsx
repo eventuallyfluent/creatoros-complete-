@@ -23,7 +23,7 @@ export default async function InstructorsPage() {
       {/* Header */}
       <div style={{
         padding: 'var(--s8) 0 var(--s7)',
-        background: 'linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg-base) 60%)',
+        background: 'linear-gradient(160deg, #1A0A2E 0%, var(--bg-base) 60%)',
         borderBottom: '1px solid var(--border)',
         textAlign: 'center',
       }}>
@@ -107,7 +107,7 @@ export default async function InstructorsPage() {
 
                       {/* Social pills — small, inline */}
                       {Object.keys(social).length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }} onClick={e => e.preventDefault()}>
                           {social.website  && <MiniSocialLink href={social.website}   icon="🌐" label="Website"   />}
                           {social.youtube  && <MiniSocialLink href={social.youtube}   icon="▶"  label="YouTube"   />}
                           {social.instagram && <MiniSocialLink href={social.instagram} icon="◉"  label="Instagram" />}

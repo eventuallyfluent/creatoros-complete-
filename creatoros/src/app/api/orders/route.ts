@@ -59,9 +59,7 @@ export async function POST(req: NextRequest) {
   const driver = await getGatewayDriver(gatewayId)
   if (!driver) return NextResponse.json({ error: 'Payment method unavailable' }, { status: 500 })
 
-  // Primary product is always the first in productIds (index 0), not DB sort order
-  const primaryProductId = productIds[0]
-  const firstProduct = products.find(p => p.id === primaryProductId) ?? products[0]
+  const firstProduct = products[0]
   const appUrl       = process.env.NEXT_PUBLIC_APP_URL!
 
   const paySession = await driver.createPaymentSession({

@@ -3,12 +3,11 @@ import { useState, useRef, useCallback } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, Download, ExternalLink, X } from 'lucide-react'
 
 interface ImportResult {
-  course:    { id: string; slug: string; title: string }
-  productId: string | null
-  modules:   number
-  lessons:   number
-  skipped:   string[]
-  warnings:  string[]
+  course:   { id: string; slug: string; title: string }
+  modules:  number
+  lessons:  number
+  skipped:  string[]
+  warnings: string[]
 }
 
 interface ParsedPreview {
@@ -19,18 +18,16 @@ interface ParsedPreview {
 }
 
 // ── CSV template content ──────────────────────────────────────────────────────
-// All sales page fields are on the COURSE row only — MODULE and LESSON rows leave them blank
-const TEMPLATE_CSV = `row_type,title,description,slug,status,price,compare_at_price,currency,thumbnail_url,sort_order,module_title,lesson_type,video_provider,video_id,video_url,aspect_ratio,duration_seconds,is_free,is_published,drip_days,headline,subheadline,problem,who_is_it_for,benefits,transformation,whats_included,curriculum_summary,instructor_bio,cta_text,cta_subtext,meta_description,certificate_enabled,reviewer_name,reviewer_email,rating,review_text,review_date,is_featured
-COURSE,Introduction to Hermetics,The foundational principles of Western esoteric philosophy,introduction-to-hermetics,PUBLISHED,97,,GBP,https://example.com/course-thumbnail.jpg,,,,,,,,,,,,Ancient Wisdom for the Modern Initiate,A structured practical course in Hermetic philosophy,Most people have no clear starting point — scattered books and no coherent system,Anyone serious about Western esotericism who wants a structured foundation,Understand the seven principles - Apply Hermetic law to daily life - Read the Kybalion,Students leave with a working philosophical framework they can build on for life,12 video lessons - Downloadable workbook - Private community access,"Three modules: foundation philosophy, the seven principles, practical application",I have studied Hermetic philosophy for over 20 years and taught hundreds of students,Enrol Now,30-day money-back guarantee,Structured courses in Hermetic philosophy for serious students,false,,,,,,
-MODULE,The Hermetic Foundation,,,,,,,,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-LESSON,Welcome & Course Overview,Introduction to the course,,,,,,,0,The Hermetic Foundation,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,480,true,true,,,,,,,,,,,,,,,,,,,,
-LESSON,What is Hermeticism?,History of the Hermetic tradition,,,,,,,1,The Hermetic Foundation,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,1440,false,true,,,,,,,,,,,,,,,,,,,,
-LESSON,The Kybalion — Text & Context,Reading and understanding the Kybalion,,,,,,,2,The Hermetic Foundation,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,2160,false,true,,,,,,,,,,,,,,,,,,,,
-MODULE,The Seven Principles,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-LESSON,Mentalism — All is Mind,The first Hermetic principle,,,,,,,0,The Seven Principles,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,1800,false,true,,,,,,,,,,,,,,,,,,,,
-LESSON,Correspondence — As Above So Below,The second principle,,,,,,,1,The Seven Principles,VIDEO,STREAMABLE,YOUR_VIDEO_ID,,56.25,1620,false,true,,,,,,,,,,,,,,,,,,,,
-REVIEW,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,John Smith,john@example.com,5,This course completely changed how I understand esoteric philosophy. Highly structured and practical.,2024-01-15,true
-REVIEW,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Sarah Jones,sarah@example.com,5,Excellent course. Simon explains complex concepts clearly. Well worth the investment.,2024-02-20,false`
+const TEMPLATE_CSV = `row_type,title,description,sort_order,module_title,lesson_type,video_provider,video_id,video_url,duration_seconds,is_free,is_published,drip_days,price,compare_at_price,currency,slug,status,thumbnail_url
+COURSE,Introduction to Hermetics,A complete course on the seven Hermetic principles,,,,,,,,,,,97,147,USD,intro-to-hermetics,DRAFT,
+MODULE,The Hermetic Foundation,,0,,,,,,,,,,,,,,,
+LESSON,Welcome & Overview,,0,The Hermetic Foundation,VIDEO,STREAMABLE,abc123,,480,true,true,,,,,,,
+LESSON,What is Hermeticism?,,1,The Hermetic Foundation,VIDEO,STREAMABLE,def456,,1440,false,true,,,,,,,
+LESSON,The Kybalion — Text & Context,,2,The Hermetic Foundation,VIDEO,VIMEO,123456789,,2160,false,true,,,,,,,
+MODULE,The Seven Principles,,1,,,,,,,,,,,,,,,
+LESSON,Mentalism — All is Mind,,0,The Seven Principles,VIDEO,STREAMABLE,ghi789,,1800,false,true,,,,,,,
+LESSON,Correspondence — As Above So Below,,1,The Seven Principles,VIDEO,STREAMABLE,jkl012,,1620,false,true,,,,,,,
+`
 
 // ── Simple client-side CSV preview parser ────────────────────────────────────
 function previewCsv(text: string): ParsedPreview | null {
@@ -165,7 +162,7 @@ export default function ImportClient() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <CheckCircle size={28} color="#16a34a" />
             <div>
-              <p style={{ fontSize: '18px', fontWeight: 700, color: '#14532d', margin: 0 }}>Import successful</p>
+              <p style={{ fontSize: '18px', fontWeight: 700, color: '#14532d', margin: 0 }}>Download successful</p>
               <p style={{ fontSize: '14px', color: '#166534', margin: 0 }}>{result.course.title}</p>
             </div>
           </div>
@@ -173,7 +170,6 @@ export default function ImportClient() {
             {[
               { label: 'Modules',  value: result.modules },
               { label: 'Lessons',  value: result.lessons },
-              { label: 'Reviews',  value: result.reviews ?? 0 },
               { label: 'Skipped',  value: result.skipped.length },
             ].map(stat => (
               <div key={stat.label}>
@@ -183,19 +179,13 @@ export default function ImportClient() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {result.productId && (
-              <a href={`/admin/products/${result.productId}`} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: '#16a34a', color: 'white', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
-                Edit Product <ExternalLink size={13} />
-              </a>
-            )}
-            <a href={`/admin/products`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: 'white', color: '#166534', border: '1px solid #86efac', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
-              Go to Products
+            <a href={`/admin/courses/${result.course.id}/edit`} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: '#16a34a', color: 'white', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
+              Edit Course <ExternalLink size={13} />
             </a>
             <a href={`/courses/${result.course.slug}`} target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', background: 'white', color: '#166534', border: '1px solid #86efac', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
-              Preview Sales Page <ExternalLink size={13} />
+              View Sales Page <ExternalLink size={13} />
             </a>
           </div>
         </div>
@@ -215,7 +205,7 @@ export default function ImportClient() {
         )}
 
         <button onClick={reset} style={{ padding: '9px 18px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
-          Import another course
+          Download another course
         </button>
       </div>
     )
@@ -388,26 +378,7 @@ export default function ImportClient() {
                 ['currency',         'COURSE',   'USD, GBP, EUR etc. (default: USD)'],
                 ['slug',             'COURSE',   'URL slug e.g. intro-to-hermetics (auto-generated if blank)'],
                 ['status',           'COURSE',   'DRAFT or PUBLISHED (default: DRAFT)'],
-                ['thumbnail_url',    'COURSE',   'Full URL to cover image — automatically saved to your storage'],
-                ['headline',         'COURSE',   'Sales page hero headline'],
-                ['subheadline',      'COURSE',   'Supporting statement below headline'],
-                ['problem',          'COURSE',   'What problem does this course solve'],
-                ['who_is_it_for',    'COURSE',   'Target audience description'],
-                ['benefits',         'COURSE',   'One benefit per line or dash-separated'],
-                ['transformation',   'COURSE',   'Outcome students experience'],
-                ['whats_included',   'COURSE',   'Course contents, one item per line'],
-                ['curriculum_summary','COURSE',  'Brief description of course structure'],
-                ['instructor_bio',   'COURSE',   'Why you are the right person to teach this'],
-                ['cta_text',         'COURSE',   'Button label e.g. Enrol Now'],
-                ['cta_subtext',      'COURSE',   'Below-button text e.g. 30-day guarantee'],
-                ['meta_description', 'COURSE',   'SEO description'],
-                ['certificate_enabled','COURSE', 'true or false (default: false)'],
-                ['reviewer_name',    'REVIEW',   'Display name of the reviewer'],
-                ['reviewer_email',   'REVIEW',   'Required — used to create/find reviewer account'],
-                ['rating',           'REVIEW',   '1 to 5 (default: 5)'],
-                ['review_text',      'REVIEW',   'The review comment'],
-                ['review_date',      'REVIEW',   'ISO date e.g. 2024-01-15 (blank = today)'],
-                ['is_featured',      'REVIEW',   'true or false — featured reviews appear on sales page'],
+                ['thumbnail_url',    'COURSE',   'Full URL to cover image'],
               ].map(([col, used, notes]) => (
                 <tr key={col}>
                   <td style={{ padding: '5px 8px', fontFamily: 'monospace', color: '#7B2FBE', fontWeight: 600 }}>{col}</td>

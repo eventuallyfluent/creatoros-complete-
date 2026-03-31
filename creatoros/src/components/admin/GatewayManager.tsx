@@ -20,7 +20,7 @@ const WEBHOOK_PROVIDERS = ['webhook_only', 'paypal', 'razorpay', 'nowpayments', 
 
 const PROVIDER_GUIDES: Record<string, {
   label:        string
-  mode:         'bank_transfer' | 'webhook' | 'webhook_external' | 'api_driver'
+  mode:         'bank_transfer' | 'webhook' | 'webhook_external'
   checkoutNote: string
   setupUrl:     string
   webhookPath:  string   // where in the provider dashboard to paste the webhook URL

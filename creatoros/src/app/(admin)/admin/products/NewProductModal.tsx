@@ -46,8 +46,7 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
   }, [handleKey])
 
   // ── COURSE form state ──────────────────────────────────────────────────────
-  const [newTitle,     setNewTitle]     = useState('')
-  const [newSlug,      setNewSlug]      = useState('')
+  const [courseId,     setCourseId]     = useState('')
   const [instructorId, setInstructorId] = useState('')
   const [price,        setPrice]        = useState('')
   const [compareAt,    setCompareAt]    = useState('')
@@ -67,38 +66,26 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
   const handleSubmit = async () => {
     setError(null); setSaving(true)
     try {
-      if (selected === 'COURSE') {
-        const courseRes = await fetch('/api/courses', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: newTitle, slug: newSlug, status: 'DRAFT',
-            instructorId: instructorId || null,
-            price:          parseFloat(price) || 0,
-            compareAtPrice: parseFloat(compareAt) || null,
-            currency,
-          }),
-        })
-        const courseData = await courseRes.json()
-        if (!courseRes.ok) { setError(courseData.error ?? 'Failed to create course'); setSaving(false); return }
-        onCreated(courseData.productId)
-      } else {
-        const body = { type: 'BUNDLE', title: bundleTitle, slug: bundleSlug,
-          price: parseFloat(bundlePrice) || 0, compareAtPrice: parseFloat(bundleCompare) || null,
-          currency, courseIds: selectedIds, instructorId: bundleInstructor || null }
-        const res  = await fetch('/api/admin/products', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-        const data = await res.json()
-        if (!res.ok) { setError(data.error ?? 'Failed to create product'); return }
-        onCreated(data.id)
-      }
+      const body = selected === 'COURSE'
+        ? { type: 'COURSE', courseId, instructorId: instructorId || null,
+            price: parseFloat(price) || 0, compareAtPrice: parseFloat(compareAt) || null, currency }
+        : { type: 'BUNDLE', title: bundleTitle, slug: bundleSlug,
+            price: parseFloat(bundlePrice) || 0, compareAtPrice: parseFloat(bundleCompare) || null,
+            currency, courseIds: selectedIds, instructorId: bundleInstructor || null }
+
+      const res  = await fetch('/api/admin/products', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Failed to create product'); return }
+      onCreated(data.id)
     } finally {
       setSaving(false)
     }
   }
 
-  const canSubmitCourse = !!newTitle && !!newSlug
+  const canSubmitCourse = !!courseId
   const canSubmitBundle = !!bundleTitle && !!bundleSlug && selectedIds.length > 0
 
   // ── Styles ─────────────────────────────────────────────────────────────────
@@ -204,20 +191,16 @@ export default function NewProductModal({ courses, instructors, onClose, onCreat
           {selected === 'COURSE' && (
             <>
               <div style={section}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div>
-                    <label style={lbl}>Course Title</label>
-                    <input value={newTitle} onChange={e => { setNewTitle(e.target.value); setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) }}
-                      placeholder="e.g. Advanced Tarot Reading" style={inp} autoFocus />
-                  </div>
-                  <div>
-                    <label style={lbl}>URL Slug</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '13px', color: '#9ca3af', whiteSpace: 'nowrap' }}>/courses/</span>
-                      <input value={newSlug} onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} style={inp} />
-                    </div>
-                  </div>
-                </div>
+                <label style={lbl}>Course</label>
+                <select value={courseId} onChange={e => setCourseId(e.target.value)} style={inp}>
+                  <option value="">— Select a course —</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+                {courseId && courses.find(c => c.id === courseId) && (
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '5px' }}>
+                    URL: /courses/{courses.find(c => c.id === courseId)!.slug}
+                  </p>
+                )}
               </div>
               <div style={section}>
                 <div style={row2}>

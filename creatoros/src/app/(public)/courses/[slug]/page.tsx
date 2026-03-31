@@ -98,8 +98,8 @@ export default async function CourseSalesPage({ params }: Props) {
   const blocks = product.salesPage?.blocks ?? []
 
   const S = {
-    container: { maxWidth: '1080px', margin: '0 auto', padding: '0 clamp(16px, 4vw, 48px)' } as React.CSSProperties,
-    section:   { padding: 'clamp(40px, 6vw, 72px) 0' } as React.CSSProperties,
+    container: { maxWidth: '1080px', margin: '0 auto', padding: '0 32px' } as React.CSSProperties,
+    section:   { padding: '56px 0' } as React.CSSProperties,
   }
 
   // ── BUY BOX ─────────────────────────────────────────────────────────────
@@ -153,15 +153,11 @@ export default async function CourseSalesPage({ params }: Props) {
     const sub      = c.subheadline?.trim() || product.subtitle || null
     const ctaLabel = c.ctaLabel?.trim()    || 'Enrol Now'
     const badges   = (c.badgeLabels ?? []).filter(Boolean)
-    const heroImg  = c.heroImageUrl?.trim() || null
-    const imgRight = !heroImg || (c.heroImagePosition ?? 'right') === 'right'
-
     return (
       <section key={block.id} className="hero-bg" style={{ padding: 'var(--s9) 0 var(--s7)' }}>
         <div style={S.container}>
-          <div style={{ display: 'flex', flexDirection: imgRight ? 'row' : 'row-reverse', gap: 'var(--s8)', alignItems: 'start', flexWrap: 'wrap' }}>
-            {/* Text + buy box */}
-            <div style={{ flex: 1, minWidth: '280px', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 'var(--s8)', alignItems: 'start' }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
               <h1 style={{ fontSize: 'clamp(24px, 4vw, 46px)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: sub ? '14px' : '24px' }}>{headline}</h1>
               {sub && <p style={{ fontSize: '19px', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: badges.length ? '20px' : '0' }}>{sub}</p>}
               {badges.length > 0 && (
@@ -173,15 +169,8 @@ export default async function CourseSalesPage({ params }: Props) {
                   ))}
                 </div>
               )}
-              {!heroImg && <div style={{ marginTop: 'var(--s6)' }}><BuyBox ctaLabel={ctaLabel} /></div>}
             </div>
-            {/* Hero image (when set) */}
-            {heroImg && (
-              <div style={{ flexShrink: 0, width: 'clamp(240px, 38%, 480px)', position: 'relative', zIndex: 1 }}>
-                <img src={heroImg} alt={headline} style={{ width: '100%', borderRadius: '16px', display: 'block', objectFit: 'cover' }} />
-                <div style={{ marginTop: 'var(--s5)' }}><BuyBox ctaLabel={ctaLabel} /></div>
-              </div>
-            )}
+            <div style={{ position: 'relative', zIndex: 1 }}><BuyBox ctaLabel={ctaLabel} /></div>
           </div>
         </div>
       </section>
@@ -201,79 +190,19 @@ export default async function CourseSalesPage({ params }: Props) {
     )
   }
 
-  function renderImage(block: any) {
-    const c = block.content ?? {}
-    // src may be stored as src or url depending on version
-    const src = c.src?.trim() || c.url?.trim()
-    if (!src) return null
-    const layout = c.layout ?? 'full-width'
-    const isSide = layout === 'image-left' || layout === 'image-right'
-    return (
-      <section key={block.id} style={S.section}>
-        <div style={S.container}>
-          {isSide ? (
-            <div style={{ display: 'flex', flexDirection: layout === 'image-right' ? 'row-reverse' : 'row', gap: 'clamp(24px, 5vw, 56px)', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ flexShrink: 0, width: 'clamp(200px, 44%, 440px)' }}>
-                <img src={src} alt={c.altText ?? ''} style={{ width: '100%', borderRadius: '12px', display: 'block', objectFit: 'cover' }} />
-              </div>
-              {c.text && (
-                <div style={{ flex: 1, minWidth: '220px' }}>
-                  <p style={{ fontSize: '17px', color: 'var(--text-secondary)', lineHeight: 1.85, whiteSpace: 'pre-wrap', margin: 0 }}>{c.text}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center' }}>
-              <img src={src} alt={c.altText ?? ''} style={{ maxWidth: '100%', borderRadius: '12px', display: 'block', margin: '0 auto' }} />
-            </div>
-          )}
-          {c.caption && <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '12px', fontStyle: 'italic' }}>{c.caption}</p>}
-        </div>
-      </section>
-    )
-  }
-
-  function renderVideo(block: any) {
-    const c = block.content ?? {}
-    if (!c.url?.trim()) return null
-    // Convert YouTube watch URL to embed URL
-    let embedUrl = c.url.trim()
-    const ytMatch = embedUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
-    if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`
-    return (
-      <section key={block.id} style={S.section}>
-        <div style={{ ...S.container, maxWidth: '800px' }}>
-          {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px', textAlign: 'center' }}>{c.heading}</h2>}
-          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
-            <iframe src={embedUrl} title={c.caption ?? 'Video'} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} />
-          </div>
-          {c.caption && <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '10px', fontStyle: 'italic' }}>{c.caption}</p>}
-        </div>
-      </section>
-    )
-  }
-
   function renderBenefits(block: any) {
     const c     = block.content ?? {}
     const items = (c.items ?? []).filter(Boolean)
     if (items.length === 0) return null
-    // Use 2-col for 4+ items, 1-col for fewer
-    const cols = items.length >= 4 ? 'repeat(auto-fill, minmax(280px, 1fr))' : '1fr'
     return (
       <section key={block.id} style={S.section}>
         <div style={S.container}>
-          {c.heading && (
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 3vw, 34px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s5)' }}>
-              {c.heading}
-            </h2>
-          )}
-          <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '12px' }}>
+          {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px' }}>{c.heading}</h2>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
             {items.map((item: string, i: number) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', transition: 'border-color 0.15s' }}>
-                <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
-                  <span style={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 700 }}>✦</span>
-                </span>
-                <span style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, fontWeight: 400 }}>{item}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+                <span style={{ color: 'var(--accent)', fontSize: '11px', marginTop: '3px', flexShrink: 0 }}>✦</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item}</span>
               </div>
             ))}
           </div>
@@ -288,7 +217,7 @@ export default async function CourseSalesPage({ params }: Props) {
     // For bundles, group by course
     const isBundleView = product.type === 'BUNDLE' && product.courses.length > 1
     return (
-      <section key={block.id} style={{ ...S.section, background: 'var(--bg-elevated)' }}>
+      <section key={block.id} style={{ ...S.section, background: 'rgba(26,26,46,0.5)' }}>
         <div style={S.container}>
           {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>{c.heading}</h2>}
           {allLessons.length > 0 && (
@@ -337,10 +266,7 @@ export default async function CourseSalesPage({ params }: Props) {
                             <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>
                               {lesson.type === 'VIDEO' ? '▶' : lesson.type === 'TEXT' ? '📄' : '📎'}
                             </span>
-                            {c.showFreePreview && lesson.isFree
-                              ? <a href={`/courses/${product.slug}/preview/${lesson.id}`} style={{ fontSize: '13px', color: 'var(--accent)', flex: 1, textDecoration: 'none', fontWeight: 500 }}>{lesson.title}</a>
-                              : <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{lesson.title}</span>
-                            }
+                            <span style={{ fontSize: '13px', color: lesson.isFree ? 'var(--accent)' : 'var(--text-secondary)', flex: 1 }}>{lesson.title}</span>
                             {c.showFreePreview && lesson.isFree && <span style={{ fontSize: '10px', padding: '2px 7px', background: 'rgba(52,211,153,0.1)', color: 'var(--success)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 'var(--r-pill)', fontWeight: 700, flexShrink: 0 }}>FREE</span>}
                             {dur && <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>{dur}</span>}
                           </div>
@@ -388,34 +314,25 @@ export default async function CourseSalesPage({ params }: Props) {
     const c = block.content ?? {}
     let items: any[] = c.items ?? []
     if (c.pullFromApproved && allCourseIds.length > 0) {
-      const approved = await prisma.courseReview.findMany({
-        where:   { courseId: { in: allCourseIds }, status: 'APPROVED', comment: { not: null } },
-        include: { user: { select: { name: true } } },
+      const approved = await prisma.testimonial.findMany({
+        where:   { courseId: { in: allCourseIds }, status: 'APPROVED' },
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
         take:    6,
       })
-      items = approved.map((r: any) => ({
-        name:   r.user.name ?? 'Student',
-        quote:  r.comment,
-        role:   null,
-        rating: r.rating,
-      }))
+      items = approved.map(t => ({ name: t.authorName, quote: t.quote, role: t.authorRole }))
     }
     const visible = items.filter((i: any) => i.quote?.trim())
     if (visible.length === 0) return null
     return (
-      <section style={{ ...S.section, background: 'var(--bg-elevated)' }}>
+      <section style={{ ...S.section, background: 'rgba(26,26,46,0.5)' }}>
         <div style={S.container}>
           {c.heading && <h2 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '28px', textAlign: 'center' }}>{c.heading}</h2>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
             {visible.map((item: any, i: number) => (
-              <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {item.rating && <p style={{ fontSize: '11px', color: 'var(--accent-gold)', letterSpacing: '0.1em', margin: 0 }}>{'★'.repeat(item.rating)}</p>}
-                <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.7, fontStyle: 'italic', flex: 1, margin: 0 }}>"{item.quote}"</p>
-                <div>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>
-                  {item.role && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>{item.role}</p>}
-                </div>
+              <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '22px' }}>
+                <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '14px', fontStyle: 'italic' }}>"{item.quote}"</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>
+                {item.role && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.role}</p>}
               </div>
             ))}
           </div>
@@ -450,13 +367,12 @@ export default async function CourseSalesPage({ params }: Props) {
   function renderCta(block: any) {
     const c        = block.content ?? {}
     const ctaLabel = c.buttonLabel?.trim() || 'Enrol Now'
-    const priceStr = c.showPrice && !isFree ? ` — ${product.currency} ${price.toFixed(2)}` : ''
     if (isEnrolled) return null
     return (
-      <section key={block.id} style={{ ...S.section, background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-base) 100%)', textAlign: 'center' }}>
+      <section key={block.id} style={{ ...S.section, background: 'linear-gradient(135deg, #1A0A2E 0%, var(--bg-base) 100%)', textAlign: 'center' }}>
         <div style={{ ...S.container, maxWidth: '580px', margin: '0 auto' }}>
           {c.heading && <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--text-primary)', marginBottom: '20px' }}>{c.heading}</h2>}
-          <EnrollButton productId={product.id} productSlug={product.slug} portalSlug={portalSlug} price={price} currency={product.currency} label={ctaLabel + priceStr} />
+          <EnrollButton productId={product.id} productSlug={product.slug} portalSlug={portalSlug} price={price} currency={product.currency} label={ctaLabel} />
           {c.buttonSubtext && <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '10px' }}>{c.buttonSubtext}</p>}
         </div>
       </section>
@@ -471,7 +387,6 @@ export default async function CourseSalesPage({ params }: Props) {
     switch (block.type) {
       case 'HERO':         return renderHero(block)
       case 'TEXT':         return renderText(block)
-      case 'IMAGE':        return (block.content as any)?.blockKind === 'VIDEO' ? renderVideo(block) : renderImage(block)
       case 'BENEFITS':     return renderBenefits(block)
       case 'CURRICULUM':   return renderCurriculum(block)
       case 'INSTRUCTOR':   return renderInstructor(block)
@@ -502,38 +417,6 @@ export default async function CourseSalesPage({ params }: Props) {
         </section>
       )}
       {renderedBlocks}
-      {blocks.length === 0 && firstCourse && (
-        // Fallback when no sales page blocks configured — show curriculum directly
-        <section style={S.section}>
-          <div style={S.container}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 3vw, 30px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 'var(--s5)' }}>
-              Course Content
-            </h2>
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
-              {allModules.map((mod: any, mIdx: number) => (
-                <details key={mod.id} open={mIdx === 0} style={{ borderBottom: mIdx < allModules.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <summary style={{ padding: '15px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-elevated)', listStyle: 'none', userSelect: 'none' as const }}>
-                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{mod.title}</span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{mod.lessons.length} lessons</span>
-                  </summary>
-                  <div>
-                    {mod.lessons.map((lesson: any) => (
-                      <div key={lesson.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 20px 10px 28px', borderTop: '1px solid rgba(46,46,78,0.4)' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>▶</span>
-                        {lesson.isFree
-                          ? <a href={`/courses/${product.slug}/preview/${lesson.id}`} style={{ fontSize: '13px', color: 'var(--accent)', flex: 1, textDecoration: 'none', fontWeight: 500 }}>{lesson.title}</a>
-                          : <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{lesson.title}</span>
-                        }
-                        {lesson.isFree && <span style={{ fontSize: '10px', padding: '2px 7px', background: 'rgba(52,211,153,0.1)', color: 'var(--success)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 'var(--r-pill)', fontWeight: 700 }}>FREE</span>}
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
       {firstCourse && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
           <CourseReviews courseId={firstCourse.id} isEnrolled={!!isEnrolled} />

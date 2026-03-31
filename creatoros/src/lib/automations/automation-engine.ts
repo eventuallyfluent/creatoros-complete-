@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db/prisma'
-import { logger } from '@/lib/logger'
 import { sendEmail, renderBroadcastHtml } from '@/lib/email/email-service'
 
 // ============================================================
@@ -52,13 +51,11 @@ interface AutomationStep {
   sortOrder:  number
 }
 
-  // ISSUE 3 FIX: deduplicationKey prevents double-firing when called from webhook + admin
-  // Key must include triggerType AND courseId so bundle courses each get a unique execution record
-  const dedupeKey = (triggerType: string, ctx: AutomationContext) =>
-    `${triggerType}:order=${ctx.orderId ?? ''}:course=${ctx.courseId ?? ''}:user=${ctx.userId ?? ''}`
+// ISSUE 3 FIX: deduplicationKey prevents double-firing when called from webhook + admin
 export async function runAutomations(
   triggerType:      string,
   ctx:              AutomationContext,
+  deduplicationKey?: string
 ): Promise<void> {
   const automations = await prisma.automation.findMany({
     where:   { isActive: true, trigger: triggerType },
@@ -69,9 +66,8 @@ export async function runAutomations(
     const filter = automation.triggerFilter as TriggerFilter | null
     if (!matchesTriggerFilter(filter, ctx)) continue
 
-    // Dedup key includes triggerType + orderId + courseId + userId
-    // so bundle courses (same orderId, different courseId) each get their own execution
-    const dedupe = dedupeKey(triggerType, ctx)
+    // Deduplication: skip if this exact key has already run for this automation
+    const dedupe = deduplicationKey ?? `${triggerType}:${ctx.orderId ?? ctx.userId ?? ''}`
     const existing = await prisma.automationExecution.findFirst({
       where: { automationId: automation.id, deduplicationKey: dedupe },
     }).catch(() => null)
@@ -116,7 +112,7 @@ async function executeSteps(
       }).catch(() => {})
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      logger.error(`Automation step failed`, err, { executionId, action: step.action })
+      console.error(`Automation step failed [${executionId}]:`, err)
       await prisma.automationExecution.update({
         where: { id: executionId },
         data:  { status: 'FAILED', error: msg },
@@ -250,7 +246,7 @@ async function executeStep(
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ ...(data.payload as object ?? {}), ...ctx }),
-    }).catch(err => logger.error('webhook_post failed', err, { url: data.url as string }))
+    }).catch(err => console.error('webhook_post failed:', err))
     return
   }
 

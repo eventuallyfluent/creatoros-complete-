@@ -60,7 +60,7 @@ export default async function InstructorPage({ params }: Props) {
 
       {/* Profile section */}
       <div style={{
-        background: instructor.bannerImageUrl ? 'transparent' : 'linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg-base) 60%)',
+        background: instructor.bannerImageUrl ? 'transparent' : 'linear-gradient(160deg, #1A0A2E 0%, var(--bg-base) 60%)',
         paddingTop: instructor.bannerImageUrl ? '0' : 'var(--s8)',
         paddingBottom: 'var(--s8)',
         borderBottom: '1px solid var(--border)',
@@ -183,7 +183,7 @@ export default async function InstructorPage({ params }: Props) {
                     transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'pointer',
                   }}>
                     {/* Thumbnail */}
-                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', background: 'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))' }}>
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', overflow: 'hidden', background: 'linear-gradient(135deg, #0D0D1A, #1A0A2E)' }}>
                       {(product.thumbnailUrl ?? firstCourse?.thumbnailUrl) ? (
                         <Image
                           src={product.thumbnailUrl ?? firstCourse!.thumbnailUrl!}

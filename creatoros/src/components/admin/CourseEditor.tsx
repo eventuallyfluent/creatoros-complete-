@@ -84,7 +84,7 @@ export default function CourseEditor({ course, instructors, productId }: Props) 
     setSaving(false)
     if (!res.ok) { setError(data.error ?? 'Save failed'); return }
     setSuccess(true); setTimeout(() => setSuccess(false), 3000)
-    if (isNew && data.id) router.push(`/admin/products/new?courseId=${data.id}`)
+    if (isNew && data.id) router.push(`/admin/courses/${data.id}/edit`)
   }
 
   return (

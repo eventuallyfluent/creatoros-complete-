@@ -48,11 +48,10 @@ export default async function LessonPage({ params }: Props) {
   const daysSinceEnroll = Math.floor((Date.now() - enrollment.enrolledAt.getTime()) / 86400000)
   const isDripped = lesson.dripDaysAfterEnrollment !== null && daysSinceEnroll < lesson.dripDaysAfterEnrollment
 
-  const progressRecords: { lessonId: string; status: string; notes: string | null }[] =
-    await prisma.lessonProgress.findMany({
-      where:  { userId, courseId: course.id },
-      select: { lessonId: true, status: true, notes: true },
-    }).catch(() => [])
+  const progressRecords = await prisma.lessonProgress.findMany({
+    where:  { userId, courseId: course.id },
+    select: { lessonId: true, status: true, notes: true },
+  }).catch(() => [])
 
   const progressMap    = new Map(progressRecords.map(p => [p.lessonId, p]))
   const currentIdx     = allLessons.findIndex(l => l.id === params.lessonId)
