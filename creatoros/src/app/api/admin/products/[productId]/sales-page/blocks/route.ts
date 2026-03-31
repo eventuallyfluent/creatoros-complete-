@@ -25,7 +25,14 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
 
   const salesPageId = product.salesPage.id
 
-  await Promise.all(blocks.map((b: any, i: number) => {
+  // VIDEO is not in the DB enum — store as IMAGE type with content.blockKind='VIDEO'
+  const normaliseType = (t: string) => t === 'VIDEO' ? 'IMAGE' : t
+  const normaliseContent = (b: any) => {
+    if (b.type === 'VIDEO') return { ...b.content, blockKind: 'VIDEO' }
+    if (b.type === 'IMAGE') return { ...b.content, blockKind: 'IMAGE' }
+    return b.content ?? {}
+  }
+  await Promise.all(blocks.map((b: any, i: number) => { b = { ...b, type: normaliseType(b.type), content: normaliseContent(b) };
     if (b.id && b.id.length > 5) {
       return prisma.salesPageBlock.upsert({
         where:  { id: b.id },

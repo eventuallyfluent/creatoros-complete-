@@ -10,11 +10,17 @@ import Button from '@/components/ui/Button'
 
 const NAV_LINKS = [
   { label: 'Courses',     href: '/courses' },
-  { label: 'Collections', href: '/collection' },
+  { label: 'Collections', href: '/collections' },
   { label: 'Instructors', href: '/instructors' },
 ]
 
-export default function Navbar({ session }: { session: any }) {
+export default function Navbar({ session, logoDarkUrl, logoLightUrl, navLinks }: {
+  session:      any
+  logoDarkUrl?:  string | null
+  logoLightUrl?: string | null
+  navLinks?:     { label: string; href: string }[]
+}) {
+  const links = navLinks && navLinks.length > 0 ? navLinks : NAV_LINKS
   const [mobileOpen,    setMobileOpen]    = useState(false)
   const [userMenuOpen,  setUserMenuOpen]  = useState(false)
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -59,7 +65,7 @@ export default function Navbar({ session }: { session: any }) {
           left: 0,
           right: 0,
           height: 'var(--nav-height)',
-          background: 'rgba(13,13,26,0.92)',
+          background: 'var(--nav-bg, rgba(13,13,26,0.92))',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border)',
@@ -78,14 +84,22 @@ export default function Navbar({ session }: { session: any }) {
         >
           {/* Logo — top left */}
           <Link href="/" style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-            <Image
-              src="/logo.png"
-              alt="Perseus Arcane Academy"
-              width={120}
-              height={48}
-              style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
-              priority
-            />
+            {/* Dark logo shown by default; light logo via CSS when theme is light */}
+            {logoDarkUrl ? (
+              <>
+                <Image src={logoDarkUrl} alt="Perseus Arcane Academy" width={120} height={48}
+                  style={{ height: '40px', width: 'auto', objectFit: 'contain' }} priority
+                  className="logo-dark" />
+                {logoLightUrl && logoLightUrl !== logoDarkUrl && (
+                  <Image src={logoLightUrl} alt="Perseus Arcane Academy" width={120} height={48}
+                    style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'none' }} priority
+                    className="logo-light" />
+                )}
+              </>
+            ) : (
+              <Image src="/logo.png" alt="Perseus Arcane Academy" width={120} height={48}
+                style={{ height: '40px', width: 'auto', objectFit: 'contain' }} priority />
+            )}
           </Link>
 
           {/* Nav links — desktop centre */}
@@ -98,7 +112,7 @@ export default function Navbar({ session }: { session: any }) {
             }}
             className="hide-mobile"
           >
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -245,7 +259,7 @@ export default function Navbar({ session }: { session: any }) {
           padding: '80px 24px 40px',
         }}>
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

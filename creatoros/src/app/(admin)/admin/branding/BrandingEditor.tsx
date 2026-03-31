@@ -18,11 +18,11 @@ export default function BrandingEditor({ settings }: Props) {
 
   const set = (key: keyof SiteSettings, val: any) => setForm(f => ({ ...f, [key]: val }))
 
-  const handleUpload = async (file: File, field: 'logoUrl' | 'faviconUrl') => {
+  const handleUpload = async (file: File, field: string) => {
     setUploading(field)
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('folder', field === 'logoUrl' ? 'logos' : 'favicons')
+    formData.append('folder', field === 'faviconUrl' ? 'favicons' : 'logos')
     const res  = await fetch('/api/upload', { method: 'POST', body: formData })
     const data = await res.json()
     setUploading(null)
@@ -105,27 +105,61 @@ export default function BrandingEditor({ settings }: Props) {
       </Section>
 
       <Section title="Logo & Favicon">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {(['logoUrl', 'faviconUrl'] as const).map(field => (
+        <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '14px' }}>
+          Upload separate logos for dark and light themes. If only one is uploaded, it is used for both.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
+          {([
+            { field: 'logoDarkUrl'  as const, label: 'Logo — Dark Theme'  },
+            { field: 'logoLightUrl' as const, label: 'Logo — Light Theme' },
+            { field: 'logoUrl'      as const, label: 'Logo — Fallback'    },
+            { field: 'faviconUrl'   as const, label: 'Favicon'            },
+          ]).map(({ field, label }) => (
             <div key={field}>
-              <label style={lbl}>{field === 'logoUrl' ? 'Logo' : 'Favicon'}</label>
-              <div style={{ border: '2px dashed #e5e7eb', borderRadius: '10px', padding: '20px', textAlign: 'center', position: 'relative' }}>
-                {form[field] ? (
+              <label style={lbl}>{label}</label>
+              <div style={{ border: '2px dashed #e5e7eb', borderRadius: '10px', padding: '16px', textAlign: 'center', position: 'relative', minHeight: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {(form as any)[field] ? (
                   <div>
-                    <Image src={form[field]!} alt={field} width={field === 'faviconUrl' ? 48 : 120} height={48} style={{ objectFit: 'contain', margin: '0 auto 10px' }} />
-                    <button onClick={() => set(field, null)} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Remove</button>
+                    <Image src={(form as any)[field]} alt={label} width={field === 'faviconUrl' ? 32 : 100} height={36} style={{ objectFit: 'contain', margin: '0 auto 8px', display: 'block' }} />
+                    <button onClick={() => set(field as any, null)} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Remove</button>
                   </div>
                 ) : (
-                  <label style={{ cursor: 'pointer' }}>
+                  <label style={{ cursor: 'pointer', display: 'block' }}>
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f, field) }} />
-                    <div style={{ fontSize: '28px', marginBottom: '6px' }}>{uploading === field ? '⏳' : '+'}</div>
-                    <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{uploading === field ? 'Uploading…' : 'Click to upload'}</p>
+                    <div style={{ fontSize: '22px', marginBottom: '4px' }}>{uploading === field ? '⏳' : '+'}</div>
+                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{uploading === field ? 'Uploading…' : 'Upload'}</p>
                   </label>
                 )}
               </div>
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section title="Theme">
+        <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '14px' }}>
+          Choose a preset theme. Perseus Dark is the default deep space aesthetic. Perseus Light is a clean light mode with the same purple family.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
+          {([
+            { value: 'dark',  label: 'Perseus Dark',  desc: 'Deep space · dark backgrounds · light text',  bg: '#0D0D1A', text: '#F0EAF8', accent: '#C084FC' },
+            { value: 'light', label: 'Perseus Light', desc: 'Clean light · white surfaces · purple accents', bg: '#F5F3FF', text: '#1A0A2E', accent: '#7B2FBE' },
+          ] as const).map(preset => {
+            const isActive = ((form as any).themeVariant ?? 'dark') === preset.value
+            return (
+              <button key={preset.value}
+                onClick={() => set('themeVariant' as any, preset.value)}
+                style={{ padding: '14px 16px', border: isActive ? '2px solid #7B2FBE' : '1px solid #e5e7eb', borderRadius: '10px', background: preset.bg, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-ui)', transition: 'all 0.15s', outline: 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: preset.text }}>{preset.label}</span>
+                  {isActive && <span style={{ fontSize: '10px', fontWeight: 700, color: preset.accent, background: `${preset.accent}22`, padding: '2px 7px', borderRadius: '4px' }}>Active</span>}
+                </div>
+                <p style={{ fontSize: '11px', color: preset.accent, margin: 0 }}>{preset.desc}</p>
+              </button>
+            )
+          })}
+        </div>
+        <p style={{ fontSize: '11px', color: '#9ca3af' }}>Theme takes effect immediately on save.</p>
       </Section>
 
       <Section title="Colours">

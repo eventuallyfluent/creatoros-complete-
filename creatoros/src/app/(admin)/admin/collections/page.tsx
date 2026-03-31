@@ -14,7 +14,7 @@ export default async function AdminCollectionsPage() {
   }).catch(() => [])
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: 'clamp(16px, 3vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
       <AdminPageHeader
         title="Collections"
         description="Group courses into themed collections shown on the /courses page"
@@ -25,10 +25,7 @@ export default async function AdminCollectionsPage() {
         <div style={{ background: 'white', border: '2px dashed #e5e7eb', borderRadius: '12px', padding: '56px', textAlign: 'center' }}>
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>📁</div>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>No collections yet</h2>
-          <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>Collections appear as cards on the /courses page.</p>
-          <Link href="/admin/collections/new" style={{ display: 'inline-block', background: '#7B2FBE', color: 'white', padding: '10px 24px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', textDecoration: 'none' }}>
-            Create First Collection →
-          </Link>
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>Collections appear as cards on the /courses page. Use the button above to create one.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>

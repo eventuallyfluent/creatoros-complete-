@@ -106,21 +106,37 @@ export async function getCourseStats() {
   })
 
   const courseIds = courses.map(c => c.id)
-  const [completions, revenue] = await Promise.all([
+  // OrderItem references productId, not courseId. Join via ProductCourse to get revenue per course.
+  const productCourseLinks = await prisma.productCourse.findMany({
+    where: { courseId: { in: courseIds } },
+    select: { courseId: true, productId: true },
+  })
+  const productIds = productCourseLinks.map(l => l.productId)
+  const productToCourse = new Map(productCourseLinks.map(l => [l.productId, l.courseId]))
+
+  const [completions, revenueByProduct] = await Promise.all([
     prisma.enrollment.groupBy({
       by: ['courseId'],
       where: { courseId: { in: courseIds }, completedAt: { not: null } },
       _count: { courseId: true },
     }),
     prisma.orderItem.groupBy({
-      by: ['courseId'],
-      where: { courseId: { in: courseIds }, order: { status: 'PAID' } },
+      by: ['productId'],
+      where: { productId: { in: productIds }, order: { status: 'PAID' } },
       _sum: { priceAtPurchase: true },
     }),
   ])
 
-  const completionMap = new Map(completions.map(c => [c.courseId, c._count.courseId]))
-  const revenueMap    = new Map(revenue.map(r => [r.courseId, Number(r._sum.priceAtPurchase ?? 0)]))
+  const completionMap = new Map<string, number>(
+    (completions as { courseId: string; _count: { courseId: number } }[])
+      .map(c => [c.courseId, c._count.courseId])
+  )
+  // Map product revenue back to courseId
+  const revenueMap = new Map<string, number>()
+  for (const r of revenueByProduct) {
+    const cId = productToCourse.get(r.productId)
+    if (cId) revenueMap.set(cId, Number(r._sum.priceAtPurchase ?? 0))
+  }
 
   return courses.map(c => {
     const enrolled   = c._count.enrollments

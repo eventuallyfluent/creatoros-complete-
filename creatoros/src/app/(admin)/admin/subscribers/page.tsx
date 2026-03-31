@@ -25,9 +25,9 @@ export default async function AdminSubscribersPage({
       where,
       orderBy: { subscribedAt: 'desc' },
       take, skip,
-    }),
-    prisma.emailSubscriber.count({ where }),
-  ]).catch(() => [])
+    }).catch(() => []),
+    prisma.emailSubscriber.count({ where }).catch(() => 0),
+  ])
 
   const totalPages = Math.ceil(total / take)
 

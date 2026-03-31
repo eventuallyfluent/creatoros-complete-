@@ -11,6 +11,7 @@ interface BumpProduct {
 interface CheckoutPageData {
   showCouponField:      boolean
   thankYouUrl:          string | null
+  guaranteeText:        string | null
   orderBumpProductId:   string | null
   orderBumpHeadline:    string | null
   orderBumpDescription: string | null
@@ -26,13 +27,14 @@ interface Props {
   userEmail:    string
   userName:     string
   userId:       string | null
+  isPreview?:   boolean
 }
 
 const GATEWAY_ICONS: Record<string, string> = {
   stripe: '💳', paypal: '🅿', manual: '🏦', webhook_only: '🔗', nowpayments: '₿',
 }
 
-export default function CheckoutForm({ product, checkoutPage, bumpProduct, gateways, userEmail, userName, userId }: Props) {
+export default function CheckoutForm({ product, checkoutPage, bumpProduct, gateways, userEmail, userName, userId, isPreview }: Props) {
   const router = useRouter()
 
   const [email,         setEmail]         = useState(userEmail)
@@ -208,9 +210,9 @@ export default function CheckoutForm({ product, checkoutPage, bumpProduct, gatew
           </div>
         )}
 
-        <button type="submit" disabled={loading || !email}
-          style={{ width: '100%', background: loading ? 'var(--bg-elevated)' : 'var(--brand)', color: loading ? 'var(--text-muted)' : 'white', border: 'none', borderRadius: 'var(--r-md)', padding: '15px', fontSize: '16px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)', transition: 'all 0.15s', marginBottom: '12px' }}>
-          {loading ? 'Processing…' : `Pay ${product.currency} ${effectiveTotal.toFixed(2)} — Get Instant Access`}
+        <button type="submit" disabled={loading || !email || isPreview}
+          style={{ width: '100%', background: isPreview ? 'var(--bg-elevated)' : loading ? 'var(--bg-elevated)' : 'var(--brand)', color: isPreview ? 'var(--text-muted)' : loading ? 'var(--text-muted)' : 'white', border: isPreview ? '2px dashed var(--border)' : 'none', borderRadius: 'var(--r-md)', padding: '15px', fontSize: '16px', fontWeight: 700, cursor: isPreview ? 'not-allowed' : loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-ui)', transition: 'all 0.15s', marginBottom: '12px' }}>
+          {isPreview ? `Preview only — Pay ${product.currency} ${effectiveTotal.toFixed(2)}` : loading ? 'Processing…' : `Pay ${product.currency} ${effectiveTotal.toFixed(2)} — Get Instant Access`}
         </button>
 
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>

@@ -182,7 +182,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
             {/* 4-column grid matching live site */}
             <div style={{
               display:               'grid',
-              gridTemplateColumns:   'repeat(4, 1fr)',
+              gridTemplateColumns:   'repeat(auto-fill, minmax(240px, 1fr))',
               gap:                   'var(--s5)',
             }} className="course-collection-grid">
               {courses.map(course => {
@@ -242,7 +242,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
       <style>{`
         .collection-tab:hover { color: var(--text-primary) !important; }
         @media (max-width: 1024px) {
-          .course-collection-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .course-collection-grid { grid-template-columns: repeat(3, minmax(200px, 1fr)) !important; }
         }
         @media (max-width: 720px) {
           .course-collection-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -291,7 +291,7 @@ function CollectionCourseCard({
           width:       '100%',
           aspectRatio: '4/3',
           overflow:    'hidden',
-          background:  'linear-gradient(135deg, #0D0D1A, #1A0A2E)',
+          background:  'linear-gradient(135deg, var(--bg-elevated), var(--bg-hover))',
         }}>
           {thumbnailUrl ? (
             <Image

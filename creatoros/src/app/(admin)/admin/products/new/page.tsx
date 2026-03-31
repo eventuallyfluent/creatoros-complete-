@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { prisma } from '@/lib/db/prisma'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import NewProductClient from './NewProductClient'
+import { Suspense } from 'react'
 
 export const metadata: Metadata = { title: 'New Product — Admin' }
 
@@ -25,7 +26,9 @@ export default async function NewProductPage() {
         backHref="/admin/products"
         backLabel="All Products"
       />
-      <NewProductClient courses={courses} instructors={instructors} />
+      <Suspense fallback={null}>
+        <NewProductClient courses={courses} instructors={instructors} />
+      </Suspense>
     </div>
   )
 }
